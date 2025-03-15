@@ -1,0 +1,119 @@
+{
+  "app": {
+    "title": "ختم قرآن",
+    "subtitle": "سفر خواندن دسته‌جمعی قرآن"
+  },
+  "navigation": {
+    "backToList": "بازگشت به لیست",
+    "createNew": "ایجاد ختم جدید"
+  },
+  "khatmahList": {
+    "title": "ختم‌ها",
+    "search": "جستجوی ختم‌ها بر اساس نام یا شرکت‌کننده...",
+    "clearSearch": "پاک کردن جستجو",
+    "myCreatedKhatmahs": "ختم‌های ایجاد شده من",
+    "creator": "سازنده",
+    "private": "خصوصی",
+    "created": "ایجاد شده",
+    "ends": "پایان",
+    "participants": "{n} شرکت‌کننده | {n} شرکت‌کنندگان",
+    "completed": "تکمیل شده",
+    "noKhatmahs": "هیچ ختمی یافت نشد",
+    "noKhatmahsMatch": "هیچ ختمی با جستجوی شما مطابقت ندارد برای",
+    "noKhatmahsAvailable": "هنوز هیچ ختمی در دسترس نیست"
+  },
+  "khatmahDetail": {
+    "title": "جزئیات ختم",
+    "editKhatmah": "ویرایش ختم",
+    "share": "اشتراک‌گذاری",
+    "myParticipations": "مشارکت‌های من",
+    "completed": "تکمیل شده",
+    "createdOn": "ایجاد شده در",
+    "endDate": "تاریخ پایان",
+    "privateKhatmah": "ختم خصوصی",
+    "joinKhatmah": "پیوستن به این ختم",
+    "enterName": "نام خود را وارد کنید",
+    "nameError": "لطفاً نام خود را وارد کنید",
+    "joinAsAnonymous": "شما به عنوان \"خواننده ناشناس\" پیوست خواهید شد",
+    "joinButton": "پیوستن به ختم",
+    "youJoinedAs": "شما پیوستید به عنوان",
+    "clickUnassigned": "روی هر جزء اختصاص نیافته زیر کلیک کنید تا آن را انتخاب کنید",
+    "clickAssigned": "روی جزء اختصاص یافته خود کلیک کنید تا آن را بخوانید",
+    "juzAssignments": "تخصیص اجزاء",
+    "notAssigned": "اختصاص نیافته",
+    "clickToSelect": "برای انتخاب کلیک کنید",
+    "readJuz": "خواندن جزء",
+    "markComplete": "علامت‌گذاری به عنوان تکمیل شده",
+    "markIncomplete": "علامت‌گذاری به عنوان تکمیل نشده",
+    "inProgress": "در حال انجام",
+    "participants": "شرکت‌کنندگان",
+    "joined": "پیوست",
+    "juz": "جزء"
+  },
+  "share": {
+    "title": "اشتراک‌گذاری ختم",
+    "description": "این ختم را با دیگران به اشتراک بگذارید تا آنها را به پیوستن به سفر خواندن قرآن دعوت کنید.",
+    "khatmahLink": "لینک ختم",
+    "copy": "کپی",
+    "copied": "کپی شد!"
+  },
+  "participations": {
+    "title": "مشارکت‌های من در ختم",
+    "noParticipations": "شما هنوز به هیچ ختمی نپیوسته‌اید.",
+    "joinedAs": "پیوستید به عنوان",
+    "switch": "تغییر",
+    "leave": "ترک کردن",
+    "leaveConfirm": "آیا مطمئن هستید که می‌خواهید این ختم را ترک کنید؟ تخصیص‌های شما باقی خواهد ماند، اما برای ایجاد تغییرات باید دوباره بپیوندید."
+  },
+  "footer": {
+    "about": "درباره",
+    "help": "راهنما",
+    "contact": "تماس",
+    "rights": "تمامی حقوق محفوظ است."
+  },
+  "language": {
+    "en": "English",
+    "ar": "العربية",
+    "ku": "کوردی",
+    "fa": "فارسی"
+  },
+  "prayerTimes": {
+    "title": "اوقات نماز",
+    "locationSettings": "تنظیمات موقعیت",
+    "detectLocation": "تشخیص موقعیت من",
+    "detecting": "در حال تشخیص...",
+    "detectingLocation": "در حال تشخیص موقعیت شما...",
+    "loading": "در حال بارگذاری اوقات نماز...",
+    "selectFromPresets": "انتخاب از شهرهای معروف",
+    "selectCountry": "انتخاب کشور",
+    "selectCountryPrompt": "کشوری را انتخاب کنید",
+    "locationName": "نام موقعیت",
+    "timezone": "منطقه زمانی",
+    "longitude": "طول جغرافیایی",
+    "latitude": "عرض جغرافیایی",
+    "fajr": "فجر",
+    "sunrise": "طلوع آفتاب",
+    "dhuhr": "ظهر",
+    "sunset": "غروب آفتاب",
+    "maghrib": "مغرب",
+    "poweredBy": "ارائه شده توسط",
+    "noData": "اطلاعات اوقات نماز در دسترس نیست",
+    "nextPrayer": "نماز بعدی",
+    "timeRemaining": "زمان باقی مانده",
+    "hijri": "هجری",
+    "loadingHijri": "در حال بارگذاری تاریخ هجری...",
+    "hijriCalendar": "تقویم هجری",
+    "hijriMonth": "ماه",
+    "hijriYear": "سال",
+    "leapYear": "سال کبیسه",
+    "yes": "بله",
+    "no": "خیر",
+    "sunniCalendar": "سنی",
+    "shiaCalendar": "شیعه"
+  },
+  "common": {
+    "save": "ذخیره",
+    "cancel": "لغو",
+    "retry": "تلاش مجدد"
+  }
+} 
