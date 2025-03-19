@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hijri Calendar API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #444;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Hijri Calendar API Test</h1>
+    
+    <div class="section">
+        <h2>Hijri Months</h2>
+        <button onclick="fetchHijriMonths()">Fetch Hijri Months</button>
+        <pre id="hijri-months-result">Results will appear here...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>Current Hijri Month</h2>
+        <button onclick="fetchCurrentMonth()">Fetch Current Month</button>
+        <pre id="current-month-result">Results will appear here...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>Hijri Events</h2>
+        <button onclick="fetchHijriEvents()">Fetch Hijri Events</button>
+        <pre id="hijri-events-result">Results will appear here...</pre>
+    </div>
+    
+    <div class="section">
+        <h2>Astronomical Events</h2>
+        <button onclick="fetchAstronomicalEvents()">Fetch Astronomical Events</button>
+        <pre id="astronomical-events-result">Results will appear here...</pre>
+    </div>
+    
+    <script>
+        const baseUrl = 'http://localhost:8000/api';
+        let monthId = null;
+        
+        function formatJson(json) {
+            return JSON.stringify(json, null, 2);
+        }
+        
+        async function fetchHijriMonths() {
+            const resultElement = document.getElementById('hijri-months-result');
+            resultElement.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-months/`);
+                const data = await response.json();
+                
+                if (data.results && data.results.length > 0) {
+                    monthId = data.results[0].id;
+                }
+                
+                resultElement.textContent = formatJson(data);
+            } catch (error) {
+                resultElement.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function fetchCurrentMonth() {
+            const resultElement = document.getElementById('current-month-result');
+            resultElement.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-months/current/`);
+                const data = await response.json();
+                resultElement.textContent = formatJson(data);
+            } catch (error) {
+                resultElement.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function fetchHijriEvents() {
+            const resultElement = document.getElementById('hijri-events-result');
+            resultElement.textContent = 'Loading...';
+            
+            try {
+                let url = `${baseUrl}/hijri-events/`;
+                if (monthId) {
+                    url = `${baseUrl}/hijri-events/by_month/?month_id=${monthId}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                resultElement.textContent = formatJson(data);
+            } catch (error) {
+                resultElement.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        async function fetchAstronomicalEvents() {
+            const resultElement = document.getElementById('astronomical-events-result');
+            resultElement.textContent = 'Loading...';
+            
+            try {
+                let url = `${baseUrl}/astronomical-events/`;
+                if (monthId) {
+                    url = `${baseUrl}/astronomical-events/by_month/?month_id=${monthId}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                resultElement.textContent = formatJson(data);
+            } catch (error) {
+                resultElement.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // Fetch Hijri months on page load
+        window.onload = fetchHijriMonths;
+    </script>
+</body>
+</html> 

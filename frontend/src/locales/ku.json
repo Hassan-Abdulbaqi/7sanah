@@ -9,6 +9,7 @@
   },
   "khatmahList": {
     "title": "خەتمەکان",
+    "management": "بەڕێوەبردنی خەتم",
     "search": "گەڕان بۆ خەتم بە ناو یان بەشداربوو...",
     "clearSearch": "سڕینەوەی گەڕان",
     "myCreatedKhatmahs": "خەتمەکانی من",
@@ -110,6 +111,30 @@
     "no": "نەخێر",
     "sunniCalendar": "سوننی",
     "shiaCalendar": "شیعە"
+  },
+  "compass": {
+    "title": "Kompass",
+    "permissionNeeded": "Destûra kompassê pêwîst e. Ji kerema xwe destûrê bide sererastkirina cîhaza xwe.",
+    "allowAccess": "Destûr Bide",
+    "notSupported": "Compass li cîhaza te nayê piştgirîkirin.",
+    "useGeolocation": "Cihê niha bi kar bîne",
+    "detectLocation": "Cihê Diyarkirin",
+    "detecting": "Tê diyarkirin...",
+    "accuracy": "Rêjeya Kompassê",
+    "accuracyHigh": "Bilind",
+    "accuracyMedium": "Navîn",
+    "accuracyLow": "Nizm",
+    "accuracyUnknown": "Nenas",
+    "magneticDeclination": "Xwarbûna Magnetîkî",
+    "calibrationNeeded": "Divê kompass were kalîbrekirin. Cîhaza xwe bi şêwaza 8 bihejîne.",
+    "showSettings": "Mîhengan Nîşan Bide",
+    "hideSettings": "Mîhengan Veşêre",
+    "manualCalibration": "Rasterastkirina Destî ya Kompassê",
+    "calibrationTip": "Heke aliyê kompassê nerast e, bi van kontrolan sererast bikin."
+  },
+  "qibla": {
+    "title": "Qible",
+    "fromNorth": "ji Bakur"
   },
   "common": {
     "save": "پاشەکەوتکردن",

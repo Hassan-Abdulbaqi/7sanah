@@ -7,8 +7,10 @@ import KhatmahDetail from "./components/KhatmahDetail.vue";
 import CreateKhatmah from "./components/CreateKhatmah.vue";
 import EditKhatmah from "./components/EditKhatmah.vue";
 import LanguageSwitcher from "./components/LanguageSwitcher.vue";
+import HijriCalendar from "./components/HijriCalendar.vue";
+import QiblaCompass from "./components/QiblaCompass.vue";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const currentView = ref('list');
 const selectedKhatmahId = ref(null);
@@ -42,7 +44,7 @@ const countdownInterval = ref(null);
 // City presets organized by country
 const cityPresets = {
   'Saudi Arabia': [
-    { name: 'Mecca', latitude: '21.4225', longitude: '39.8262', timezone: '+3' },
+    { name: 'Mecca', latitude: '21.4241', longitude: '39.8173', timezone: '+3' },
     { name: 'Medina', latitude: '24.5247', longitude: '39.5692', timezone: '+3' },
     { name: 'Riyadh', latitude: '24.7136', longitude: '46.6753', timezone: '+3' },
     { name: 'Jeddah', latitude: '21.4858', longitude: '39.1925', timezone: '+3' }
@@ -337,48 +339,123 @@ function calculateNextPrayer() {
   if (!prayerTimes.value) return;
   
   const now = new Date();
+  
+  // Define the three prayers we want to track
   const prayers = [
-    { name: 'fajr', time: prayerTimes.value.fajir, translationKey: 'prayerTimes.fajr' },
-    { name: 'dhuhr', time: prayerTimes.value.doher, translationKey: 'prayerTimes.dhuhr' },
-    { name: 'maghrib', time: prayerTimes.value.maghrib, translationKey: 'prayerTimes.maghrib' }
+    { name: 'fajr', time: prayerTimes.value.fajir?.trim(), translationKey: 'prayerTimes.fajr', isPM: false },
+    { name: 'dhuhr', time: prayerTimes.value.doher?.trim(), translationKey: 'prayerTimes.dhuhr', isPM: true },
+    { name: 'maghrib', time: prayerTimes.value.maghrib?.trim(), translationKey: 'prayerTimes.maghrib', isPM: true }
   ];
   
-  // Convert prayer times to Date objects
-  const prayerDateObjects = prayers.map(prayer => {
-    const [hours, minutes] = prayer.time.split(':').map(Number);
+  console.log('Calculating next prayer. Current time:', now.toLocaleTimeString());
+  console.log('Available prayer times:', prayers);
+  
+  // Convert prayer times to Date objects for today
+  const prayerDateObjects = [];
+  
+  for (const prayer of prayers) {
+    if (!prayer.time) {
+      console.warn(`Missing time for prayer: ${prayer.name}`);
+      continue;
+    }
+    
+    // Split the time string and parse as numbers, handling any format issues
+    const timeParts = prayer.time.split(':');
+    if (timeParts.length < 2) {
+      console.warn(`Invalid time format for ${prayer.name}: ${prayer.time}`);
+      continue;
+    }
+    
+    let hours = parseInt(timeParts[0]);
+    let minutes = parseInt(timeParts[1]);
+    
+    // Handle invalid parsing results
+    if (isNaN(hours) || isNaN(minutes)) {
+      console.warn(`Failed to parse time for ${prayer.name}: ${prayer.time}`);
+      continue;
+    }
+    
+    // Convert to 24-hour format for PM prayers
+    // For PM prayers (Dhuhr and Maghrib), if the hour is less than 12, add 12 hours
+    if (prayer.isPM && hours < 12) {
+      hours += 12;
+      console.log(`Converted ${prayer.name} time to PM: ${hours}:${minutes}`);
+    }
+    
+    // Create a date object for this prayer time today
     const prayerDate = new Date(now);
     prayerDate.setHours(hours, minutes, 0, 0);
-    return { ...prayer, date: prayerDate };
-  });
+    
+    // Format for display
+    const displayTime = formatPrayerTimeWithAMPM(prayer.time, prayer.isPM);
+    
+    prayerDateObjects.push({ 
+      ...prayer, 
+      date: prayerDate,
+      timeString: displayTime,
+      hours: hours,
+      minutes: minutes
+    });
+    
+    console.log(`Parsed ${prayer.name} time: ${hours}:${minutes} (${prayerDate.toLocaleTimeString()})`);
+  }
   
-  // Find the next prayer
+  // Sort prayer times chronologically for today
+  prayerDateObjects.sort((a, b) => a.date - b.date);
+  
+  console.log('Sorted prayer times for today:', prayerDateObjects.map(p => `${p.name}: ${p.timeString}`));
+  
+  // Current hour and minute for comparison
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  console.log(`Current time: ${currentHour}:${currentMinute}`);
+  
+  // Find the next prayer for today
   let nextPrayerObj = null;
   
   // Check if any prayers are remaining today
   for (const prayer of prayerDateObjects) {
-    if (prayer.date > now) {
+    // Compare hours and minutes directly for more reliable comparison
+    if (prayer.hours > currentHour || (prayer.hours === currentHour && prayer.minutes > currentMinute)) {
       nextPrayerObj = prayer;
+      console.log('Next prayer found for today:', prayer.name, 'at', prayer.timeString);
       break;
     }
   }
   
-  // If no prayers remaining today, use first prayer of tomorrow
-  if (!nextPrayerObj) {
-    const tomorrowFajr = prayerDateObjects.find(p => p.name === 'fajr');
-    if (tomorrowFajr) {
+  // If no prayers remaining today, use first prayer (Fajr) of tomorrow
+  if (!nextPrayerObj && prayerDateObjects.length > 0) {
+    console.log('No prayers remaining today, using Fajr for tomorrow');
+    
+    // Find the Fajr prayer
+    const fajrPrayer = prayerDateObjects.find(p => p.name === 'fajr');
+    
+    if (fajrPrayer) {
+      // Create a new date for tomorrow
       const tomorrowDate = new Date(now);
       tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-      tomorrowDate.setHours(
-        tomorrowFajr.date.getHours(),
-        tomorrowFajr.date.getMinutes(),
-        0, 0
-      );
-      nextPrayerObj = { ...tomorrowFajr, date: tomorrowDate };
+      
+      // Set the hours and minutes from the Fajr prayer time
+      tomorrowDate.setHours(fajrPrayer.hours, fajrPrayer.minutes, 0, 0);
+      
+      nextPrayerObj = { 
+        ...fajrPrayer, 
+        date: tomorrowDate
+      };
+      
+      console.log('Tomorrow Fajr set for:', tomorrowDate.toLocaleString());
+    } else {
+      console.error('Could not find Fajr prayer for tomorrow');
     }
   }
   
-  nextPrayer.value = nextPrayerObj;
-  updateCountdown();
+  if (nextPrayerObj) {
+    nextPrayer.value = nextPrayerObj;
+    console.log('Next prayer set to:', nextPrayer.value.name);
+    updateCountdown();
+  } else {
+    console.error('Failed to determine next prayer time');
+  }
 }
 
 // Function to update the countdown timer
@@ -393,6 +470,7 @@ function updateCountdown() {
   
   if (diff <= 0) {
     // Time has passed, recalculate next prayer
+    console.log('Prayer time has passed, recalculating next prayer');
     calculateNextPrayer();
     return;
   }
@@ -455,11 +533,31 @@ async function fetchPrayerTimes() {
     const data = await response.json();
     console.log('Prayer times API response:', data);
     
+    // Clean up the prayer times data by trimming any whitespace
+    if (data) {
+      if (data.fajir) data.fajir = data.fajir.trim();
+      if (data.doher) data.doher = data.doher.trim();
+      if (data.maghrib) data.maghrib = data.maghrib.trim();
+      if (data.sunrise) data.sunrise = data.sunrise.trim();
+      if (data.sunset) data.sunset = data.sunset.trim();
+      
+      console.log('Cleaned prayer times:', {
+        fajr: data.fajir,
+        dhuhr: data.doher,
+        maghrib: data.maghrib,
+        sunrise: data.sunrise,
+        sunset: data.sunset
+      });
+    }
+    
     // Update the reactive variable
     prayerTimes.value = data;
     
+    // Stop any existing countdown timer
+    stopCountdownTimer();
+    
     // Calculate next prayer and start countdown
-    calculateNextPrayer();
+    startCountdownTimer();
     
     // Fetch Hijri date after prayer times are loaded
     await fetchHijriDate();
@@ -475,6 +573,9 @@ async function fetchPrayerTimes() {
   } catch (error) {
     console.error('Error fetching prayer times:', error);
     prayerTimesError.value = error.message;
+    
+    // Clear any existing timer if there's an error
+    stopCountdownTimer();
   } finally {
     loadingPrayerTimes.value = false;
   }
@@ -977,6 +1078,81 @@ function getHijriYear() {
   // Default to approximate Hijri year if we can't determine it
   return (new Date().getFullYear() - 579).toString();
 }
+
+// Function to format prayer time
+function formatPrayerTime(timeString) {
+  if (!timeString) return '';
+  
+  // Trim any whitespace
+  const trimmed = timeString.trim();
+  
+  // Split by colon
+  const parts = trimmed.split(':');
+  if (parts.length < 2) return trimmed;
+  
+  // Format as HH:MM
+  const hours = parseInt(parts[0]);
+  const minutes = parseInt(parts[1]);
+  
+  if (isNaN(hours) || isNaN(minutes)) return trimmed;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+// Function to format prayer time with AM/PM for display
+function formatPrayerTimeWithAMPM(timeString, isPM = false) {
+  if (!timeString) return '';
+  
+  // Trim any whitespace
+  const trimmed = timeString.trim();
+  
+  // Split by colon
+  const parts = trimmed.split(':');
+  if (parts.length < 2) return trimmed;
+  
+  // Parse hours and minutes
+  let hours = parseInt(parts[0]);
+  let minutes = parseInt(parts[1]);
+  
+  if (isNaN(hours) || isNaN(minutes)) return trimmed;
+  
+  // Determine if it's AM or PM
+  let period = 'AM';
+  let displayHours = hours;
+  
+  // For prayers that are typically in the afternoon/evening (Dhuhr, Asr, Maghrib, Isha)
+  if (isPM) {
+    // If hours is less than 12, it's PM (e.g., 6:26 PM)
+    if (hours < 12) {
+      period = 'PM';
+    } 
+    // If hours is 12, it's noon (12:00 PM)
+    else if (hours === 12) {
+      period = 'PM';
+    } 
+    // If hours is greater than 12, it's PM but display as 1-12
+    else {
+      period = 'PM';
+      displayHours = hours - 12;
+    }
+  } else {
+    // For morning prayers (Fajr, Sunrise)
+    // If hours is 12, it's midnight (12:00 AM)
+    if (hours === 12) {
+      period = 'AM';
+      displayHours = 12;
+    } 
+    // If hours is greater than 12, it's PM
+    else if (hours > 12) {
+      period = 'PM';
+      displayHours = hours - 12;
+    }
+    // Otherwise it's AM (e.g., 4:48 AM)
+  }
+  
+  // Format the time with AM/PM
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+}
 </script>
 
 <template>
@@ -1017,357 +1193,371 @@ function getHijriYear() {
         </div>
       </transition>
 
-      <!-- Prayer Times Component -->
-      <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold text-emerald-700 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-            </svg>
-            {{ t('prayerTimes.title') || 'أوقات الصلاة' }}
-          </h2>
-          
-          <div class="flex items-center">
-            <span class="text-sm text-gray-600 mr-2">{{ locationName }}</span>
-            <button 
-              @click="showLocationSettings = !showLocationSettings"
-              class="text-emerald-600 hover:text-emerald-700 focus:outline-none"
-              title="Change Location"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        
-        <!-- Location Settings Panel -->
-        <div v-if="showLocationSettings" class="bg-gray-50 p-4 rounded-lg mb-4">
-          <h3 class="text-lg font-medium text-gray-900 mb-3">{{ t('prayerTimes.locationSettings') || 'إعدادات الموقع' }}</h3>
-          
-          <div class="flex flex-wrap gap-2 mb-4">
-            <button 
-              @click="detectUserLocation" 
-              class="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-              :disabled="detectingLocation"
-              :class="{ 'opacity-50 cursor-not-allowed': detectingLocation }"
-            >
-              <svg v-if="!detectingLocation" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-              </svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" class="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span v-if="!detectingLocation">{{ t('prayerTimes.detectLocation') || 'اكتشاف موقعك' }}</span>
-              <span v-else>{{ t('prayerTimes.detecting') || 'جاري الكشف...' }}</span>
-            </button>
-            
-            <button 
-              @click="showCityPresets = !showCityPresets" 
-              class="inline-flex items-center px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md hover:bg-emerald-200 transition-colors"
-              :disabled="detectingLocation"
-              :class="{ 'opacity-50 cursor-not-allowed': detectingLocation }"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
-              </svg>
-              {{ t('prayerTimes.selectFromPresets') || 'اختر من المدن المعروفة' }}
-            </button>
-          </div>
-          
-          <!-- Display error message if there is one -->
-          <div v-if="prayerTimesError" class="mb-4 bg-red-50 text-red-700 p-3 rounded-md">
-            <p class="text-sm">{{ prayerTimesError }}</p>
-          </div>
-          
-          <!-- City Presets -->
-          <div v-if="showCityPresets" class="mb-4 bg-white p-3 rounded-md border border-gray-200">
-            <div class="mb-3">
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.selectCountry') || 'اختر الدولة' }}</label>
-              <select 
-                v-model="selectedCountry" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-              >
-                <option value="">{{ t('prayerTimes.selectCountryPrompt') || 'اختر الدولة' }}</option>
-                <option v-for="country in countries" :key="country" :value="country">{{ country }}</option>
-              </select>
-            </div>
-            
-            <div v-if="selectedCountry" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <button 
-                v-for="city in citiesForSelectedCountry" 
-                :key="city.name"
-                @click="selectCity(city)"
-                class="px-3 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors text-sm"
-              >
-                {{ city.name }}
-              </button>
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.locationName') || 'اسم الموقع' }}</label>
-              <input 
-                v-model="locationName" 
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.timezone') || 'المنطقة الزمنية' }}</label>
-              <input 
-                v-model="timezone" 
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="+3"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.longitude') || 'خط الطول' }}</label>
-              <input 
-                v-model="longitude" 
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="44.0228"
-              />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.latitude') || 'خط العرض' }}</label>
-              <input 
-                v-model="latitude" 
-                type="text" 
-                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="32.6143"
-              />
-            </div>
-          </div>
-          
-          <div class="flex justify-end space-x-3">
-            <button 
-              @click="showLocationSettings = false"
-              class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-            >
-              {{ t('common.cancel') || 'إلغاء' }}
-            </button>
-            <button 
-              @click="updatePrayerTimesLocation"
-              class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-            >
-              {{ t('common.save') || 'حفظ' }}
-            </button>
-          </div>
-        </div>
-        
-        <!-- Prayer Times Display -->
-        <div class="prayer-times-container">
-          <!-- Loading state -->
-          <div v-if="loadingPrayerTimes || detectingLocation" class="flex flex-col items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500 mb-3"></div>
-            <p v-if="detectingLocation" class="text-sm text-gray-600">{{ t('prayerTimes.detectingLocation') || 'جاري تحديد موقعك...' }}</p>
-            <p v-else class="text-sm text-gray-600">{{ t('prayerTimes.loading') || 'جاري تحميل أوقات الصلاة...' }}</p>
-          </div>
-          
-          <!-- Error state -->
-          <div v-else-if="prayerTimesError" class="bg-red-50 text-red-700 p-4 rounded-lg">
-            <p>{{ prayerTimesError }}</p>
-            <button 
-              @click="fetchPrayerTimes" 
-              class="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
-            >
-              Retry
-            </button>
-          </div>
-          
-          <!-- Prayer times data -->
-          <div v-else-if="prayerTimes" class="text-center">
-            <div class="mb-4 text-gray-600">
-              <!-- Gregorian date -->
-              <div>{{ prayerTimes.date }}</div>
-            </div>
-            
-            <!-- Hijri Calendar Card -->
-            <div v-if="hijriDate" class="mb-6 bg-emerald-50 rounded-lg p-4 max-w-md mx-auto shadow-sm">
-              <h3 class="text-lg font-medium text-emerald-800 mb-2 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
-                </svg>
-                {{ t('prayerTimes.hijriCalendar') || 'Hijri Calendar' }}
-              </h3>
-              
-              <!-- Calendar Type Toggle -->
-              <div class="flex items-center justify-center mb-3">
-                <span class="text-xs text-emerald-700 mr-2">{{ t('prayerTimes.sunniCalendar') || 'Sunni' }}</span>
-                <button 
-                  @click="isShiaCalendar = !isShiaCalendar" 
-                  type="button" 
-                  class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-                  :class="isShiaCalendar ? 'bg-emerald-600' : 'bg-gray-200'"
-                  role="switch" 
-                  :aria-checked="isShiaCalendar"
-                  title="Toggle between Sunni and Shia Hijri calendar calculations (typically 1 day difference)"
-                >
-                  <span 
-                    aria-hidden="true" 
-                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                    :class="isShiaCalendar ? 'translate-x-5' : 'translate-x-0'"
-                  ></span>
-                </button>
-                <span class="text-xs text-emerald-700 ml-2">{{ t('prayerTimes.shiaCalendar') || 'Shia' }}</span>
-                <span class="ml-2 group relative">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-600 cursor-help" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+      <!-- Main Content -->
+      <transition :name="transitionName" mode="out-in">
+        <!-- Home Page with Grid Layout -->
+        <div v-if="currentView === 'list'" key="home-page" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <!-- Left Column - Prayer Times -->
+          <div class="lg:col-span-6">
+            <!-- Prayer Times Component -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-8 h-full">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-emerald-700 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
                   </svg>
-                  <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                    Shia and Sunni calendars may differ by 1 day due to different moon sighting methods.
-                  </span>
-                </span>
+                  {{ t('prayerTimes.title') || 'أوقات الصلاة' }}
+                </h2>
+                
+                <div class="flex items-center">
+                  <span class="text-sm text-gray-600 mr-2">{{ locationName }}</span>
+                  <button 
+                    @click="showLocationSettings = !showLocationSettings"
+                    class="text-emerald-600 hover:text-emerald-700 focus:outline-none"
+                    title="Change Location"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               
-              <div class="text-2xl font-bold text-emerald-700 mb-1 font-arabic">
-                {{ formatHijriDate() }}
-              </div>
-              
-              <div class="text-sm text-emerald-600 mb-3">
-                {{ getHijriWeekday() }}
-              </div>
-              
-              <div class="grid grid-cols-2 gap-2 text-sm">
-                <div class="bg-white rounded p-2 text-emerald-700">
-                  <span class="font-medium">{{ t('prayerTimes.hijriMonth') || 'Month' }}:</span> 
-                  <span class="font-arabic">{{ getHijriMonthNumber() }}/12</span>
+              <!-- Location Settings Panel -->
+              <div v-if="showLocationSettings" class="bg-gray-50 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-3">{{ t('prayerTimes.locationSettings') || 'إعدادات الموقع' }}</h3>
+                
+                <div class="flex flex-wrap gap-2 mb-4">
+                  <button 
+                    @click="detectUserLocation" 
+                    class="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                    :disabled="detectingLocation"
+                    :class="{ 'opacity-50 cursor-not-allowed': detectingLocation }"
+                  >
+                    <svg v-if="!detectingLocation" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span v-if="!detectingLocation">{{ t('prayerTimes.detectLocation') || 'اكتشاف موقعك' }}</span>
+                    <span v-else>{{ t('prayerTimes.detecting') || 'جاري الكشف...' }}</span>
+                  </button>
+                  
+                  <button 
+                    @click="showCityPresets = !showCityPresets" 
+                    class="inline-flex items-center px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md hover:bg-emerald-200 transition-colors"
+                    :disabled="detectingLocation"
+                    :class="{ 'opacity-50 cursor-not-allowed': detectingLocation }"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+                    </svg>
+                    {{ t('prayerTimes.selectFromPresets') || 'اختر من المدن المعروفة' }}
+                  </button>
                 </div>
                 
-                <div class="bg-white rounded p-2 text-emerald-700">
-                  <span class="font-medium">{{ t('prayerTimes.hijriYear') || 'Year' }}:</span> 
-                  <span class="font-arabic">{{ getHijriYear() }} {{ t('prayerTimes.hijri') }}</span>
+                <!-- Display error message if there is one -->
+                <div v-if="prayerTimesError" class="mb-4 bg-red-50 text-red-700 p-3 rounded-md">
+                  <p class="text-sm">{{ prayerTimesError }}</p>
                 </div>
                 
-                <div class="bg-white rounded p-2 text-emerald-700 col-span-2">
-                  <span class="font-medium">{{ t('prayerTimes.leapYear') || 'Leap Year' }}:</span> 
-                  <span v-if="isHijriLeapYear()" class="text-emerald-600">{{ t('prayerTimes.yes') || 'Yes' }}</span>
-                  <span v-else class="text-gray-500">{{ t('prayerTimes.no') || 'No' }}</span>
+                <!-- City Presets -->
+                <div v-if="showCityPresets" class="mb-4 bg-white p-3 rounded-md border border-gray-200">
+                  <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.selectCountry') || 'اختر الدولة' }}</label>
+                    <select 
+                      v-model="selectedCountry" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                    >
+                      <option value="">{{ t('prayerTimes.selectCountryPrompt') || 'اختر الدولة' }}</option>
+                      <option v-for="country in countries" :key="country" :value="country">{{ country }}</option>
+                    </select>
+                  </div>
+                  
+                  <div v-if="selectedCountry" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <button 
+                      v-for="city in citiesForSelectedCountry" 
+                      :key="city.name"
+                      @click="selectCity(city)"
+                      class="px-3 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors text-sm"
+                    >
+                      {{ city.name }}
+                    </button>
+                  </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.locationName') || 'اسم الموقع' }}</label>
+                    <input 
+                      v-model="locationName" 
+                      type="text" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.timezone') || 'المنطقة الزمنية' }}</label>
+                    <input 
+                      v-model="timezone" 
+                      type="text" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="+3"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.longitude') || 'خط الطول' }}</label>
+                    <input 
+                      v-model="longitude" 
+                      type="text" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="44.0228"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('prayerTimes.latitude') || 'خط العرض' }}</label>
+                    <input 
+                      v-model="latitude" 
+                      type="text" 
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                      placeholder="32.6143"
+                    />
+                  </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                  <button 
+                    @click="showLocationSettings = false"
+                    class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                  >
+                    {{ t('common.cancel') || 'إلغاء' }}
+                  </button>
+                  <button 
+                    @click="updatePrayerTimesLocation"
+                    class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                  >
+                    {{ t('common.save') || 'حفظ' }}
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Prayer Times Display -->
+              <div class="prayer-times-container">
+                <!-- Loading state -->
+                <div v-if="loadingPrayerTimes || detectingLocation" class="flex flex-col items-center justify-center py-8">
+                  <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500 mb-3"></div>
+                  <p v-if="detectingLocation" class="text-sm text-gray-600">{{ t('prayerTimes.detectingLocation') || 'جاري تحديد موقعك...' }}</p>
+                  <p v-else class="text-sm text-gray-600">{{ t('prayerTimes.loading') || 'جاري تحميل أوقات الصلاة...' }}</p>
+                </div>
+                
+                <!-- Error state -->
+                <div v-else-if="prayerTimesError" class="bg-red-50 text-red-700 p-4 rounded-lg">
+                  <p>{{ prayerTimesError }}</p>
+                  <button 
+                    @click="fetchPrayerTimes" 
+                    class="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+                
+                <!-- Prayer times data -->
+                <div v-else-if="prayerTimes" class="text-center">
+                 
+                  
+                  <!-- Next Prayer Countdown -->
+                  <div v-if="nextPrayer" class="mb-6 bg-indigo-50 rounded-lg p-4 max-w-md mx-auto shadow-sm">
+                    <div class="text-indigo-800 font-medium mb-1">{{ t('prayerTimes.nextPrayer') || 'Next Prayer' }}: {{ t(nextPrayer.translationKey) || nextPrayer.name }}</div>
+                    <div class="text-3xl font-bold text-indigo-700 font-mono">{{ countdownTime }}</div>
+                  </div>
+                  
+                  <div class="flex flex-col space-y-4">
+                    <!-- Fajr -->
+                    <div class="bg-emerald-50 rounded-lg p-4 flex justify-between items-center" 
+                         :class="{ 'ring-2 ring-emerald-500 shadow-md': nextPrayer && nextPrayer.name === 'fajr' }">
+                      <div class="text-emerald-800 font-medium">{{ t('prayerTimes.fajr') || 'الفجر' }}</div>
+                      <div class="text-xl font-bold text-emerald-700">{{ formatPrayerTimeWithAMPM(prayerTimes.fajir, false) }}</div>
+                    </div>
+                    
+                    <!-- Sunrise -->
+                    <div class="bg-amber-50 rounded-lg p-4 flex justify-between items-center">
+                      <div class="text-amber-800 font-medium">{{ t('prayerTimes.sunrise') || 'الشروق' }}</div>
+                      <div class="text-xl font-bold text-amber-600">{{ formatPrayerTimeWithAMPM(prayerTimes.sunrise, false) }}</div>
+                    </div>
+                    
+                    <!-- Dhuhr -->
+                    <div class="bg-blue-50 rounded-lg p-4 flex justify-between items-center"
+                         :class="{ 'ring-2 ring-blue-500 shadow-md': nextPrayer && nextPrayer.name === 'dhuhr' }">
+                      <div class="text-blue-800 font-medium">{{ t('prayerTimes.dhuhr') || 'الظهر' }}</div>
+                      <div class="text-xl font-bold text-blue-600">{{ formatPrayerTimeWithAMPM(prayerTimes.doher, true) }}</div>
+                    </div>
+                    
+                    <!-- Sunset -->
+                    <div class="bg-orange-50 rounded-lg p-4 flex justify-between items-center">
+                      <div class="text-orange-800 font-medium">{{ t('prayerTimes.sunset') || 'الغروب' }}</div>
+                      <div class="text-xl font-bold text-orange-600">{{ formatPrayerTimeWithAMPM(prayerTimes.sunset, true) }}</div>
+                    </div>
+                    
+                    <!-- Maghrib -->
+                    <div class="bg-purple-50 rounded-lg p-4 flex justify-between items-center"
+                         :class="{ 'ring-2 ring-purple-500 shadow-md': nextPrayer && nextPrayer.name === 'maghrib' }">
+                      <div class="text-purple-800 font-medium">{{ t('prayerTimes.maghrib') || 'المغرب' }}</div>
+                      <div class="text-xl font-bold text-purple-600">{{ formatPrayerTimeWithAMPM(prayerTimes.maghrib, true) }}</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- No data state -->
+                <div v-else class="text-center py-8 text-gray-500">
+                  {{ t('prayerTimes.noData') || 'لا توجد بيانات متاحة' }}
                 </div>
               </div>
             </div>
-            
-            <div v-else-if="loadingHijriDate" class="mb-6 bg-emerald-50 rounded-lg p-4 max-w-md mx-auto shadow-sm">
-              <div class="flex flex-col items-center justify-center py-4">
-                <div class="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-emerald-500 mb-2"></div>
-                <p class="text-sm text-emerald-600">{{ t('prayerTimes.loadingHijri') || 'جاري تحميل التاريخ الهجري...' }}</p>
+          </div>
+
+          <!-- Right Column - Khatmah Management -->
+          <div class="lg:col-span-6">
+            <!-- Khatmah Management Card -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-8 h-full">
+              <!-- Card Header with Title and Add Button -->
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-emerald-700 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                  </svg>
+                  {{ t('khatmahList.management') || 'إدارة الختمات' }}
+                </h2>
+                
+                <!-- Add New Khatmah Button -->
+                <div class="flex" :class="{ 'justify-start': locale === 'ar', 'justify-end': locale !== 'ar' }">
+                  <button 
+                    @click="showCreateKhatmah" 
+                    class="flex items-center px-4 py-2 bg-emerald-600 rounded-md shadow-sm text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    {{ t('navigation.createNew') }}
+                  </button>
+                </div>
               </div>
-            </div>
-            
-            <!-- Next Prayer Countdown -->
-            <div v-if="nextPrayer" class="mb-6 bg-indigo-50 rounded-lg p-4 max-w-md mx-auto shadow-sm">
-              <div class="text-indigo-800 font-medium mb-1">{{ t('prayerTimes.nextPrayer') || 'Next Prayer' }}: {{ t(nextPrayer.translationKey) || nextPrayer.name }}</div>
-              <div class="text-3xl font-bold text-indigo-700 font-mono">{{ countdownTime }}</div>
-            </div>
-            
-            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <!-- Fajr -->
-              <div class="bg-emerald-50 rounded-lg p-4" :class="{ 'ring-2 ring-emerald-500': nextPrayer && nextPrayer.name === 'fajr' }">
-                <div class="text-emerald-800 font-medium mb-1">{{ t('prayerTimes.fajr') || 'الفجر' }}</div>
-                <div class="text-2xl font-bold text-emerald-700">{{ prayerTimes.fajir }}</div>
-              </div>
-              
-              <!-- Sunrise -->
-              <div class="bg-amber-50 rounded-lg p-4">
-                <div class="text-amber-800 font-medium mb-1">{{ t('prayerTimes.sunrise') || 'الشروق' }}</div>
-                <div class="text-2xl font-bold text-amber-600">{{ prayerTimes.sunrise }}</div>
-              </div>
-              
-              <!-- Dhuhr -->
-              <div class="bg-blue-50 rounded-lg p-4" :class="{ 'ring-2 ring-blue-500': nextPrayer && nextPrayer.name === 'dhuhr' }">
-                <div class="text-blue-800 font-medium mb-1">{{ t('prayerTimes.dhuhr') || 'الظهر' }}</div>
-                <div class="text-2xl font-bold text-blue-600">{{ prayerTimes.doher }}</div>
-              </div>
-              
-              <!-- Sunset -->
-              <div class="bg-orange-50 rounded-lg p-4">
-                <div class="text-orange-800 font-medium mb-1">{{ t('prayerTimes.sunset') || 'الغروب' }}</div>
-                <div class="text-2xl font-bold text-orange-600">{{ prayerTimes.sunset }}</div>
-              </div>
-              
-              <!-- Maghrib -->
-              <div class="bg-purple-50 rounded-lg p-4 md:col-span-1 col-span-2" :class="{ 'ring-2 ring-purple-500': nextPrayer && nextPrayer.name === 'maghrib' }">
-                <div class="text-purple-800 font-medium mb-1">{{ t('prayerTimes.maghrib') || 'المغرب' }}</div>
-                <div class="text-2xl font-bold text-purple-600">{{ prayerTimes.maghrib }}</div>
-              </div>
-            </div>
-            
-            <div class="mt-4 text-xs text-gray-500 text-center">
-              موثق بواسطة حقيبة المؤمن
+
+              <!-- Khatmah List View -->
+              <KhatmahList 
+                :khatmahs="store.khatmahs"
+                @select-khatmah="showKhatmahDetail" />
             </div>
           </div>
           
-          <!-- No data state -->
-          <div v-else class="text-center py-8 text-gray-500">
-            {{ t('prayerTimes.noData') || 'لا توجد بيانات متاحة' }}
+          <!-- Full Width Calendar Row -->
+          <div class="lg:col-span-12">
+            <!-- Hijri Calendar Component -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+              <HijriCalendar />
+            </div>
+            
+            <!-- Qibla Compass Component -->
+            <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
+              <h2 class="text-xl font-semibold text-emerald-700 flex items-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                </svg>
+                {{ t('compass.title') || 'Compass' }}
+              </h2>
+              <QiblaCompass />
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Navigation -->
-      <div class="flex justify-between mb-8">
-        <button 
-          v-if="currentView !== 'list'" 
-          @click="goToList" 
-          class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
-          </svg>
-          {{ t('navigation.backToList') }}
-        </button>
-        <button 
-          v-if="currentView === 'list'" 
-          @click="showCreateKhatmah" 
-          class="flex items-center px-4 py-2 bg-emerald-600 rounded-md shadow-sm text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-          </svg>
-          {{ t('navigation.createNew') }}
-        </button>
-      </div>
-
-      <!-- Views with Transition -->
-      <div class="bg-white rounded-xl shadow-sm p-6 mb-8 overflow-hidden">
-        <transition :name="transitionName" mode="out-in">
-          <div v-if="currentView === 'list'" :key="'list'">
-            <KhatmahList 
-              :khatmahs="store.khatmahs"
-              @select-khatmah="showKhatmahDetail" />
+        <!-- Khatmah Detail Page (Full Page) -->
+        <div v-else-if="currentView === 'detail'" key="detail-page" class="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold text-emerald-700 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+              </svg>
+              {{ t('khatmahDetail.title') || 'تفاصيل الختمة' }}
+            </h2>
+            
+            <!-- Back Button -->
+            <button 
+              @click="goToList" 
+              class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+              </svg>
+              {{ t('navigation.backToList') }}
+            </button>
           </div>
           
-          <div v-else-if="currentView === 'detail'" :key="'detail-' + selectedKhatmahId">
-            <KhatmahDetail 
-              :khatmah-id="selectedKhatmahId"
-              @edit-khatmah="showEditKhatmah"
-              @select-khatmah="showKhatmahDetail"
-              @khatmah-created="showKhatmahDetail"
-              @khatmah-updated="handleKhatmahUpdated"
-              @cancel="showKhatmahDetail(selectedKhatmahId)" />
+          <KhatmahDetail 
+            :khatmah-id="selectedKhatmahId"
+            @edit-khatmah="showEditKhatmah"
+            @select-khatmah="showKhatmahDetail"
+            @khatmah-created="showKhatmahDetail"
+            @khatmah-updated="handleKhatmahUpdated"
+            @cancel="goToList" />
+        </div>
+        
+        <!-- Khatmah Edit Page (Full Page) -->
+        <div v-else-if="currentView === 'edit'" key="edit-page" class="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold text-emerald-700 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+              </svg>
+              {{ t('khatmahEdit.title') || 'تعديل الختمة' }}
+            </h2>
+            
+            <!-- Back Button -->
+            <button 
+              @click="showKhatmahDetail(selectedKhatmahId)" 
+              class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+              </svg>
+              {{ t('navigation.backToDetail') || 'العودة إلى التفاصيل' }}
+            </button>
           </div>
           
-          <div v-else-if="currentView === 'edit'" :key="'edit-' + selectedKhatmahId">
-            <EditKhatmah 
-              :khatmah-id="selectedKhatmahId"
-              @khatmah-updated="handleKhatmahUpdated"
-              @cancel="showKhatmahDetail(selectedKhatmahId)" />
+          <EditKhatmah 
+            :khatmah-id="selectedKhatmahId"
+            @khatmah-updated="handleKhatmahUpdated"
+            @cancel="showKhatmahDetail(selectedKhatmahId)" />
+        </div>
+        
+        <!-- Create Khatmah Page (Full Page) -->
+        <div v-else key="create-page" class="bg-white rounded-xl shadow-sm p-6 mb-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold text-emerald-700 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+              </svg>
+              {{ t('khatmahCreate.title') || 'إنشاء ختمة جديدة' }}
+            </h2>
+            
+            <!-- Back Button -->
+            <button 
+              @click="goToList" 
+              class="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+              </svg>
+              {{ t('navigation.backToList') }}
+            </button>
           </div>
           
-          <div v-else :key="'create'">
-            <CreateKhatmah 
-              @khatmah-created="showKhatmahDetail" />
-          </div>
-        </transition>
-      </div>
+          <CreateKhatmah 
+            @khatmah-created="showKhatmahDetail" />
+        </div>
+      </transition>
     </main>
 
     <footer class="bg-gray-900 text-white py-8 mt-auto">

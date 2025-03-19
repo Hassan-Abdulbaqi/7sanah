@@ -268,9 +268,10 @@ onUnmounted(() => {
   <!-- Juz Reader View -->
   <div v-if="isReadingJuz && currentReadingJuz && currentAssignmentId">
     <JuzReader 
+      :khatmah-id="khatmahId"
       :juz-number="currentReadingJuz" 
       :assignment-id="currentAssignmentId"
-      @back="handleBackToKhatmah"
+      @back-to-khatmah="handleBackToKhatmah"
       @mark-completed="handleMarkCompleted"
     />
   </div>

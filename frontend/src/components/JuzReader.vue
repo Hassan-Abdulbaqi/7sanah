@@ -56,12 +56,32 @@ function shouldDisplayBismillah(surahNumber) {
   return surahNumber !== 9; // Surah At-Tawbah (9) doesn't have Bismillah
 }
 
+// Function to extract Bismillah from the first ayah if needed
+function extractBismillah(ayahText) {
+  if (!ayahText) return 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+  
+  // Always return the standard Bismillah text for consistency
+  return 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+}
+
 // Function to remove Bismillah from ayah text if it's included
 function cleanAyahText(ayahText, surahNumber, ayahNumberInSurah) {
   // Only process the first ayah of each surah (except for Surah Al-Fatiha and At-Tawbah)
   if (ayahNumberInSurah === 1 && surahNumber !== 1 && surahNumber !== 9) {
-    // Remove Bismillah if it's included in the ayah text
-    return ayahText.replace(/^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/, '');
+    // Find where the Bismillah ends by checking for space or special character after it
+    // Try 38 characters, then 39, then 40 if needed
+    
+    let cleanedText = '';
+    // Start with standard length of 38-39 characters
+    if (ayahText.length > 39) {
+      cleanedText = ayahText.substring(39);
+    } else if (ayahText.length > 38) {
+      cleanedText = ayahText.substring(38);
+    } else {
+      cleanedText = ayahText;
+    }
+    
+    return cleanedText;
   }
   return ayahText;
 }
@@ -82,7 +102,6 @@ async function fetchJuzText() {
     // Use the direct Quran API as the primary method
     const apiUrl = `https://api.alquran.cloud/v1/juz/${props.juzNumber}/quran-uthmani`;
     
-    console.log('Fetching Juz text directly from Quran API');
     const response = await fetch(apiUrl);
     
     if (!response.ok) {
@@ -112,10 +131,7 @@ async function fetchJuzText() {
         currentSurahName = surahName;
         formattedText += `\n## ${surahName}\n\n`;
         
-        // Add Bismillah after surah header except for Surah At-Tawbah
-        if (shouldDisplayBismillah(surahNumber)) {
-          formattedText += `بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ\n\n`;
-        }
+       
       }
       
       // Add the ayah text (clean it if needed)
@@ -148,8 +164,6 @@ async function fetchJuzText() {
 // Fallback function to fetch Juz text from our backend API
 async function tryBackendAPI() {
   try {
-    console.log('Falling back to backend API');
-    
     const response = await fetch(`/api/juz/${props.juzNumber}/text/`);
     
     if (!response.ok) {
@@ -202,8 +216,6 @@ async function tryBackendAPI() {
 // Try using a CORS proxy if direct API and backend API both fail
 async function tryCorsProxy() {
   try {
-    console.log('Trying with CORS proxy');
-    
     const corsProxy = 'https://cors-anywhere.herokuapp.com/';
     const apiUrl = `https://api.alquran.cloud/v1/juz/${props.juzNumber}/quran-uthmani`;
     
@@ -242,9 +254,7 @@ async function tryCorsProxy() {
         formattedText += `\n## ${surahName}\n\n`;
         
         // Add Bismillah after surah header except for Surah At-Tawbah
-        if (shouldDisplayBismillah(surahNumber)) {
-          formattedText += `بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ\n\n`;
-        }
+      
       }
       
       // Add the ayah text (clean it if needed)
@@ -527,13 +537,9 @@ function clearBookmark() {
     <div v-else class="mb-8">
       <!-- Quran text display -->
       <div class="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100">
-        <!-- Bismillah header -->
+        <!-- Bismillah header - removing static version -->
         <div class="text-center mb-8">
-          <h1 class="text-3xl font-arabic mb-4">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</h1>
-          <p class="text-gray-500 text-sm">In the name of Allah, the Entirely Merciful, the Especially Merciful</p>
-          <div class="mt-4">
-            <h2 class="text-2xl font-semibold">Juz {{ props.juzNumber }}</h2>
-          </div>
+          <h2 class="text-2xl font-semibold">Juz {{ props.juzNumber }}</h2>
         </div>
         
         <!-- Bookmark notification -->
@@ -640,7 +646,9 @@ function clearBookmark() {
                 
                 <!-- Display Bismillah after surah header except for Surah At-Tawbah -->
                 <div v-if="shouldDisplayBismillah(ayah.surah.number)" class="text-center mt-4 mb-6">
-                  <p class="font-arabic text-2xl">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</p>
+                  <p class="font-arabic text-2xl">
+                    {{ extractBismillah(ayahs.find(a => a.surah.number === ayah.surah.number && a.numberInSurah === 1)?.text) }}
+                  </p>
                 </div>
               </div>
               
@@ -661,7 +669,10 @@ function clearBookmark() {
                       <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
                     </svg>
                   </button>
-                  <p class="text-right font-arabic text-2xl leading-loose">{{ cleanAyahText(ayah.text, ayah.surah.number, ayah.numberInSurah) }}</p>
+                  <p class="text-right font-arabic text-2xl leading-loose">
+                    <!-- Only show cleaned text without bismillah since it's shown in the surah header -->
+                    {{ cleanAyahText(ayah.text, ayah.surah.number, ayah.numberInSurah) }}
+                  </p>
                 </div>
                 <div class="flex justify-between items-center text-sm text-gray-500">
                   <span>Ayah {{ ayah.numberInSurah }}</span>
@@ -684,7 +695,9 @@ function clearBookmark() {
                 
                 <!-- Display Bismillah after surah header except for Surah At-Tawbah -->
                 <div v-if="shouldDisplayBismillah(surah.number)" class="text-center mt-4 mb-6">
-                  <p class="font-arabic text-2xl">بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ</p>
+                  <p class="font-arabic text-2xl">
+                    {{ extractBismillah(ayahs.find(a => a.surah.number === surah.number && a.numberInSurah === 1)?.text) }}
+                  </p>
                 </div>
               </div>
               
@@ -698,7 +711,10 @@ function clearBookmark() {
                     class="ayah-inline"
                     :class="{ 'bookmark-active-inline': bookmarkPosition && bookmarkPosition.ayahNumber === ayah.number }"
                   >
-                    <span class="ayah-text">{{ cleanAyahText(ayah.text, ayah.surah.number, ayah.numberInSurah) }}</span>
+                    <span class="ayah-text">
+                      <!-- Only show cleaned text without bismillah since it's shown in the surah header -->
+                      {{ cleanAyahText(ayah.text, ayah.surah.number, ayah.numberInSurah) }}
+                    </span>
                     <span class="ayah-number">﴿{{ ayah.numberInSurah }}﴾</span>
                     <button 
                       @click.stop.prevent="saveBookmark(ayah.number)"
@@ -908,10 +924,5 @@ function clearBookmark() {
 .bookmark-inline-button:hover {
   color: #10b981;
   transform: scale(1.2);
-}
-
-@font-face {
-  font-family: 'Scheherazade New';
-  src: url('https://fonts.googleapis.com/css2?family=Scheherazade+New&display=swap');
 }
 </style> 

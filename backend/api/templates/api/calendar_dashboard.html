@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hijri Calendar Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+            padding-bottom: 40px;
+        }
+        .header {
+            background-color: #343a40;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+        .card {
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            border-top-left-radius: 10px !important;
+            border-top-right-radius: 10px !important;
+        }
+        .calendar-day {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            min-height: 100px;
+            background-color: white;
+        }
+        .calendar-day.today {
+            background-color: #e8f4ff;
+            border: 2px solid #007bff;
+        }
+        .event-item {
+            background-color: #f8d7da;
+            border-radius: 4px;
+            padding: 5px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+        }
+        .astro-event-item {
+            background-color: #d1ecf1;
+            border-radius: 4px;
+            padding: 5px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+        }
+        .month-selector {
+            margin-bottom: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .json-response {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .api-url {
+            background-color: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-bottom: 10px;
+            border: 1px solid #dee2e6;
+        }
+        .tab-content {
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+        }
+        .nav-tabs .nav-link.active {
+            font-weight: bold;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .btn-api {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header text-center">
+            <h1>Hijri Calendar API Dashboard</h1>
+            <p class="lead">Explore the Hijri Calendar API endpoints and visualize the data</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Current Hijri Month
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h3 id="current-month-name">Loading...</h3>
+                                <p id="current-month-dates">Loading...</p>
+                                <div class="api-url">GET /api/hijri-months/current/</div>
+                                <button class="btn btn-primary btn-api" onclick="fetchCurrentMonth()">Refresh Data</button>
+                                
+                                <div class="mt-4">
+                                    <h5>Response Details:</h5>
+                                    <ul class="list-group mt-2">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Month Number
+                                            <span id="month-number" class="badge bg-primary rounded-pill">-</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Year
+                                            <span id="month-year" class="badge bg-primary rounded-pill">-</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Events Count
+                                            <span id="events-count" class="badge bg-danger rounded-pill">-</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Astronomical Events
+                                            <span id="astro-events-count" class="badge bg-info rounded-pill">-</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Full JSON Response</h5>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <pre id="current-month-data" class="json-response">Loading...</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Date Converter Section -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Gregorian to Hijri Date Converter
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="gregorian-date" class="form-label">Select Gregorian Date</label>
+                                    <input type="date" id="gregorian-date" class="form-control" value="">
+                                </div>
+                                <button class="btn btn-primary" onclick="convertDate()">Convert Date</button>
+                                <div class="api-url mt-3">GET /api/hijri-calendar/?gregorian_date=YYYY-MM-DD</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="date-result" class="mt-3">
+                                    <p>Select a date and click "Convert Date" to see the corresponding Hijri date.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Qibla Direction Section -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Qibla Direction Calculator
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="latitude" class="form-label">Latitude</label>
+                                    <input type="number" step="any" id="latitude" class="form-control" placeholder="Enter latitude (e.g., 21.4225)">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="longitude" class="form-label">Longitude</label>
+                                    <input type="number" step="any" id="longitude" class="form-control" placeholder="Enter longitude (e.g., 39.8262)">
+                                </div>
+                                <div class="mb-3">
+                                    <button class="btn btn-secondary me-2" onclick="getMyLocation()">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt" viewBox="0 0 16 16">
+                                            <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10z"/>
+                                            <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                                        </svg>
+                                        Get My Location
+                                    </button>
+                                    <button class="btn btn-primary" onclick="calculateQibla()">Calculate Qibla Direction</button>
+                                </div>
+                                <div class="api-url mt-3">GET /api/qibla/{latitude}/{longitude}/</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="qibla-result" class="mt-3">
+                                    <p>Enter your coordinates and click "Calculate Qibla Direction" to get the direction towards the Kaaba.</p>
+                                    <div class="alert alert-info">
+                                        <strong>Note:</strong> The Qibla direction is given in degrees from true north (0° = North, 90° = East, 180° = South, 270° = West).
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        Hijri Calendar
+                    </div>
+                    <div class="card-body">
+                        <div class="month-selector mb-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <select id="month-select" class="form-select" onchange="changeMonth()">
+                                        <option value="">Loading months...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="api-url">GET /api/hijri-calendar/?month=Ramadan&year=1445</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="calendar-container">
+                            <div class="loading">Loading calendar...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Hijri Events
+                    </div>
+                    <div class="card-body">
+                        <div class="api-url">GET /api/hijri-events/by_month/?month_id=[id]</div>
+                        <div id="events-container">
+                            <div class="loading">Loading events...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Astronomical Events
+                    </div>
+                    <div class="card-body">
+                        <div class="api-url">GET /api/astronomical-events/by_month/?month_id=[id]</div>
+                        <div id="astro-events-container">
+                            <div class="loading">Loading astronomical events...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        API Explorer
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="apiTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="months-tab" data-bs-toggle="tab" data-bs-target="#months" type="button" role="tab">Hijri Months</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button" role="tab">Hijri Events</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="astro-tab" data-bs-toggle="tab" data-bs-target="#astro" type="button" role="tab">Astronomical Events</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="calendar-tab" data-bs-toggle="tab" data-bs-target="#calendar" type="button" role="tab">Calendar</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="apiTabsContent">
+                            <div class="tab-pane fade show active" id="months" role="tabpanel">
+                                <div class="api-url">GET /api/hijri-months/</div>
+                                <button class="btn btn-primary btn-api" onclick="fetchAllMonths()">Fetch All Months</button>
+                                <pre id="all-months-data" class="json-response">Click the button to fetch data...</pre>
+                            </div>
+                            <div class="tab-pane fade" id="events" role="tabpanel">
+                                <div class="api-url">GET /api/hijri-events/</div>
+                                <button class="btn btn-primary btn-api" onclick="fetchAllEvents()">Fetch All Events</button>
+                                <pre id="all-events-data" class="json-response">Click the button to fetch data...</pre>
+                            </div>
+                            <div class="tab-pane fade" id="astro" role="tabpanel">
+                                <div class="api-url">GET /api/astronomical-events/</div>
+                                <button class="btn btn-primary btn-api" onclick="fetchAllAstroEvents()">Fetch All Astronomical Events</button>
+                                <pre id="all-astro-events-data" class="json-response">Click the button to fetch data...</pre>
+                            </div>
+                            <div class="tab-pane fade" id="calendar" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label for="calendar-month" class="form-label">Month</label>
+                                        <select id="calendar-month" class="form-select">
+                                            <option value="Muharram">Muharram</option>
+                                            <option value="Safar">Safar</option>
+                                            <option value="Rabi al-Awwal">Rabi al-Awwal</option>
+                                            <option value="Rabi al-Thani">Rabi al-Thani</option>
+                                            <option value="Jumada al-Awwal">Jumada al-Awwal</option>
+                                            <option value="Jumada al-Thani">Jumada al-Thani</option>
+                                            <option value="Rajab">Rajab</option>
+                                            <option value="Shaban">Shaban</option>
+                                            <option value="Ramadan">Ramadan</option>
+                                            <option value="Shawwal">Shawwal</option>
+                                            <option value="Dhu al-Qadah">Dhu al-Qadah</option>
+                                            <option value="Dhu al-Hijjah">Dhu al-Hijjah</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="calendar-year" class="form-label">Year</label>
+                                        <input type="number" id="calendar-year" class="form-control" value="1445">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button class="btn btn-primary form-control" onclick="fetchCalendarByMonthYear()">Fetch Calendar</button>
+                                    </div>
+                                </div>
+                                <div class="api-url" id="calendar-api-url">GET /api/hijri-calendar/?month=Muharram&year=1445</div>
+                                <pre id="calendar-data" class="json-response">Click the button to fetch data...</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const baseUrl = '/api';
+        let currentMonthId = null;
+        let allMonths = [];
+
+        // Helper function to format JSON
+        function formatJson(json) {
+            const jsonString = JSON.stringify(json, null, 2);
+            
+            // Apply syntax highlighting
+            return jsonString
+                .replace(/"([^"]+)":/g, '<span style="color: #f92672;">"$1"</span>:')  // property names
+                .replace(/: "([^"]+)"/g, ': <span style="color: #a6e22e;">"$1"</span>') // string values
+                .replace(/: (\d+)/g, ': <span style="color: #ae81ff;">$1</span>') // number values
+                .replace(/: (true|false)/g, ': <span style="color: #66d9ef;">$1</span>') // boolean values
+                .replace(/: (null)/g, ': <span style="color: #fd971f;">$1</span>'); // null values
+        }
+
+        // Fetch current Hijri month
+        async function fetchCurrentMonth() {
+            const nameElement = document.getElementById('current-month-name');
+            const datesElement = document.getElementById('current-month-dates');
+            const dataElement = document.getElementById('current-month-data');
+            const monthNumberElement = document.getElementById('month-number');
+            const monthYearElement = document.getElementById('month-year');
+            const eventsCountElement = document.getElementById('events-count');
+            const astroEventsCountElement = document.getElementById('astro-events-count');
+            
+            nameElement.textContent = 'Loading...';
+            datesElement.textContent = 'Loading...';
+            dataElement.textContent = 'Loading...';
+            monthNumberElement.textContent = '-';
+            monthYearElement.textContent = '-';
+            eventsCountElement.textContent = '-';
+            astroEventsCountElement.textContent = '-';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-months/current/`);
+                const data = await response.json();
+                
+                // Format the JSON with syntax highlighting
+                const formattedJson = formatJson(data);
+                
+                // Update the main elements
+                nameElement.textContent = `${data.name_ar} (${data.name_en}) - ${data.year}H`;
+                
+                // Update the details elements
+                monthNumberElement.textContent = data.number;
+                monthYearElement.textContent = data.year;
+                eventsCountElement.textContent = data.events ? data.events.length : 0;
+                astroEventsCountElement.textContent = data.astronomical_events ? data.astronomical_events.length : 0;
+                
+                // Get today's date in YYYY-MM-DD format
+                const today = new Date().toISOString().split('T')[0];
+                
+                // Check if today's date is within the month's range
+                const isWithinRange = today >= data.gregorian_start && today <= data.gregorian_end;
+                
+                if (isWithinRange) {
+                    datesElement.innerHTML = `${data.gregorian_start} to ${data.gregorian_end} <span class="badge bg-success">Current Month</span>`;
+                } else {
+                    // Calculate how many days away
+                    const todayDate = new Date(today);
+                    const startDate = new Date(data.gregorian_start);
+                    const endDate = new Date(data.gregorian_end);
+                    
+                    let message = '';
+                    if (todayDate < startDate) {
+                        const daysUntil = Math.ceil((startDate - todayDate) / (1000 * 60 * 60 * 24));
+                        message = `<span class="badge bg-info">Starts in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}</span>`;
+                    } else if (todayDate > endDate) {
+                        const daysSince = Math.ceil((todayDate - endDate) / (1000 * 60 * 60 * 24));
+                        message = `<span class="badge bg-secondary">Ended ${daysSince} day${daysSince !== 1 ? 's' : ''} ago</span>`;
+                    }
+                    
+                    datesElement.innerHTML = `${data.gregorian_start} to ${data.gregorian_end} ${message}`;
+                }
+                
+                // Apply syntax highlighting to the JSON
+                dataElement.innerHTML = formattedJson;
+                
+                currentMonthId = data.id;
+                
+                // Load events and calendar for this month
+                fetchEvents(currentMonthId);
+                fetchAstroEvents(currentMonthId);
+                fetchCalendar(data.name_en, data.year);
+            } catch (error) {
+                nameElement.textContent = 'Error loading data';
+                datesElement.textContent = error.message;
+                dataElement.innerHTML = `<span style="color: #f92672;">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Fetch all Hijri months
+        async function fetchAllMonths() {
+            const dataElement = document.getElementById('all-months-data');
+            dataElement.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-months/`);
+                const data = await response.json();
+                dataElement.innerHTML = formatJson(data);
+                
+                // Populate the month selector
+                allMonths = data.results;
+                populateMonthSelector(allMonths);
+            } catch (error) {
+                dataElement.innerHTML = `<span style="color: #f92672;">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Populate month selector dropdown
+        function populateMonthSelector(months) {
+            const select = document.getElementById('month-select');
+            select.innerHTML = '';
+            
+            months.forEach(month => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify({id: month.id, name: month.name_en, year: month.year});
+                option.textContent = `${month.name_ar} (${month.name_en}) - ${month.year}H`;
+                select.appendChild(option);
+            });
+        }
+
+        // Change month when selector changes
+        function changeMonth() {
+            const select = document.getElementById('month-select');
+            if (!select.value) return;
+            
+            const monthData = JSON.parse(select.value);
+            currentMonthId = monthData.id;
+            
+            // Update API URLs
+            document.querySelectorAll('.api-url').forEach(el => {
+                if (el.textContent.includes('/hijri-events/by_month/')) {
+                    el.textContent = `GET /api/hijri-events/by_month/?month_id=${currentMonthId}`;
+                } else if (el.textContent.includes('/astronomical-events/by_month/')) {
+                    el.textContent = `GET /api/astronomical-events/by_month/?month_id=${currentMonthId}`;
+                }
+            });
+            
+            // Fetch data for the selected month
+            fetchEvents(currentMonthId);
+            fetchAstroEvents(currentMonthId);
+            fetchCalendar(monthData.name, monthData.year);
+        }
+
+        // Fetch Hijri events for a month
+        async function fetchEvents(monthId) {
+            const container = document.getElementById('events-container');
+            container.innerHTML = '<div class="loading">Loading events...</div>';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-events/by_month/?month_id=${monthId}`);
+                const events = await response.json();
+                
+                if (events.length === 0) {
+                    container.innerHTML = '<p>No events found for this month.</p>';
+                    return;
+                }
+                
+                let html = '<div class="list-group">';
+                events.forEach(event => {
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">${event.title_ar}</h5>
+                                <small>Day ${event.day}</small>
+                            </div>
+                            <p class="mb-1">${event.title_en || ''}</p>
+                            <small>${event.description_en || event.description_ar || ''}</small>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Fetch astronomical events for a month
+        async function fetchAstroEvents(monthId) {
+            const container = document.getElementById('astro-events-container');
+            container.innerHTML = '<div class="loading">Loading astronomical events...</div>';
+            
+            try {
+                const response = await fetch(`${baseUrl}/astronomical-events/by_month/?month_id=${monthId}`);
+                const events = await response.json();
+                
+                if (events.length === 0) {
+                    container.innerHTML = '<p>No astronomical events found for this month.</p>';
+                    return;
+                }
+                
+                let html = '<div class="list-group">';
+                events.forEach(event => {
+                    html += `
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">${event.title_ar}</h5>
+                                <small>${event.date} ${event.time}</small>
+                            </div>
+                            <p class="mb-1">${event.title_en || ''}</p>
+                            <small>${event.description_en || event.description_ar || ''}</small>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Fetch calendar data
+        async function fetchCalendar(monthName, year) {
+            const container = document.getElementById('calendar-container');
+            container.innerHTML = '<div class="loading">Loading calendar...</div>';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-calendar/?month=${monthName}&year=${year}`);
+                const data = await response.json();
+                
+                if (!data.calendar || data.calendar.length === 0) {
+                    container.innerHTML = '<p>No calendar data available for this month.</p>';
+                    return;
+                }
+                
+                // Group days into weeks
+                const weeks = [];
+                let currentWeek = [];
+                
+                data.calendar.forEach((day, index) => {
+                    currentWeek.push(day);
+                    
+                    // Start a new week after 7 days
+                    if (currentWeek.length === 7 || index === data.calendar.length - 1) {
+                        weeks.push([...currentWeek]);
+                        currentWeek = [];
+                    }
+                });
+                
+                // Generate calendar HTML
+                let html = `
+                    <h3>${data.month.name_ar} (${data.month.name_en}) - ${data.month.year}H</h3>
+                    <p>${data.month.gregorian_start} to ${data.month.gregorian_end}</p>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Sunday</th>
+                                    <th>Monday</th>
+                                    <th>Tuesday</th>
+                                    <th>Wednesday</th>
+                                    <th>Thursday</th>
+                                    <th>Friday</th>
+                                    <th>Saturday</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                weeks.forEach(week => {
+                    html += '<tr>';
+                    
+                    // Fill in empty cells at the beginning of the first week
+                    if (week.length < 7) {
+                        const emptyCells = 7 - week.length;
+                        for (let i = 0; i < emptyCells; i++) {
+                            html += '<td></td>';
+                        }
+                    }
+                    
+                    week.forEach(day => {
+                        const today = new Date().toISOString().split('T')[0];
+                        const isToday = day.gregorian_date === today;
+                        
+                        html += `
+                            <td class="calendar-day ${isToday ? 'today' : ''}">
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-primary">${day.hijri_day}</span>
+                                    <span class="text-secondary">${day.gregorian_date.split('-')[2]}</span>
+                                </div>
+                                <div class="mt-2">
+                        `;
+                        
+                        // Add events
+                        if (day.events && day.events.length > 0) {
+                            day.events.forEach(event => {
+                                html += `<div class="event-item">${event.title_en || event.title_ar}</div>`;
+                            });
+                        }
+                        
+                        // Add astronomical events
+                        if (day.astronomical_events && day.astronomical_events.length > 0) {
+                            day.astronomical_events.forEach(event => {
+                                html += `<div class="astro-event-item">${event.title_en || event.title_ar}</div>`;
+                            });
+                        }
+                        
+                        html += `
+                                </div>
+                            </td>
+                        `;
+                    });
+                    
+                    html += '</tr>';
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Fetch all events
+        async function fetchAllEvents() {
+            const dataElement = document.getElementById('all-events-data');
+            dataElement.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-events/`);
+                const data = await response.json();
+                dataElement.innerHTML = formatJson(data);
+            } catch (error) {
+                dataElement.innerHTML = `<span style="color: #f92672;">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Fetch all astronomical events
+        async function fetchAllAstroEvents() {
+            const dataElement = document.getElementById('all-astro-events-data');
+            dataElement.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(`${baseUrl}/astronomical-events/`);
+                const data = await response.json();
+                dataElement.innerHTML = formatJson(data);
+            } catch (error) {
+                dataElement.innerHTML = `<span style="color: #f92672;">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Fetch calendar by month and year
+        async function fetchCalendarByMonthYear() {
+            const month = document.getElementById('calendar-month').value;
+            const year = document.getElementById('calendar-year').value;
+            const dataElement = document.getElementById('calendar-data');
+            const apiUrlElement = document.getElementById('calendar-api-url');
+            
+            apiUrlElement.textContent = `GET /api/hijri-calendar/?month=${month}&year=${year}`;
+            dataElement.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-calendar/?month=${month}&year=${year}`);
+                const data = await response.json();
+                dataElement.innerHTML = formatJson(data);
+            } catch (error) {
+                dataElement.innerHTML = `<span style="color: #f92672;">Error: ${error.message}</span>`;
+            }
+        }
+
+        // Convert Gregorian date to Hijri date
+        async function convertDate() {
+            const dateInput = document.getElementById('gregorian-date');
+            const resultDiv = document.getElementById('date-result');
+            
+            if (!dateInput.value) {
+                resultDiv.innerHTML = '<p class="text-danger">Please select a date first.</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Loading...</p>';
+            
+            try {
+                const response = await fetch(`${baseUrl}/hijri-calendar/?gregorian_date=${dateInput.value}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                // Find the specific day in the calendar data
+                let hijriDay = null;
+                if (data.calendar) {
+                    const dayData = data.calendar.find(day => day.gregorian_date === dateInput.value);
+                    if (dayData) {
+                        hijriDay = dayData.hijri_day;
+                    }
+                }
+                
+                // Create a formatted result
+                let html = `
+                    <div class="alert alert-info">
+                        <h5>Date Conversion Result:</h5>
+                        <p><strong>Gregorian Date:</strong> ${dateInput.value}</p>
+                        <p><strong>Hijri Month:</strong> ${data.month.name_ar} (${data.month.name_en})</p>
+                        <p><strong>Hijri Year:</strong> ${data.month.year}H</p>
+                `;
+                
+                if (hijriDay) {
+                    html += `<p><strong>Hijri Day:</strong> ${hijriDay}</p>`;
+                }
+                
+                html += `</div>`;
+                
+                // Check for events on this date
+                if (data.calendar) {
+                    const dayData = data.calendar.find(day => day.gregorian_date === dateInput.value);
+                    if (dayData && (dayData.events.length > 0 || dayData.astronomical_events.length > 0)) {
+                        html += `<h5>Events on this date:</h5>`;
+                        
+                        if (dayData.events.length > 0) {
+                            html += `<div class="list-group mb-3">`;
+                            dayData.events.forEach(event => {
+                                html += `
+                                    <div class="list-group-item list-group-item-danger">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">${event.title_ar}</h6>
+                                        </div>
+                                        <p class="mb-1">${event.title_en || ''}</p>
+                                    </div>
+                                `;
+                            });
+                            html += `</div>`;
+                        }
+                        
+                        if (dayData.astronomical_events.length > 0) {
+                            html += `<div class="list-group">`;
+                            dayData.astronomical_events.forEach(event => {
+                                html += `
+                                    <div class="list-group-item list-group-item-info">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">${event.title_ar}</h6>
+                                            <small>${event.time}</small>
+                                        </div>
+                                        <p class="mb-1">${event.title_en || ''}</p>
+                                    </div>
+                                `;
+                            });
+                            html += `</div>`;
+                        }
+                    }
+                }
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Calculate Qibla direction
+        async function calculateQibla() {
+            const latitudeInput = document.getElementById('latitude');
+            const longitudeInput = document.getElementById('longitude');
+            const resultDiv = document.getElementById('qibla-result');
+            
+            // Validate inputs
+            if (!latitudeInput.value || !longitudeInput.value) {
+                resultDiv.innerHTML = '<p class="text-danger">Please enter both latitude and longitude.</p>';
+                return;
+            }
+            
+            const latitude = parseFloat(latitudeInput.value);
+            const longitude = parseFloat(longitudeInput.value);
+            
+            // Validate coordinate ranges
+            if (latitude < -90 || latitude > 90) {
+                resultDiv.innerHTML = '<p class="text-danger">Latitude must be between -90 and 90 degrees.</p>';
+                return;
+            }
+            if (longitude < -180 || longitude > 180) {
+                resultDiv.innerHTML = '<p class="text-danger">Longitude must be between -180 and 180 degrees.</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Calculating...</p>';
+            
+            try {
+                const response = await fetch(`${baseUrl}/qibla/${latitude}/${longitude}/`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    resultDiv.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
+                    return;
+                }
+                
+                // Create a formatted result with a compass visualization
+                let html = `
+                    <div class="alert alert-success">
+                        <h5>Qibla Direction Result:</h5>
+                        <p><strong>Your Location:</strong> ${latitude}°, ${longitude}°</p>
+                        <p><strong>Qibla Direction:</strong> ${data.data.direction.toFixed(2)}° from True North</p>
+                    </div>
+                    <div class="card mb-3">
+                        <div class="card-body text-center">
+                            <div style="position: relative; width: 200px; height: 200px; margin: 0 auto;">
+                                <!-- Compass circle -->
+                                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 2px solid #ccc; border-radius: 50%;"></div>
+                                <!-- North marker -->
+                                <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); color: red; font-weight: bold;">N</div>
+                                <!-- South marker -->
+                                <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-weight: bold;">S</div>
+                                <!-- East marker -->
+                                <div style="position: absolute; top: 50%; right: 10px; transform: translateY(-50%); font-weight: bold;">E</div>
+                                <!-- West marker -->
+                                <div style="position: absolute; top: 50%; left: 10px; transform: translateY(-50%); font-weight: bold;">W</div>
+                                <!-- Center dot -->
+                                <div style="position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; background-color: #333; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                                <!-- Qibla direction arrow -->
+                                <div style="
+                                    position: absolute;
+                                    top: 50%;
+                                    left: 50%;
+                                    width: 0;
+                                    height: 80px;
+                                    transform-origin: center;
+                                    transform: translate(-50%, -50%) rotate(${data.data.direction}deg);
+                                ">
+                                    <!-- Arrow line -->
+                                    <div style="
+                                        position: absolute;
+                                        top: 50%;
+                                        left: 50%;
+                                        width: 3px;
+                                        height: 80px;
+                                        background-color: #007bff;
+                                        transform: translate(-50%, -50%);
+                                    "></div>
+                                    <!-- Arrow head -->
+                                    <div style="
+                                        position: absolute;
+                                        top: 0;
+                                        left: 50%;
+                                        transform: translate(-50%, 0);
+                                        width: 0;
+                                        height: 0;
+                                        border-left: 8px solid transparent;
+                                        border-right: 8px solid transparent;
+                                        border-bottom: 12px solid #007bff;
+                                    "></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">API Response</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <pre class="json-response m-0">${formatJson(data)}</pre>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <strong>How to use:</strong> Face the direction indicated by the blue arrow. The arrow shows the shortest path to the Kaaba in Mecca.
+                    </div>
+                `;
+                
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="text-danger">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Get user's current location
+        function getMyLocation() {
+            const latitudeInput = document.getElementById('latitude');
+            const longitudeInput = document.getElementById('longitude');
+            const resultDiv = document.getElementById('qibla-result');
+            
+            if (!navigator.geolocation) {
+                resultDiv.innerHTML = '<p class="text-danger">Geolocation is not supported by your browser.</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Getting your location...</p>';
+            
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    latitudeInput.value = position.coords.latitude;
+                    longitudeInput.value = position.coords.longitude;
+                    calculateQibla();
+                },
+                (error) => {
+                    let errorMessage = 'Unable to get your location. ';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage += 'Please allow location access to use this feature.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage += 'Location information is unavailable.';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage += 'Location request timed out.';
+                            break;
+                        default:
+                            errorMessage += 'An unknown error occurred.';
+                    }
+                    resultDiv.innerHTML = `<p class="text-danger">${errorMessage}</p>`;
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // Initialize the page
+        window.onload = function() {
+            // Set today's date as the default for the date converter
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('gregorian-date').value = today;
+            
+            fetchCurrentMonth();
+            fetchAllMonths();
+            
+            // Initialize Bootstrap tabs
+            const triggerTabList = [].slice.call(document.querySelectorAll('#apiTabs button'));
+            triggerTabList.forEach(function (triggerEl) {
+                const tabTrigger = new bootstrap.Tab(triggerEl);
+                triggerEl.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    tabTrigger.show();
+                });
+            });
+        };
+    </script>
+</body>
+</html> 

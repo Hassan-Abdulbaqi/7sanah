@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Khatmah, Participant, JuzAssignment
+from .models import Khatmah, Participant, JuzAssignment, HijriMonth, HijriEvent, AstronomicalEvent
 
 class JuzAssignmentSerializer(serializers.ModelSerializer):
     participant_name = serializers.CharField(source='participant.name', read_only=True)
@@ -42,4 +42,39 @@ class KhatmahListSerializer(serializers.ModelSerializer):
         return obj.assignments.filter(completed=True).count()
         
     def get_participants(self, obj):
-        return [{'id': p.id, 'name': p.name} for p in obj.participants.all()] 
+        return [{'id': p.id, 'name': p.name} for p in obj.participants.all()]
+
+# Hijri Calendar Serializers
+class AstronomicalEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AstronomicalEvent
+        fields = ['id', 'title_ar', 'title_en', 'date', 'time', 'month', 'description_ar', 'description_en']
+        read_only_fields = ['id']
+
+class HijriEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HijriEvent
+        fields = ['id', 'title_ar', 'title_en', 'description_ar', 'description_en', 'day', 'month', 
+                 'year_of_event', 'is_holiday', 'event_type']
+        read_only_fields = ['id']
+
+class HijriMonthDetailSerializer(serializers.ModelSerializer):
+    events = HijriEventSerializer(many=True, read_only=True)
+    astronomical_events = AstronomicalEventSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = HijriMonth
+        fields = ['id', 'name_ar', 'name_en', 'number', 'year', 'gregorian_start', 'gregorian_end', 
+                 'moon_sighting_data', 'calendar_data', 'events', 'astronomical_events']
+        read_only_fields = ['id']
+
+class HijriMonthListSerializer(serializers.ModelSerializer):
+    event_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = HijriMonth
+        fields = ['id', 'name_ar', 'name_en', 'number', 'year', 'gregorian_start', 'gregorian_end', 'event_count']
+        read_only_fields = ['id']
+    
+    def get_event_count(self, obj):
+        return obj.events.count() 

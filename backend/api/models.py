@@ -37,3 +37,53 @@ class JuzAssignment(models.Model):
     
     def __str__(self):
         return f"Juz {self.juz_number} assigned to {self.participant.name} in {self.khatmah.name}"
+
+# Hijri Calendar Models
+class HijriMonth(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name_ar = models.CharField(max_length=50)  # Arabic name
+    name_en = models.CharField(max_length=50)  # English name
+    number = models.IntegerField()  # Month number (1-12)
+    year = models.IntegerField()  # Hijri year
+    gregorian_start = models.DateField()  # Gregorian date when this Hijri month starts
+    gregorian_end = models.DateField()  # Gregorian date when this Hijri month ends
+    moon_sighting_data = models.JSONField(null=True, blank=True)  # Data about moon sighting
+    calendar_data = models.JSONField(null=True, blank=True)  # Calendar mapping between Hijri and Gregorian
+    
+    class Meta:
+        unique_together = ('number', 'year')
+        ordering = ['year', 'number']
+    
+    def __str__(self):
+        return f"{self.name_ar} ({self.name_en}) - {self.year}H"
+
+class HijriEvent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title_ar = models.CharField(max_length=255)  # Arabic title
+    title_en = models.CharField(max_length=255, null=True, blank=True)  # English title (optional)
+    description_ar = models.TextField(null=True, blank=True)  # Arabic description
+    description_en = models.TextField(null=True, blank=True)  # English description
+    day = models.IntegerField()  # Day of the month
+    month = models.ForeignKey(HijriMonth, related_name='events', on_delete=models.CASCADE)
+    year_of_event = models.IntegerField(null=True, blank=True)  # Original Hijri year when event occurred
+    is_holiday = models.BooleanField(default=False)  # Whether this is a holiday/special day
+    event_type = models.CharField(max_length=50, null=True, blank=True)  # Type of event (historical, religious, etc.)
+    
+    class Meta:
+        ordering = ['month__number', 'day']
+    
+    def __str__(self):
+        return f"{self.title_ar} - {self.day} {self.month.name_ar}"
+
+class AstronomicalEvent(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title_ar = models.CharField(max_length=255)  # Arabic title
+    title_en = models.CharField(max_length=255, null=True, blank=True)  # English title
+    date = models.DateField()  # Gregorian date
+    time = models.TimeField()  # Time of event
+    month = models.ForeignKey(HijriMonth, related_name='astronomical_events', on_delete=models.CASCADE)
+    description_ar = models.TextField(null=True, blank=True)  # Arabic description
+    description_en = models.TextField(null=True, blank=True)  # English description
+    
+    def __str__(self):
+        return f"{self.title_ar} - {self.date}"

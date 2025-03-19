@@ -9,6 +9,7 @@
   },
   "khatmahList": {
     "title": "ختم‌ها",
+    "management": "مدیریت ختم",
     "search": "جستجوی ختم‌ها بر اساس نام یا شرکت‌کننده...",
     "clearSearch": "پاک کردن جستجو",
     "myCreatedKhatmahs": "ختم‌های ایجاد شده من",
@@ -110,6 +111,30 @@
     "no": "خیر",
     "sunniCalendar": "سنی",
     "shiaCalendar": "شیعه"
+  },
+  "compass": {
+    "title": "قطب‌نما",
+    "permissionNeeded": "دسترسی به قطب‌نما مورد نیاز است. لطفاً اجازه جهت‌گیری دستگاه را بدهید.",
+    "allowAccess": "اجازه دسترسی",
+    "notSupported": "قطب‌نما در دستگاه شما پشتیبانی نمی‌شود.",
+    "useGeolocation": "استفاده از موقعیت فعلی",
+    "detectLocation": "تشخیص موقعیت",
+    "detecting": "در حال تشخیص...",
+    "accuracy": "دقت قطب‌نما",
+    "accuracyHigh": "بالا",
+    "accuracyMedium": "متوسط",
+    "accuracyLow": "پایین",
+    "accuracyUnknown": "نامشخص",
+    "magneticDeclination": "انحراف مغناطیسی",
+    "calibrationNeeded": "قطب‌نما نیاز به کالیبراسیون دارد. دستگاه خود را به شکل عدد ۸ حرکت دهید.",
+    "showSettings": "نمایش تنظیمات",
+    "hideSettings": "پنهان کردن تنظیمات",
+    "manualCalibration": "تنظیم دستی قطب‌نما",
+    "calibrationTip": "اگر جهت قطب‌نما دقیق نیست، آن را با این کنترل‌ها تنظیم کنید."
+  },
+  "qibla": {
+    "title": "قبله",
+    "fromNorth": "از شمال"
   },
   "common": {
     "save": "ذخیره",
