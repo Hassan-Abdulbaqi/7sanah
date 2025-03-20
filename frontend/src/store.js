@@ -168,10 +168,13 @@ export const store = reactive({
   },
 
   async fetchKhatmah(id) {
+    console.log(`store.fetchKhatmah called with id: ${id}`);
     this.loading = true;
     this.error = null;
     try {
+      console.log(`Making API request to ${API_URL}/khatmahs/${id}/`);
       const response = await axios.get(`${API_URL}/khatmahs/${id}/`);
+      console.log('API response received:', response.status);
       this.currentKhatmah = response.data;
       
       // Check if we have a saved participant for this khatmah

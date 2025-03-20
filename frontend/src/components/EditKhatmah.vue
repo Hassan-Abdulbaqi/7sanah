@@ -12,7 +12,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['khatmahUpdated', 'cancel']);
+const emit = defineEmits(['khatmah-updated', 'cancel']);
 const khatmahName = ref('');
 const nameError = ref('');
 const isPrivate = ref(false);
@@ -101,7 +101,7 @@ async function updateKhatmah() {
   const updatedKhatmah = await store.updateKhatmah(props.khatmahId, khatmahData);
   
   if (updatedKhatmah) {
-    emit('khatmahUpdated', updatedKhatmah.id);
+    emit('khatmah-updated', updatedKhatmah);
   }
 }
 

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { store } from '../store';
 
 const { t } = useI18n();
-const emit = defineEmits(['khatmahCreated']);
+const emit = defineEmits(['khatmah-created', 'cancel']);
 const khatmahName = ref('');
 const nameError = ref('');
 const isPrivate = ref(false);
@@ -54,8 +54,22 @@ async function createKhatmah() {
   const newKhatmah = await store.createKhatmah(khatmahData);
   
   if (newKhatmah) {
-    emit('khatmahCreated', newKhatmah.id);
+    // Reset form
+    khatmahName.value = '';
+    isPrivate.value = false;
+    requireName.value = true;
+    hasEndDate.value = false;
+    endDate.value = '';
+    imageUrl.value = '';
+    imagePreview.value = '';
+    
+    // Emit event with created khatmah
+    emit('khatmah-created', newKhatmah);
   }
+}
+
+function cancel() {
+  emit('cancel');
 }
 </script>
 
@@ -200,15 +214,20 @@ async function createKhatmah() {
             </div>
           </div>
           
-          <div class="flex items-center justify-between pt-4">
-            <p class="text-sm text-gray-500">
-              {{ t('createKhatmah.inviteAfterCreation') }}
-            </p>
+          <div class="flex justify-between mt-6">
+            <button
+              type="button"
+              @click="cancel"
+              class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              {{ t('createKhatmah.cancel') }}
+            </button>
+            
             <button
               type="submit"
-              class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-medium rounded-lg shadow-sm hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+              class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
             >
-              {{ t('createKhatmah.createButton') }}
+              {{ t('createKhatmah.create') }}
             </button>
           </div>
         </form>

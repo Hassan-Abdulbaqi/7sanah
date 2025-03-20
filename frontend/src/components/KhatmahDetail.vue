@@ -38,7 +38,20 @@ const showShareModal = ref(false);
 
 // New function to safely get the base URL
 function getBaseUrl() {
+  // Use the current origin (e.g., http://localhost:5173)
   return typeof window !== 'undefined' ? window.location.origin : '';
+}
+
+// Add a new function to get the full khatmah URL
+function getKhatmahUrl() {
+  if (typeof window === 'undefined') return '';
+  
+  // Ensure we have the correct origin with protocol
+  const origin = window.location.origin; // e.g., http://localhost:5173
+  
+  // Return the complete absolute URL with the khatmah ID
+  // This needs to be an absolute URL for sharing
+  return `${origin}/khatmah/${props.khatmahId}`;
 }
 
 // Load khatmah data when component mounts or khatmahId changes
@@ -200,59 +213,54 @@ function closeShareModal() {
   showShareModal.value = false;
 }
 
-function copyKhatmahLink() {
-  const baseUrl = getBaseUrl();
-  const khatmahUrl = `${baseUrl}/khatmah/${props.khatmahId}`;
+async function copyKhatmahLink() {
+  const url = getKhatmahUrl();
   
-  // Copy to clipboard
-  if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    navigator.clipboard.writeText(khatmahUrl)
-      .then(() => {
-        linkCopied.value = true;
-        
-        // Reset the copied state after 2 seconds
-        copyTimeout.value = setTimeout(() => {
-          linkCopied.value = false;
-        }, 2000);
-      })
-      .catch(err => {
-        console.error('Failed to copy link: ', err);
-        store.error = t('khatmahDetail.copyError');
-      });
+  try {
+    await navigator.clipboard.writeText(url);
+    
+    // Show success message
+    linkCopied.value = true;
+    
+    // Clear any existing timeout
+    if (copyTimeout.value) {
+      clearTimeout(copyTimeout.value);
+    }
+    
+    // Reset message after 3 seconds
+    copyTimeout.value = setTimeout(() => {
+      linkCopied.value = false;
+    }, 3000);
+    
+  } catch (err) {
+    console.error('Failed to copy link:', err);
   }
 }
 
-function shareToSocialMedia(platform) {
-  const baseUrl = getBaseUrl();
-  const khatmahUrl = `${baseUrl}/khatmah/${props.khatmahId}`;
-  const khatmahName = store.currentKhatmah.name;
-  const shareText = t('khatmahDetail.shareText', { name: khatmahName });
+// Add the async keyword to the shareKhatmah function
+async function shareKhatmah() {
+  const url = getKhatmahUrl();
+  const title = store.currentKhatmah?.name || 'Quran Khatmah';
+  const text = t('khatmahDetail.shareMessage', { 
+    name: store.currentKhatmah?.name || 'Quran Khatmah' 
+  });
   
-  let shareUrl = '';
-  
-  switch(platform) {
-    case 'facebook':
-      shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(khatmahUrl)}&quote=${encodeURIComponent(shareText)}`;
-      break;
-    case 'twitter':
-      shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(khatmahUrl)}`;
-      break;
-    case 'whatsapp':
-      shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + khatmahUrl)}`;
-      break;
-    case 'telegram':
-      shareUrl = `https://t.me/share/url?url=${encodeURIComponent(khatmahUrl)}&text=${encodeURIComponent(shareText)}`;
-      break;
-    case 'email':
-      shareUrl = `mailto:?subject=${encodeURIComponent(t('khatmahDetail.emailSubject', { name: khatmahName }))}&body=${encodeURIComponent(shareText + '\n\n' + khatmahUrl)}`;
-      break;
-    default:
-      return;
-  }
-  
-  // Open share URL in a new window
-  if (typeof window !== 'undefined') {
-    window.open(shareUrl, '_blank');
+  // Use Web Share API if available (mobile devices)
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title,
+        text,
+        url
+      });
+    } catch (err) {
+      console.error('Error sharing:', err);
+      // Fall back to copy if share was cancelled or failed
+      copyKhatmahLink();
+    }
+  } else {
+    // Fall back to copy on desktop
+    copyKhatmahLink();
   }
 }
 
@@ -317,6 +325,22 @@ onUnmounted(() => {
             </h2>
           </div>
           
+          <div class="text-sm text-gray-500 mb-2">
+            <span>{{ t('khatmahDetail.khatmahId') }}: </span>
+            <code class="bg-gray-100 px-2 py-1 rounded text-gray-700">{{ props.khatmahId }}</code>
+            <button 
+              @click="copyKhatmahLink" 
+              class="ml-2 text-emerald-600 hover:text-emerald-700 focus:outline-none inline-flex items-center"
+              :title="t('khatmahDetail.copyLinkToClipboard')"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+              </svg>
+              <span class="ml-1 text-xs">{{ t('khatmahDetail.copyLink') }}</span>
+            </button>
+          </div>
+          
           <div class="flex flex-wrap gap-4 mb-2">
             <p class="text-gray-500 flex items-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -356,7 +380,7 @@ onUnmounted(() => {
             
             <!-- Share Button -->
             <button 
-              @click="openShareModal"
+              @click="toggleShareModal"
               class="flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors text-sm"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
@@ -612,118 +636,68 @@ onUnmounted(() => {
   </div>
   
   <!-- Share Modal -->
-  <div 
-    v-if="showShareModal" 
-    id="share-modal"
-    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-  >
-    <div 
-      id="share-modal-content"
-      class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 transform transition-all"
-    >
-      <div class="flex justify-between items-center mb-6">
-        <h3 class="text-xl font-semibold text-gray-800">Share Khatmah</h3>
-        <button 
-          @click="closeShareModal"
-          class="text-gray-500 hover:text-gray-700 focus:outline-none"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      
-      <p class="text-gray-600 mb-6">
-        Share this Khatmah with others to invite them to join the Quran reading journey.
-      </p>
-      
-      <!-- Social Media Sharing Options -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-        <!-- Facebook -->
-        <button 
-          @click="shareToSocialMedia('facebook')"
-          class="flex flex-col items-center justify-center p-4 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
-        >
-          <svg class="h-8 w-8 text-blue-600 mb-2" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
-          <span class="text-sm font-medium text-gray-700">Facebook</span>
-        </button>
+  <transition name="fade">
+    <div v-if="showShareModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="toggleShareModal">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 transform transition-all">
+        <h3 class="text-lg font-semibold mb-4">{{ t('khatmahDetail.shareKhatmah') || 'Share Khatmah' }}</h3>
         
-        <!-- Twitter (now X) -->
-        <button 
-          @click="shareToSocialMedia('twitter')"
-          class="flex flex-col items-center justify-center p-4 rounded-lg bg-black hover:bg-gray-900 transition-colors"
-        >
-          <svg class="h-8 w-8 text-white mb-2" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-          </svg>
-          <span class="text-sm font-medium text-white">X</span>
-        </button>
+        <!-- QR Code section (if implemented) -->
+        <div class="mb-6 text-center" v-if="false">
+          <!-- Future QR code implementation -->
+        </div>
         
-        <!-- WhatsApp -->
-        <button 
-          @click="shareToSocialMedia('whatsapp')"
-          class="flex flex-col items-center justify-center p-4 rounded-lg bg-green-50 hover:bg-green-100 transition-colors"
-        >
-          <svg class="h-8 w-8 text-green-500 mb-2" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.198.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.5-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.272-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-          </svg>
-          <span class="text-sm font-medium text-gray-700">WhatsApp</span>
-        </button>
-        
-        <!-- Telegram -->
-        <button 
-          @click="shareToSocialMedia('telegram')"
-          class="flex flex-col items-center justify-center p-4 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
-        >
-          <svg class="h-8 w-8 text-blue-500 mb-2" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.347.372.198.27.149.444.198.642.048.99L12.434 12l4.962 2.478c.348.174.498.822.348 1.194-.196L19.5 12l-1.194-5.724zM12.002.42l-1.194 5.724L12 7.56l-2.406-1.2L8.998 4.2l4.806-2.4z"/>
-          </svg>
-          <span class="text-sm font-medium text-gray-700">Telegram</span>
-        </button>
-        
-        <!-- Email -->
-        <button 
-          @click="shareToSocialMedia('email')"
-          class="flex flex-col items-center justify-center p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-          <span class="text-sm font-medium text-gray-700">Email</span>
-        </button>
-      </div>
-      
-      <!-- Copy Link Section -->
-      <div class="mt-6">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Khatmah Link</label>
-        <div class="flex">
-          <div class="flex-grow relative">
+        <div class="mb-6">
+          <p class="text-gray-600 mb-2">{{ t('khatmahDetail.shareDescription') || 'Share this link with others to invite them to this Khatmah:' }}</p>
+          <div class="flex items-center">
             <input 
               type="text" 
               readonly 
-              :value="`${getBaseUrl()}/khatmah/${props.khatmahId}`"
-              class="block w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              :value="getKhatmahUrl()" 
+              class="block w-full border border-gray-300 rounded-l-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <button 
+              @click="copyKhatmahLink" 
+              class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-r-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center"
+            >
+              <svg v-if="!linkCopied" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              <span v-if="!linkCopied">{{ t('khatmahDetail.copy') || 'Copy' }}</span>
+              <span v-else>{{ t('khatmahDetail.copied') || 'Copied!' }}</span>
+            </button>
           </div>
-          <button
-            @click="copyKhatmahLink"
-            class="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-            :class="{ 'bg-green-600 hover:bg-green-700': linkCopied }"
+        </div>
+        
+        <div class="flex flex-col sm:flex-row sm:justify-between gap-2">
+          <button 
+            @click="shareKhatmah"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
           >
-            <svg v-if="!linkCopied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-              <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-            </svg>
-            <span class="ml-1">{{ linkCopied ? 'Copied!' : 'Copy' }}</span>
+            {{ t('khatmahDetail.shareButton') || 'Share' }}
+          </button>
+          <button 
+            @click="toggleShareModal"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm focus:outline-none w-full sm:w-auto"
+          >
+            {{ t('khatmahDetail.close') || 'Close' }}
           </button>
         </div>
       </div>
     </div>
+  </transition>
+  
+  <!-- Back button to return to list -->
+  <div class="mt-4 text-center">
+    <button 
+      @click="$emit('cancel')" 
+      class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+    >
+      {{ t('khatmahDetail.backToList') }}
+    </button>
   </div>
 </template>
 

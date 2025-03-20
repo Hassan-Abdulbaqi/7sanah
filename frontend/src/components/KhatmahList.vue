@@ -8,7 +8,7 @@ const { t } = useI18n();
 const props = defineProps({
   khatmahs: {
     type: Array,
-    required: true
+    default: () => []
   }
 });
 

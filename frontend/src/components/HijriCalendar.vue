@@ -1,147 +1,174 @@
 <template>
   <div class="hijri-calendar-container">
-    <div class="calendar-header">
-      <h2 class="calendar-title">{{ t('hijriCalendar.title') }}</h2>
-      <div class="calendar-controls">
-        <button @click="previousMonth" class="control-button" :disabled="isNavigating">
-          <span class="icon">→</span>
-        </button>
-        <div class="month-display">
-          <span class="month-name">{{ currentMonth?.name_ar || '' }}</span>
-          <span class="month-name-en">{{ currentMonth?.name_en || '' }}</span>
-          <span class="year" v-if="currentMonth?.year">{{ currentMonth.year }}{{ t('hijriCalendar.hijriYear') }}</span>
-        </div>
-        <button @click="nextMonth" class="control-button" :disabled="isNavigating">
-          <span class="icon">←</span>
-        </button>
+    <!-- Tab Navigation -->
+    <div class="tabs-container">
+      <div 
+        :class="['tab', { active: activeTab === 'calendar' }]" 
+        @click="setActiveTab('calendar')"
+      >
+        {{ t('hijriCalendar.title') }}
+      </div>
+      <div 
+        :class="['tab', { active: activeTab === 'ageCalculator' }]" 
+        @click="setActiveTab('ageCalculator')"
+      >
+        {{ t('ageCalculator.title') }}
       </div>
     </div>
 
-    <!-- Calendar content with fixed height container -->
-    <div class="calendar-container">
-      <!-- Initial loading state -->
-      <div v-if="loading && !isNavigating" class="calendar-loading">
-        <div class="spinner-container">
-          <div class="spinner"></div>
+    <!-- Calendar Tab Content -->
+    <div v-if="activeTab === 'calendar'">
+      <div class="calendar-header">
+        <h2 class="calendar-title">{{ t('hijriCalendar.title') }}</h2>
+        <div class="calendar-controls">
+          <button @click="previousMonth" class="control-button" :disabled="isNavigating">
+            <span class="icon">→</span>
+          </button>
+          <div class="month-display">
+            <span class="month-name">{{ currentMonth?.name_ar || '' }}</span>
+            <span class="month-name-en">{{ currentMonth?.name_en || '' }}</span>
+            <span class="year" v-if="currentMonth?.year">{{ currentMonth.year }}{{ t('hijriCalendar.hijriYear') }}</span>
+          </div>
+          <button @click="nextMonth" class="control-button" :disabled="isNavigating">
+            <span class="icon">←</span>
+          </button>
         </div>
-        <p class="loading-text">{{ t('hijriCalendar.loading') }}</p>
       </div>
 
-      <div v-else-if="error" class="calendar-error">
-        <p>{{ t('hijriCalendar.error') }}: {{ error }}</p>
-      </div>
+      <!-- Calendar content with fixed height container -->
+      <div class="calendar-container">
+        <!-- Initial loading state -->
+        <div v-if="loading && !isNavigating" class="calendar-loading">
+          <div class="spinner-container">
+            <div class="spinner"></div>
+          </div>
+          <p class="loading-text">{{ t('hijriCalendar.loading') }}</p>
+        </div>
 
-      <!-- Calendar with transition effects -->
-      <div v-else class="calendar-wrapper">
-        <transition :name="navigationDirection" mode="out-in">
-          <div :key="currentMonth?.name_en + currentMonth?.year" class="calendar-body">
-            <div class="weekdays">
-              <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
-            </div>
-            
-            <div class="days-grid">
-              <!-- Empty cells for days before the month starts -->
-              <div 
-                v-for="n in firstDayOfMonth" 
-                :key="`empty-${n}`" 
-                class="day-cell empty">
+        <div v-else-if="error" class="calendar-error">
+          <p>{{ t('hijriCalendar.error') }}: {{ error }}</p>
+        </div>
+
+        <!-- Calendar with transition effects -->
+        <div v-else class="calendar-wrapper">
+          <transition :name="navigationDirection" mode="out-in">
+            <div :key="currentMonth?.name_en + currentMonth?.year" class="calendar-body">
+              <div class="weekdays">
+                <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
               </div>
               
-              <!-- Calendar days -->
-              <div 
-                v-for="day in calendarDays" 
-                :key="day.hijri_day" 
-                class="day-cell"
-                :class="{ 
-                  'has-events': day.events.length > 0,
-                  'has-holiday': day.events.some(e => e.is_holiday),
-                  'today': isToday(day.gregorian_date)
-                }"
-                @click="showDayDetails(day)"
-              >
-                <div class="day-content">
-                  <div class="day-number-container">
-                    <span class="day-number">{{ day.hijri_day }}</span>
-                    <span class="hijri-indicator">هـ</span>
-                  </div>
-                  <div class="gregorian-date">{{ formatGregorianDate(day.gregorian_date) }}</div>
-                  
-                  <div v-if="day.events.length > 0" class="event-indicators">
-                    <span 
-                      v-for="(event, index) in day.events.slice(0, 2)" 
-                      :key="index" 
-                      class="event-dot"
-                      :class="{ 'holiday': event.is_holiday }"
-                    ></span>
-                    <span v-if="day.events.length > 2" class="more-events">+{{ day.events.length - 2 }}</span>
-                  </div>
-                  
-                  <!-- Event glimpse for larger screens -->
-                  <div v-if="day.events.length > 0" class="event-glimpse">
-                    <div class="event-glimpse-title">{{ day.events[0].title_ar.substring(0, 20) }}{{ day.events[0].title_ar.length > 20 ? '...' : '' }}</div>
+              <div class="days-grid">
+                <!-- Empty cells for days before the month starts -->
+                <div 
+                  v-for="n in firstDayOfMonth" 
+                  :key="`empty-${n}`" 
+                  class="day-cell empty">
+                </div>
+                
+                <!-- Calendar days -->
+                <div 
+                  v-for="day in calendarDays" 
+                  :key="day.hijri_day" 
+                  class="day-cell"
+                  :class="{ 
+                    'has-events': day.events.length > 0,
+                    'has-holiday': day.events.some(e => e.is_holiday),
+                    'today': isToday(day.gregorian_date)
+                  }"
+                  @click="showDayDetails(day)"
+                >
+                  <div class="day-content">
+                    <div class="day-number-container">
+                      <span class="day-number">{{ day.hijri_day }}</span>
+                      <span class="hijri-indicator">هـ</span>
+                    </div>
+                    <div class="gregorian-date">{{ formatGregorianDate(day.gregorian_date) }}</div>
+                    
+                    <div v-if="day.events.length > 0" class="event-indicators">
+                      <span 
+                        v-for="(event, index) in day.events.slice(0, 2)" 
+                        :key="index" 
+                        class="event-dot"
+                        :class="{ 'holiday': event.is_holiday }"
+                      ></span>
+                      <span v-if="day.events.length > 2" class="more-events">+{{ day.events.length - 2 }}</span>
+                    </div>
+                    
+                    <!-- Event glimpse for larger screens -->
+                    <div v-if="day.events.length > 0" class="event-glimpse">
+                      <div class="event-glimpse-title">{{ day.events[0].title_ar.substring(0, 20) }}{{ day.events[0].title_ar.length > 20 ? '...' : '' }}</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+          </transition>
+          
+          <!-- Navigation loading overlay -->
+          <div v-if="isNavigating && showSpinner" class="navigation-loading-overlay">
+            <div class="spinner-container">
+              <div class="spinner"></div>
+            </div>
           </div>
-        </transition>
-        
-        <!-- Navigation loading overlay -->
-        <div v-if="isNavigating && showSpinner" class="navigation-loading-overlay">
-          <div class="spinner-container">
-            <div class="spinner"></div>
+        </div>
+      </div>
+
+      <!-- Day details modal -->
+      <div v-if="selectedDay" class="day-details-modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title">
+              {{ formatHijriDate(selectedDay) }}
+            </h3>
+            <button @click="closeModal" class="close-button">&times;</button>
+          </div>
+          
+          <div class="modal-body">
+            <div class="date-info">
+              <div class="gregorian-date-full">{{ formatGregorianDateFull(selectedDay.gregorian_date) }}</div>
+            </div>
+            
+            <div class="events-container">
+              <div v-if="selectedDay.events.length > 0" class="events-list">
+                <h4>{{ t('hijriCalendar.events') }}</h4>
+                <div 
+                  v-for="(event, index) in selectedDay.events" 
+                  :key="index"
+                  :class="['event-item', { 'holiday': event.is_holiday }]"
+                >
+                  <div class="event-title">{{ event.title_ar }}</div>
+                  <div class="event-title-en">{{ event.title_en }}</div>
+                  <div v-if="event.description_ar" class="event-description">{{ event.description_ar }}</div>
+                </div>
+              </div>
+              
+              <div v-if="selectedDay.astronomical_events.length > 0" class="astro-events-list">
+                <h4>{{ t('hijriCalendar.astronomicalEvents') }}</h4>
+                <div 
+                  v-for="(event, index) in selectedDay.astronomical_events" 
+                  :key="index"
+                  class="astro-event-item"
+                >
+                  <div class="event-title">{{ event.title_ar }}</div>
+                  <div class="event-time" v-if="event.time">{{ event.time }}</div>
+                  <div v-if="event.description_ar" class="event-description">{{ event.description_ar }}</div>
+                </div>
+              </div>
+              
+              <div v-if="selectedDay.events.length === 0 && selectedDay.astronomical_events.length === 0" class="no-events">
+                {{ t('hijriCalendar.noEvents') }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Day details modal -->
-    <div v-if="selectedDay" class="day-details-modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>
-            {{ selectedDay.hijri_day }} {{ currentMonth?.name_ar || '' }} {{ currentMonth?.year || '' }}{{ t('hijriCalendar.hijriYear') }}
-          </h3>
-          <span class="gregorian-date">{{ formatGregorianDateFull(selectedDay.gregorian_date) }}</span>
-          <button @click="selectedDay = null" class="close-button">&times;</button>
-        </div>
-        
-        <div class="modal-body">
-          <div v-if="selectedDay.events.length > 0" class="events-list">
-            <h4>{{ t('hijriCalendar.events') }}</h4>
-            <div 
-              v-for="event in selectedDay.events" 
-              :key="event.id" 
-              class="event-item"
-              :class="{ 'holiday': event.is_holiday }"
-            >
-              <div class="event-title">{{ event.title_ar }}</div>
-              <div v-if="event.title_en" class="event-title-en">{{ event.title_en }}</div>
-              <div v-if="event.description_ar" class="event-description">{{ event.description_ar }}</div>
-            </div>
-          </div>
-          
-          <div v-if="selectedDay.astronomical_events.length > 0" class="astro-events-list">
-            <h4>{{ t('hijriCalendar.astronomicalEvents') }}</h4>
-            <div 
-              v-for="event in selectedDay.astronomical_events" 
-              :key="event.id" 
-              class="astro-event-item"
-            >
-              <div class="event-title">{{ event.title_ar }}</div>
-              <div v-if="event.title_en" class="event-title-en">{{ event.title_en }}</div>
-              <div class="event-time">{{ formatTime(event.time) }}</div>
-              <div v-if="event.description_ar" class="event-description">{{ event.description_ar }}</div>
-            </div>
-          </div>
-          
-          <div v-if="selectedDay.events.length === 0 && selectedDay.astronomical_events.length === 0" class="no-events">
-            {{ t('hijriCalendar.noEvents') }}
-          </div>
-        </div>
-      </div>
+    <!-- Age Calculator Tab Content -->
+    <div v-else-if="activeTab === 'ageCalculator'">
+      <AgeCalculator />
     </div>
-    
+
     <!-- Source information -->
     <div class="calendar-source-info">
       <p class="source-text">حسب رأي السيد علي السيستاني اطال الله عمره</p>
@@ -154,8 +181,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import axios from 'axios';
+import AgeCalculator from './AgeCalculator.vue';
 
 const { t } = useI18n();
+
+// Tab state
+const activeTab = ref('calendar');
 
 // State variables
 const loading = ref(true);
@@ -496,17 +527,8 @@ const formatGregorianDateFull = (dateStr) => {
 
 const formatTime = (timeStr) => {
   if (!timeStr) return '';
-  try {
-    // Convert 24-hour format to 12-hour format with AM/PM
-    const [hours, minutes] = timeStr.split(':');
-    const hour = parseInt(hours, 10);
-    const ampm = hour >= 12 ? 'م' : 'ص';
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes} ${ampm}`;
-  } catch (err) {
-    console.error('Error formatting time:', err);
-    return timeStr;
-  }
+  // Format time as needed
+  return timeStr;
 };
 
 const isToday = (dateStr) => {
@@ -663,6 +685,11 @@ const nextMonth = () => {
   }
 };
 
+// Tab methods
+const setActiveTab = (tab) => {
+  activeTab.value = tab;
+};
+
 // Initialize the calendar
 onMounted(async () => {
   try {
@@ -712,6 +739,17 @@ onMounted(async () => {
     error.value = 'Failed to initialize calendar';
   }
 });
+
+// Formatted Hijri date for the modal title
+const formatHijriDate = (day) => {
+  if (!day || !currentMonth.value) return '';
+  return `${day.hijri_day} ${currentMonth.value.name_ar || ''} ${currentMonth.value.year || ''}${t('hijriCalendar.hijriYear')}`;
+};
+
+// Close the modal
+const closeModal = () => {
+  selectedDay.value = null;
+};
 </script>
 
 <style scoped>
@@ -723,6 +761,31 @@ onMounted(async () => {
   padding: 20px;
   direction: rtl;
   position: relative;
+}
+
+.tabs-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tab {
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab:hover {
+  color: var(--primary-color);
+}
+
+.tab.active {
+  color: var(--primary-color);
+  border-bottom: 3px solid var(--primary-color);
 }
 
 .calendar-header {

@@ -2,8 +2,16 @@ import { createApp } from 'vue'
 import { createI18n } from 'vue-i18n'
 import './style.css'
 import App from './App.vue'
+import router from './router'
 import messages from './locales'
 import { clickOutside } from './directives/clickOutside'
+
+// Log initial URL and route for debugging
+console.log('------------------------')
+console.log('Application starting...')
+console.log('Initial URL:', window.location.href)
+console.log('Initial pathname:', window.location.pathname)
+console.log('------------------------')
 
 // Get the browser language or use English as fallback
 const getBrowserLanguage = () => {
@@ -58,16 +66,28 @@ const i18n = createI18n({
   }
 })
 
-// Create and mount the app
+// Create the app
 const app = createApp(App)
 
 // Register the click-outside directive
 app.directive('clickOutside', clickOutside)
 
-// Use i18n
-app.use(i18n)
+// Create notification service on the app
+app.config.globalProperties.$notification = {
+  info: (message) => console.info('[Info]', message),
+  success: (message) => console.log('[Success]', message),
+  warning: (message) => console.warn('[Warning]', message),
+  error: (message) => console.error('[Error]', message)
+}
 
-// Mount the app
+// Use plugins
+app.use(i18n)
+app.use(router)
+
+// Log the current route for debugging
+console.log('Current route:', window.location.pathname)
+
+// After all plugins are added, mount the app
 app.mount('#app')
 
 // Export the i18n instance for use in other files

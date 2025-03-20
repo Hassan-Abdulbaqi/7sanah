@@ -1,7 +1,33 @@
 {
   "app": {
-    "title": "Quran Khatmah",
-    "subtitle": "Collaborative Quran Reading Journey"
+    "title": "7sanah",
+    "subtitle": "Collaborative Quran Reading Journey",
+    "description": "Your daily companion for prayer, scripture, and spiritual growth.",
+    "rights_reserved": "All rights reserved."
+  },
+  "nav": {
+    "home": "Home",
+    "khatmah": "Khatmahs",
+    "calendar": "Prayer Times",
+    "qibla": "Qibla Compass"
+  },
+  "features": {
+    "khatmah": {
+      "title": "Quran Khatmahs",
+      "description": "Participate in collaborative Quran reading journeys with others."
+    },
+    "calendar": {
+      "title": "Prayer Times",
+      "description": "Get accurate prayer times based on your location."
+    },
+    "qibla": {
+      "title": "Qibla Compass",
+      "description": "Find the direction of Qibla from anywhere in the world."
+    },
+    "ageCalculator": {
+      "title": "Age Calculator",
+      "description": "Calculate your age in both Gregorian and Hijri calendars."
+    }
   },
   "navigation": {
     "backToList": "Back to List",
@@ -21,7 +47,8 @@
     "completed": "completed",
     "noKhatmahs": "No khatmahs found",
     "noKhatmahsMatch": "No khatmahs match your search for",
-    "noKhatmahsAvailable": "There are no khatmahs available yet"
+    "noKhatmahsAvailable": "There are no khatmahs available yet",
+    "createNew": "Create New Khatmah"
   },
   "khatmahDetail": {
     "title": "Khatmah Details",
@@ -61,14 +88,28 @@
     "leave": "Leave",
     "copyError": "Failed to copy link to clipboard",
     "shareText": "Join me in reading the Quran! I'm participating in \"{name}\" Khatmah.",
-    "emailSubject": "Join me in {name} Khatmah"
+    "emailSubject": "Join me in {name} Khatmah",
+    "khatmahId": "Khatmah ID",
+    "copyLink": "Copy Link",
+    "copyLinkToClipboard": "Copy link to clipboard",
+    "shareKhatmah": "Share Khatmah",
+    "shareDescription": "Share this link with others to invite them to this Khatmah:",
+    "shareMessage": "Join me in reading the Quran! I'm participating in \"{name}\" Khatmah.",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "shareButton": "Share",
+    "close": "Close",
+    "manualCopyPrompt": "Copy this link manually:"
   },
   "share": {
     "title": "Share Khatmah",
     "description": "Share this Khatmah with others to invite them to join the Quran reading journey.",
     "khatmahLink": "Khatmah Link",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "shareButton": "Share",
+    "close": "Close",
+    "shareDescription": "Share this link with others to invite them to this Khatmah:"
   },
   "participations": {
     "title": "My Khatmah Participations",
@@ -128,7 +169,9 @@
     "endDateLabel": "End Date (optional)",
     "endDateHelp": "Set a target date to complete the khatmah",
     "saveButton": "Save Changes",
-    "cancelButton": "Cancel"
+    "cancelButton": "Cancel",
+    "succcess": "Khatmah updated successfully",
+    "error": "Failed to update khatmah"
   },
   "prayerTimes": {
     "title": "Prayer Times",
@@ -219,5 +262,59 @@
     "save": "Save",
     "cancel": "Cancel",
     "retry": "Retry"
+  },
+  "ageCalculator": {
+    "title": "Age Calculator",
+    "description": "Calculate your age in both Gregorian and Hijri calendars and discover more information.",
+    "birthdateLabel": "Birth Date",
+    "calculateButton": "Calculate Age",
+    "calculating": "Calculating...",
+    "hijriExplanation": "Your Hijri age differs from your Gregorian age because the Hijri year is 354.36 days while the Gregorian year is 365.25 days. There's a difference of about 11 days each year, which is why your Hijri age is greater than your Gregorian age, and this difference increases as you get older.",
+    "gregorianAgeTitle": "Gregorian Age",
+    "hijriAgeTitle": "Hijri Age",
+    "ageFormatsTitle": "Your Age in Different Formats",
+    "birthInfoTitle": "More About Your Birth",
+    "birthdate": "Birth Date",
+    "birthMonth": "Birth Month",
+    "age": "Age",
+    "gregorianAge": "Gregorian Age",
+    "hijriAge": "Hijri Age",
+    "nextBirthday": "Time Until Next Birthday",
+    "birthdayDay": "Your Next Birthday Will Be On",
+    "ageInMonths": "In Months",
+    "ageInWeeks": "In Weeks",
+    "ageInDays": "In Days",
+    "ageInHours": "In Hours",
+    "dayOfWeek": "Born on",
+    "season": "Born in",
+    "zodiac": "Zodiac Sign",
+    "year": "year",
+    "years": "years",
+    "month": "month",
+    "months": "months",
+    "day": "day",
+    "days": "days",
+    "hours": "hours",
+    "minutes": "minutes",
+    "weeks": "weeks",
+    "approximately": "approximately",
+    "corresponding": "corresponding to",
+    "calculationSuccess": "Age calculated successfully",
+    "calculationError": "Error calculating age. Please try again.",
+    "gregorian": "Gregorian Calendar",
+    "hijri": "Hijri Calendar",
+    "additionalInfo": "Additional Information",
+    "seconds": "seconds",
+    "milliseconds": "milliseconds",
+    "ageFormats": "Your Age in Different Formats",
+    "inMonths": "In Months",
+    "inWeeks": "In Weeks",
+    "inDays": "In Days",
+    "inHours": "In Hours",
+    "calendarInput": "Calendar",
+    "dropdownInput": "Manual Entry",
+    "selectDay": "Select Day",
+    "selectMonth": "Select Month",
+    "selectYear": "Select Year"
   }
 } 

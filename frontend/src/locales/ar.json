@@ -1,11 +1,40 @@
 {
   "app": {
     "title": "حسنة",
-    "subtitle": "العمل اهداء الى ثواب المرحومة الحاجة ام عبد الباقي"
+    "subtitle": "شارك في رحلات قراءة القرآن مع الآخرين.",
+    "description": "شارك في رحلات قراءة القرآن مع الآخرين."
+  },
+  "nav": {
+    "home": "الصفحة الرئيسية",
+    "khatmah": "الختمة",
+    "calendar": "التقويم الهجري",
+    "qibla": "القبلة"
+  },
+  "features": {
+    "khatmah": {
+      "title": "ختمات القرآن",
+      "description": "شارك في رحلات قراءة القرآن الجماعية مع الآخرين."
+    },
+    "calendar": {
+      "title": "التقويم الهجري",
+      "description": "تصفح التقويم الهجري ومعرفة المناسبات الإسلامية."
+    },
+    "qibla": {
+      "title": "بوصلة القبلة",
+      "description": "اعثر على اتجاه القبلة من أي مكان في العالم."
+    },
+    "ageCalculator": {
+      "title": "حاسبة العمر",
+      "description": "احسب عمرك بالتقويمين الهجري والميلادي."
+    }
   },
   "navigation": {
     "backToList": "العودة إلى القائمة",
-    "createNew": "إنشاء ختمة جديدة"
+    "createNew": "إنشاء ختمة جديدة",
+    "home": "الصفحة الرئيسية",
+    "khatmah": "الختمة",
+    "calendar": "التقويم الهجري",
+    "qibla": "القبلة"
   },
   "khatmahList": {
     "title": "الختمات",
@@ -21,7 +50,8 @@
     "management": "إدارة الختمات",
     "noKhatmahs": "لم يتم العثور على ختمات",
     "noKhatmahsMatch": "لا توجد ختمات تطابق بحثك عن",
-    "noKhatmahsAvailable": "لا توجد ختمات متاحة حتى الآن"
+    "noKhatmahsAvailable": "لا توجد ختمات متاحة حتى الآن",
+    "createNew": "إنشاء ختمة جديدة"
   },
   "khatmahDetail": {
     "title": "تفاصيل الختمة",
@@ -61,14 +91,28 @@
     "leave": "مغادرة",
     "copyError": "فشل نسخ الرابط إلى الحافظة",
     "shareText": "انضم إلي في قراءة القرآن! أنا أشارك في ختمة \"{name}\".",
-    "emailSubject": "انضم إلي في ختمة {name}"
+    "emailSubject": "انضم إلي في ختمة {name}",
+    "khatmahId": "معرف الختمة",
+    "copyLink": "نسخ الرابط",
+    "copyLinkToClipboard": "نسخ الرابط إلى الحافظة",
+    "shareKhatmah": "مشاركة الختمة",
+    "shareDescription": "شارك هذا الرابط مع الآخرين لدعوتهم إلى هذه الختمة:",
+    "shareMessage": "انضم إلي في قراءة القرآن! أنا أشارك في ختمة \"{name}\".",
+    "copy": "نسخ",
+    "copied": "تم النسخ!",
+    "shareButton": "مشاركة",
+    "close": "إغلاق",
+    "manualCopyPrompt": "انسخ هذا الرابط يدويًا:"
   },
   "share": {
     "title": "مشاركة الختمة",
     "description": "شارك هذه الختمة مع الآخرين لدعوتهم للانضمام إلى رحلة قراءة القرآن.",
     "khatmahLink": "رابط الختمة",
     "copy": "نسخ",
-    "copied": "تم النسخ!"
+    "copied": "تم النسخ!",
+    "shareButton": "مشاركة",
+    "close": "إغلاق",
+    "shareDescription": "شارك هذا الرابط مع الآخرين لدعوتهم إلى هذه الختمة:"
   },
   "participations": {
     "title": "مشاركاتي في الختمات",
@@ -222,5 +266,59 @@
     "save": "حفظ",
     "cancel": "إلغاء",
     "retry": "إعادة المحاولة"
+  },
+  "ageCalculator": {
+    "title": "حاسبة العمر",
+    "description": "احسب عمرك بالتقويمين الميلادي والهجري وتعرف على معلومات أكثر.",
+    "birthdateLabel": "تاريخ الميلاد",
+    "calculateButton": "احسب العمر",
+    "calculating": "جاري الحساب...",
+    "hijriExplanation": "يختلف عمرك بالهجري عن عمرك بالميلادي لأن السنة الهجرية 354.36 يوم بينما السنة الميلادية 365.25 يوم فهناك فرق بين التقويمين حوالي 11 يوم في كل سنة من عمرك، ولذلك فالعمر بالهجري أكبر من العمر بالميلادي وكلما كبرت زاد هذا الفرق.",
+    "gregorianAgeTitle": "العمر بالميلادي",
+    "hijriAgeTitle": "العمر بالهجري",
+    "ageFormatsTitle": "عمرك بصيغ وأشكال مختلفة",
+    "birthInfoTitle": "معلومات أكثر عن عمرك",
+    "birthdate": "تاريخ الميلاد",
+    "birthMonth": "شهر الميلاد",
+    "age": "العمر",
+    "gregorianAge": "العمر بالتقويم الميلادي",
+    "hijriAge": "العمر بالتقويم الهجري",
+    "nextBirthday": "باقي لعيد ميلادك القادم",
+    "birthdayDay": "سيكون عيد ميلادك يوم",
+    "ageInMonths": "بالأشهر",
+    "ageInWeeks": "بالأسابيع",
+    "ageInDays": "بالأيام",
+    "ageInHours": "بالساعات",
+    "dayOfWeek": "ولدت يوم",
+    "season": "ولدت في فصل",
+    "zodiac": "برجك",
+    "year": "سنة",
+    "years": "سنة",
+    "month": "شهر",
+    "months": "شهر",
+    "day": "يوم",
+    "days": "يوم",
+    "hours": "ساعة",
+    "minutes": "دقيقة",
+    "weeks": "اسبوع",
+    "approximately": "حوالي",
+    "corresponding": "الموافق",
+    "calculationSuccess": "تم حساب العمر بنجاح",
+    "calculationError": "خطأ في حساب العمر. يرجى المحاولة مرة أخرى.",
+    "gregorian": "التقويم الميلادي",
+    "hijri": "التقويم الهجري",
+    "additionalInfo": "معلومات إضافية",
+    "seconds": "ثانية",
+    "milliseconds": "جزء من الثانية",
+    "ageFormats": "عمرك بصيغ وأشكال مختلفة",
+    "inMonths": "بالأشهر",
+    "inWeeks": "بالأسابيع",
+    "inDays": "بالأيام",
+    "inHours": "بالساعات",
+    "calendarInput": "تقويم",
+    "dropdownInput": "إدخال يدوي",
+    "selectDay": "اختر اليوم",
+    "selectMonth": "اختر الشهر",
+    "selectYear": "اختر السنة"
   }
-} 
+}
