@@ -107,13 +107,18 @@
 
         <!-- Qibla Compass Page -->
         <div v-else-if="currentPage === 'qibla'" class="page-container" :key="'qibla'">
-          <QiblaCompass />
+          <IslamicCompass />
         </div>
 
         <!-- Age Calculator Page -->
         <div v-else-if="currentPage === 'age-calculator'" class="page-container" :key="'age-calculator'">
           <h2 class="text-2xl font-bold text-gray-800 mb-6">{{ $t('features.ageCalculator.title') }}</h2>
           <AgeCalculator />
+        </div>
+
+        <!-- Tasbeeh Counter Page -->
+        <div v-else-if="currentPage === 'tasbeeh'" class="page-container" :key="'tasbeeh'">
+          <TasbeehCounter />
         </div>
       </transition>
     </main>
@@ -135,9 +140,12 @@ import CreateKhatmah from './components/CreateKhatmah.vue'
 import EditKhatmah from './components/EditKhatmah.vue'
 import HijriCalendar from './components/HijriCalendar.vue'
 import QiblaCompass from './components/QiblaCompass.vue'
+import IslamicCompass from './components/IslamicCompass.vue'
 import AgeCalculator from './components/AgeCalculator.vue'
+import TasbeehCounter from './components/TasbeehCounter.vue'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import Notification from './components/Notification.vue'
+import TasbeehIcon from './components/icons/TasbeehIcon.vue'
 import { store } from './store'
 
 export default {
@@ -149,14 +157,17 @@ export default {
     EditKhatmah,
     HijriCalendar,
     QiblaCompass,
+    IslamicCompass,
     AgeCalculator,
+    TasbeehCounter,
     LanguageSwitcher,
     Notification,
     BookOutline,
     CalendarOutline,
     CompassOutline,
     HomeOutline,
-    CalculatorOutline
+    CalculatorOutline,
+    TasbeehIcon
   },
   data() {
     return {
@@ -172,7 +183,8 @@ export default {
         { id: 'home', name: this.$t('nav.home'), icon: HomeOutline },
         { id: 'khatmah', name: this.$t('nav.khatmah'), icon: BookOutline },
         { id: 'calendar', name: this.$t('nav.calendar'), icon: CalendarOutline },
-        { id: 'qibla', name: this.$t('nav.qibla'), icon: CompassOutline }
+        { id: 'qibla', name: this.$t('nav.qibla'), icon: CompassOutline },
+        { id: 'tasbeeh', name: this.$t('nav.tasbeeh'), icon: TasbeehIcon }
       ]
     },
     features() {
@@ -200,6 +212,12 @@ export default {
           name: this.$t('features.ageCalculator.title'),
           description: this.$t('features.ageCalculator.description'),
           icon: CalculatorOutline
+        },
+        { 
+          id: 'tasbeeh',
+          name: this.$t('features.tasbeeh.title'),
+          description: this.$t('features.tasbeeh.description'),
+          icon: TasbeehIcon
         }
       ]
     }
@@ -268,6 +286,9 @@ export default {
           break
         case 'age-calculator':
           this.currentPage = 'age-calculator'
+          break
+        case 'tasbeeh':
+          this.currentPage = 'tasbeeh'
           break
       }
     },

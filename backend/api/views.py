@@ -541,57 +541,45 @@ def get_hijri_calendar(request):
 @api_view(['GET'])
 def get_qibla_direction(request, latitude, longitude):
     """
-    Calculate Qibla direction based on latitude and longitude coordinates
-    
-    The Qibla direction is calculated using the formula:
-    qibla = atan2(sin(lon_k - lon_p), cos(lat_p) * tan(lat_k) - sin(lat_p) * cos(lon_k - lon_p))
-    
-    Where:
-    - lat_k, lon_k are the coordinates of Kaaba (21.4225, 39.8262)
-    - lat_p, lon_p are the coordinates of the given point
+    Calculate Qibla direction (angle from North) for a given location
+    Kaaba coordinates: 21.422487, 39.826206
     """
     try:
-        # Convert string parameters to float
-        lat_p = float(latitude)
-        lon_p = float(longitude)
+        # Convert string coordinates to float
+        lat = float(latitude)
+        lng = float(longitude)
         
-        # Coordinates of Kaaba in Mecca
-        lat_k = 21.4225  # latitude of Kaaba
-        lon_k = 39.8262  # longitude of Kaaba
+        # Mecca coordinates
+        mecca_lat = 21.422487
+        mecca_lng = 39.826206
         
         # Convert to radians
-        lat_p_rad = math.radians(lat_p)
-        lon_p_rad = math.radians(lon_p)
-        lat_k_rad = math.radians(lat_k)
-        lon_k_rad = math.radians(lon_k)
+        lat_rad = math.radians(lat)
+        lng_rad = math.radians(lng)
+        mecca_lat_rad = math.radians(mecca_lat)
+        mecca_lng_rad = math.radians(mecca_lng)
         
-        # Calculate the Qibla direction
-        y = math.sin(lon_k_rad - lon_p_rad)
-        x = math.cos(lat_p_rad) * math.tan(lat_k_rad) - math.sin(lat_p_rad) * math.cos(lon_k_rad - lon_p_rad)
-        qibla_rad = math.atan2(y, x)
+        # Calculate qibla direction
+        y = math.sin(mecca_lng_rad - lng_rad)
+        x = math.cos(lat_rad) * math.tan(mecca_lat_rad) - math.sin(lat_rad) * math.cos(mecca_lng_rad - lng_rad)
+        qibla = math.atan2(y, x)
+        qibla = math.degrees(qibla)
         
-        # Convert to degrees and normalize to 0-360
-        qibla_deg = math.degrees(qibla_rad)
-        qibla_deg = (qibla_deg + 360) % 360
-        
-        return Response({
-            "code": 200,
-            "status": "OK",
-            "data": {
-                "latitude": lat_p,
-                "longitude": lon_p,
-                "direction": qibla_deg
-            }
+        # Convert to 0-360 range
+        if qibla < 0:
+            qibla += 360
+            
+        return JsonResponse({
+            'direction': round(qibla, 2),
+            'from_coordinates': f"{lat}, {lng}",
+            'to_coordinates': f"{mecca_lat}, {mecca_lng}"
         })
-    except ValueError:
-        return Response({
-            "code": 400,
-            "status": "Bad Request",
-            "data": "Invalid latitude or longitude values. Please provide valid numeric coordinates."
-        }, status=status.HTTP_400_BAD_REQUEST)
+        
     except Exception as e:
-        return Response({
-            "code": 500,
-            "status": "Internal Server Error",
-            "data": str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error': str(e)}, status=400)
+
+def compass_view(request):
+    """
+    Render the compass page
+    """
+    return render(request, 'api/compass.html')

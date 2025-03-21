@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     home, get_juz_text, KhatmahViewSet, ParticipantViewSet, JuzAssignmentViewSet,
     HijriMonthViewSet, HijriEventViewSet, AstronomicalEventViewSet, test_api_view,
-    get_hijri_calendar, calendar_dashboard, get_qibla_direction
+    get_hijri_calendar, calendar_dashboard, get_qibla_direction, compass_view
 )
 
 router = DefaultRouter()
@@ -21,5 +21,6 @@ urlpatterns = [
     path('juz/<int:juz_number>/text/', get_juz_text, name='juz-text'),
     path('calendar-dashboard/', calendar_dashboard, name='calendar-dashboard'),
     path('qibla/<str:latitude>/<str:longitude>/', get_qibla_direction, name='qibla-direction'),
+    path('compass/', compass_view, name='compass'),
     path('', include(router.urls)),
 ]

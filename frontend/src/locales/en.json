@@ -9,7 +9,8 @@
     "home": "Home",
     "khatmah": "Khatmahs",
     "calendar": "Prayer Times",
-    "qibla": "Qibla Compass"
+    "qibla": "Qibla Compass",
+    "tasbeeh": "Tasbeeh"
   },
   "features": {
     "khatmah": {
@@ -27,6 +28,23 @@
     "ageCalculator": {
       "title": "Age Calculator",
       "description": "Calculate your age in both Gregorian and Hijri calendars."
+    },
+    "tasbeeh": {
+      "title": "Tasbeeh Counter",
+      "description": "Perform dhikr with a digital counter for common Islamic remembrances.",
+      "selectTasbeeh": "Select Tasbeeh",
+      "target": "Target",
+      "remaining": "Remaining",
+      "increment": "Count",
+      "reset": "Reset",
+      "vibration": "Enable vibration feedback",
+      "currentPhrase": "Current Phrase",
+      "acceptanceMessage": "May Allah accept it from you",
+      "freeMode": {
+        "description": "Custom dhikr counting without limits",
+        "cycles": "Completed Cycles",
+        "current": "Current Cycle"
+      }
     }
   },
   "navigation": {
@@ -210,19 +228,17 @@
   "qibla": {
     "title": "Qibla Finder",
     "subtitle": "Find the direction of the Kaaba from your location",
-    "permission_required": "Please grant permission to access your location",
-    "permission_denied": "Location permission denied. Please enable location services",
-    "position_unavailable": "Unable to determine your position",
-    "timeout": "Request timed out. Please try again",
-    "unknown_error": "An unknown error occurred",
-    "compass_not_supported": "Compass not supported on this device",
-    "geolocation_not_supported": "Geolocation is not supported on this device",
-    "bearing": "Qibla Bearing",
-    "heading": "Current Heading",
-    "your_location": "Your Location",
-    "refresh_location": "Refresh Location",
-    "grant_permission": "Grant Location Permission",
-    "loading": "Getting your location..."
+    "permissionDenied": "Permission denied. Please enable device orientation in your browser settings.",
+    "permissionNeeded": "Device orientation access is needed to show the compass direction.",
+    "allowAccess": "Allow Access",
+    "requestPermission": "Request Permission Again",
+    "yourLocation": "Your Location",
+    "aboutQibla": "About Qibla Direction",
+    "qiblaDescription": "The Qibla is the direction that Muslims face during prayer. It points toward the Kaaba in Mecca, Saudi Arabia. This compass uses your device's orientation sensors and your current location to calculate the direction of the Qibla.",
+    "deviceOrientation": "Device Orientation Data",
+    "qiblaBearing": "Qibla Bearing",
+    "angleToTurn": "Angle to Turn",
+    "facingQibla": "You are facing Qibla!"
   },
   "compass": {
     "title": "Compass",
@@ -236,7 +252,6 @@
     "northWest": "North West",
     "permissionNeeded": "Compass access needed",
     "iOSPermissionNeeded": "iOS requires permission to use the compass. Please tap 'Allow Access' below.",
-    "allowAccess": "Allow Access",
     "notSupported": "Compass is not supported on your device.",
     "useGeolocation": "Use current location",
     "detectLocation": "Detect Location",
@@ -285,8 +300,10 @@
     "ageInWeeks": "In Weeks",
     "ageInDays": "In Days",
     "ageInHours": "In Hours",
-    "dayOfWeek": "Born on",
-    "season": "Born in",
+    "dayOfWeek": "Day of the Week",
+    "dayOfYear": "Day of the Year",
+    "moonPhase": "Moon Phase at Birth",
+    "season": "Birth Season",
     "zodiac": "Zodiac Sign",
     "year": "year",
     "years": "years",
@@ -315,6 +332,14 @@
     "dropdownInput": "Manual Entry",
     "selectDay": "Select Day",
     "selectMonth": "Select Month",
-    "selectYear": "Select Year"
+    "selectYear": "Select Year",
+    "newMoon": "New Moon",
+    "waxingCrescent": "Waxing Crescent",
+    "firstQuarter": "First Quarter",
+    "waxingGibbous": "Waxing Gibbous",
+    "fullMoon": "Full Moon",
+    "waningGibbous": "Waning Gibbous",
+    "lastQuarter": "Last Quarter",
+    "waningCrescent": "Waning Crescent"
   }
 } 

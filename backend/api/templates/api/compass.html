@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Islamic Compass</title>
+    <style>
+        :root {
+            --main-color: #4CAF50;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .compass-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+        }
+        .compass {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+        }
+        .compass-circle {
+            position: absolute;
+            width: 90%;
+            height: 90%;
+            border-radius: 50%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="49" fill="white" stroke="%234CAF50" stroke-width="0.5"/><line x1="50" y1="1" x2="50" y2="10" stroke="%234CAF50" stroke-width="1.5"/><text x="50" y="16" text-anchor="middle" font-family="Arial" font-size="8" fill="%234CAF50">N</text><line x1="50" y1="99" x2="50" y2="90" stroke="%234CAF50" stroke-width="1.5"/><text x="50" y="87" text-anchor="middle" font-family="Arial" font-size="8" fill="%234CAF50">S</text><line x1="1" y1="50" x2="10" y2="50" stroke="%234CAF50" stroke-width="1.5"/><text x="16" y="53" text-anchor="middle" font-family="Arial" font-size="8" fill="%234CAF50">W</text><line x1="99" y1="50" x2="90" y2="50" stroke="%234CAF50" stroke-width="1.5"/><text x="84" y="53" text-anchor="middle" font-family="Arial" font-size="8" fill="%234CAF50">E</text><circle cx="50" cy="50" r="2" fill="%234CAF50"/></svg>');
+            background-size: cover;
+            transform-origin: center;
+            transition: transform 0.3s ease;
+        }
+        .compass-arrow {
+            position: absolute;
+            width: 50%;
+            height: 4px;
+            background: linear-gradient(to right, transparent, var(--main-color) 40%, var(--main-color) 60%, transparent);
+            transform-origin: center left;
+            left: 50%;
+            top: calc(50% - 2px);
+        }
+        .compass-arrow::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            right: 0;
+            top: -6px;
+            border-left: 10px solid var(--main-color);
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 80%;
+            max-width: 300px;
+        }
+        .info-box {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            width: 80%;
+            max-width: 300px;
+            background-color: white;
+        }
+        .title_box {
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        .title_box h2 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--main-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .title_box h2::after {
+            content: '▼';
+            font-size: 12px;
+        }
+        .title_box.active h2::after {
+            content: '▲';
+        }
+        .info-content {
+            display: none;
+        }
+        .title_box.active + .info-content {
+            display: block;
+        }
+        .deg {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--main-color);
+            text-align: center;
+            margin-top: 10px;
+        }
+        .button {
+            background-color: var(--main-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .button i {
+            font-size: 16px;
+        }
+        .toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            border-radius: 15px;
+            background-color: #ccc;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            background-color: white;
+            transition: transform 0.3s;
+        }
+        .toggle.toggle-on {
+            background-color: var(--main-color);
+        }
+        .toggle.toggle-on::after {
+            transform: translateX(30px);
+        }
+        .locations-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .locations-info div {
+            display: flex;
+            justify-content: space-between;
+        }
+        .locations-info span {
+            font-weight: bold;
+        }
+        .colors {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 10px;
+        }
+        .colors.active {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .color {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .color.active {
+            border: 2px solid black;
+        }
+        .lang {
+            display: none;
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 10px;
+        }
+        .lang.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="compass-container">
+        <div class="compass">
+            <div class="compass-circle"></div>
+        </div>
+    </div>
+    
+    <div class="deg">
+        <span>N</span> <span>0°</span>
+    </div>
+    
+    <div class="controls">
+        <button class="button start-btn">
+            <i class="icon-compass"></i> Start Compass
+        </button>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Location Services</span>
+            <div class="toggle"></div>
+        </div>
+        <button class="button" id="lock_location">
+            <i class="icon-unlock"></i> Lock Direction
+        </button>
+        <button class="button" id="share_location">
+            <i class="icon-share"></i> Share Location
+        </button>
+    </div>
+    
+    <div class="info-box">
+        <div class="title_box">
+            <h2>Location Information</h2>
+        </div>
+        <div class="info-content locations-info">
+            <div class="latitude">
+                <span>Latitude:</span> <span>0</span>
+            </div>
+            <div class="longitude">
+                <span>Longitude:</span> <span>0</span>
+            </div>
+            <div class="location">
+                <span>Location:</span> <span>Unknown</span>
+            </div>
+            <div class="sea_level">
+                <span>Height (AMSL):</span> <span>0 m = 0 ft</span>
+            </div>
+        </div>
+        
+        <div class="title_box">
+            <h2>Sun Information</h2>
+        </div>
+        <div class="info-content">
+            <div class="locations-info">
+                <div class="sunrise">
+                    <span>Sunrise:</span> <span>00:00:00</span>
+                </div>
+                <div class="sunset">
+                    <span>Sunset:</span> <span>00:00:00</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="title_box">
+            <h2>Qibla Direction</h2>
+        </div>
+        <div class="info-content">
+            <div id="qibla-direction" style="text-align: center;">
+                Enable location services to display Qibla direction
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener("DOMContentLoaded", (event) => {
+            const compassCircle = document.querySelector(".compass-circle");
+            let degCompass;
+            let direction;
+
+            //share location
+            document.getElementById('share_location').addEventListener('click', async function() {
+                if (document.querySelector(".toggle").classList.contains("toggle-on")) {
+                    var stringText = "Longitude: " +
+                        document.querySelector(".latitude span:last-of-type").innerText +
+                        "\nLatitude: " + document
+                        .querySelector(".longitude span:last-of-type").innerText +
+                        "\nSunrise: " + document
+                        .querySelector(".sunrise span")
+                        .innerText +
+                        "\nSunset: " + document
+                        .querySelector(".sunset span")
+                        .innerText +
+                        "\nMy Location: " + document
+                        .querySelector(".location span")
+                        .innerText +
+                        "\nHeight above mean sea level (AMSL): " + document
+                        .querySelector(".sea_level span")
+                        .innerText;
+
+                    if (document.querySelector("#lock_location.active") !== null) {
+                        stringText += "\nDirection: " + document
+                            .querySelector(".deg span:last-of-type")
+                            .innerText;
+                    }
+
+                    if ('share' in navigator) {
+                        navigator.share({
+                                title: "Share",
+                                text: stringText + "\n",
+                                url: '\nhttps://quran-khatmah.com/',
+                            })
+                            .then(() => {})
+                            .catch(console.error);
+                    } else {
+                        // Implement fallback sharing option
+                        alert("This browser does not support the Web Share API.");
+                        return;
+                    }
+                } else {
+                    if (document.querySelector("#lock_location.active") !== null) {
+                        if ('share' in navigator) {
+                            navigator.share({
+                                    title: "Share",
+                                    text: "Direction: " +
+                                        document.querySelector(".deg span:last-of-type").innerText + "\n",
+                                    url: '\nhttps://quran-khatmah.com/',
+                                })
+                                .then(() => {})
+                                .catch(console.error);
+                        } else {
+                            // Implement fallback sharing option
+                            alert("This browser does not support the Web Share API.");
+                        }
+                    } else {
+                        if ('share' in navigator) {
+                            navigator.share({
+                                    title: "Share",
+                                    text: "Quran Khatmah Compass:",
+                                    url: '\nhttps://quran-khatmah.com/',
+                                })
+                                .then(() => {})
+                                .catch(console.error);
+                        }
+                    }
+                }
+            });
+
+            //lock_location
+            document.getElementById("lock_location").addEventListener("click", function() {
+                this.classList.toggle("active");
+                if (this.classList.contains("active")) {
+                    document.querySelector("#lock_location i").classList.remove("icon-unlock");
+                    document.querySelector("#lock_location i").classList.add("icon-lock");
+                } else {
+                    document.querySelector("#lock_location i").classList.add("icon-unlock");
+                    document.querySelector("#lock_location i").classList.remove("icon-lock");
+                }
+            });
+
+            function getDirection(compass) {
+                if (compass >= 0 && compass < 22.5) {
+                    return "N";
+                } else if (compass >= 22.5 && compass < 67.5) {
+                    return "NE";
+                } else if (compass >= 67.5 && compass < 112.5) {
+                    return "E";
+                } else if (compass >= 112.5 && compass < 157.5) {
+                    return "SE";
+                } else if (compass >= 157.5 && compass < 202.5) {
+                    return "S";
+                } else if (compass >= 202.5 && compass < 247.5) {
+                    return "SW";
+                } else if (compass >= 247.5 && compass < 292.5) {
+                    return "W";
+                } else if (compass >= 292.5 && compass < 337.5) {
+                    return "NW";
+                } else {
+                    return "N";
+                }
+            }
+
+            document.querySelector(".toggle")?.addEventListener("click", function(e) {
+                e.preventDefault();
+                this.classList.toggle("toggle-on");
+
+                if (this.classList.contains("toggle-on")) {
+                    (function() {
+                        navigator.geolocation.getCurrentPosition(function(position) {
+                                showPosition(position)
+                            },
+                            function(error) {
+                                showError(error)
+                            })
+                    })();
+                }
+            });
+
+            function showPosition(position) {
+                var latitude = position.coords.latitude;
+                var longitude = position.coords.longitude;
+
+                document.querySelector(".latitude span:last-of-type").innerText = latitude;
+                document.querySelector(".longitude span:last-of-type").innerText = longitude;
+
+                // Update Qibla direction with backend API
+                fetch(`/api/qibla/${latitude}/${longitude}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('qibla-direction').innerHTML = 
+                            `<p>Qibla is <strong>${data.direction}°</strong> from your location</p>`;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching qibla direction:', error);
+                    });
+
+                const url = `https://api.sunrise-sunset.org/json?lat=${latitude}&lng=${longitude}&formatted=0`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        const sunrise = new Date(data.results.sunrise);
+                        const sunset = new Date(data.results.sunset);
+                        
+                        document.querySelector('.sunset span').innerText = sunset.toLocaleTimeString();
+                        document.querySelector('.sunrise span').innerText = sunrise.toLocaleTimeString();
+                        
+                        GetAltitude(latitude, longitude);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching sunrise/sunset:', error);
+                    });
+            }
+
+            function showError(error) {
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert("User denied the request for Geolocation.");
+                        return;
+                    case error.POSITION_UNAVAILABLE:
+                        alert("The location information is not available.");
+                        return;
+                    case error.TIMEOUT:
+                        alert("The attempt to obtain the user's location has failed due to a timeout.");
+                        return;
+                }
+            }
+
+            function GetAltitude(latitude, longitude) {
+                // Simulating altitude and location data
+                // In a real app, you would use a geocoding service or API
+                const altitude = Math.floor(Math.random() * 500);
+                const locations = ["New York, USA", "London, UK", "Tokyo, Japan", "Paris, France", "Sydney, Australia"];
+                const location = locations[Math.floor(Math.random() * locations.length)];
+                
+                document.querySelector(".sea_level span").innerText = 
+                    `${altitude} m = ${(altitude / 0.3048).toFixed(2)} ft`;
+                document.querySelector(".location span").innerText = location;
+            }
+
+            const startBtn = document.querySelector(".start-btn");
+            const isIOS =
+                navigator.userAgent.match(/(iPod|iPhone|iPad)/) &&
+                navigator.userAgent.match(/AppleWebKit/);
+
+            function init() {
+                startBtn.addEventListener("click", startCompass);
+                
+                // Open info boxes when clicked
+                document.querySelectorAll('.title_box').forEach(element => {
+                    element.addEventListener("click", function() {
+                        element.classList.toggle("active");
+                    });
+                });
+
+                if (!isIOS) {
+                    window.addEventListener("deviceorientationabsolute", handler, true);
+                }
+            }
+
+            function startCompass() {
+                if (isIOS) {
+                    DeviceOrientationEvent.requestPermission()
+                        .then((response) => {
+                            if (response === "granted") {
+                                window.addEventListener("deviceorientation", handler, true);
+                            } else {
+                                alert("To access this feature, permission must be granted.");
+                            }
+                        })
+                        .catch(() => alert("The required permission is not supported on your device."));
+                }
+            }
+
+            function handler(e) {
+                compass = e.webkitCompassHeading || Math.abs(e.alpha - 360);
+
+                if (document.querySelector("#lock_location.active") == null) {
+                    var direction = getDirection(compass);
+
+                    document.querySelector(".deg span:first-of-type").innerText = direction;
+                    document.querySelector(".deg span:last-of-type").innerText = `${Math.round(compass * 100)/100}°`;
+
+                    compassCircle.style.transform = `translate(-50%, -50%) rotate(${-compass}deg)`;
+                }
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html> 

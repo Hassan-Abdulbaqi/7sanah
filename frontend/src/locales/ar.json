@@ -8,7 +8,8 @@
     "home": "الصفحة الرئيسية",
     "khatmah": "الختمة",
     "calendar": "التقويم الهجري",
-    "qibla": "القبلة"
+    "qibla": "القبلة",
+    "tasbeeh": "تسبيح"
   },
   "features": {
     "khatmah": {
@@ -26,6 +27,23 @@
     "ageCalculator": {
       "title": "حاسبة العمر",
       "description": "احسب عمرك بالتقويمين الهجري والميلادي."
+    },
+    "tasbeeh": {
+      "title": "عداد التسبيح",
+      "description": "أداء الذكر مع عداد رقمي للأذكار الإسلامية الشائعة.",
+      "selectTasbeeh": "اختر التسبيح",
+      "target": "الهدف",
+      "remaining": "المتبقي",
+      "increment": "عد",
+      "reset": "إعادة ضبط",
+      "vibration": "تفعيل الاهتزاز",
+      "currentPhrase": "العبارة الحالية",
+      "acceptanceMessage": "تقبل الله منكم",
+      "freeMode": {
+        "description": "عد الذكر بدون حدود",
+        "cycles": "الدورات المكتملة",
+        "current": "الدورة الحالية"
+      }
     }
   },
   "navigation": {
@@ -210,27 +228,19 @@
     "hijriYear": "هـ"
   },
   "qibla": {
-    "title": "القبلة",
-    "description": "استخدم بوصلة جهازك للعثور على اتجاه القبلة للصلاة.",
-    "latitude": "خط العرض",
-    "longitude": "خط الطول",
-    "detecting": "جاري التحديد...",
-    "detectLocation": "تحديد موقعي",
-    "calculate": "حساب اتجاه القبلة",
-    "directionIs": "اتجاه القبلة هو",
-    "fromNorth": "من الشمال",
-    "startCompass": "تشغيل البوصلة",
-    "stopCompass": "إيقاف البوصلة",
-    "holdFlat": "امسك جهازك بشكل مسطح ووجه الجزء العلوي من جهازك نحو الاتجاه الذي تواجهه.",
-    "whenAligned": "عندما تتوافق الإبرة الزرقاء مع الإبرة الخضراء، فأنت تواجه القبلة.",
-    "yourDirection": "اتجاهك الحالي",
-    "facingQibla": "أنت تواجه القبلة!",
-    "turnDevice": "قم بتدوير جهازك لمحاذاة اتجاه القبلة",
-    "initializing": "جاري تهيئة البوصلة...",
-    "waitingForReading": "في انتظار قراءة البوصلة...",
-    "direction": "اتجاه القبلة",
+    "title": "بوصلة القبلة",
+    "subtitle": "اعثر على اتجاه الكعبة من موقعك",
+    "permissionDenied": "تم رفض الإذن. يرجى تمكين توجيه الجهاز في إعدادات المتصفح.",
+    "permissionNeeded": "يلزم الوصول إلى توجيه الجهاز لعرض اتجاه البوصلة.",
+    "allowAccess": "السماح بالوصول",
+    "requestPermission": "طلب الإذن مرة أخرى",
+    "yourLocation": "موقعك",
+    "aboutQibla": "عن اتجاه القبلة",
+    "qiblaDescription": "القبلة هي الاتجاه الذي يواجهه المسلمون أثناء الصلاة. تشير إلى الكعبة في مكة المكرمة بالمملكة العربية السعودية. تستخدم هذه البوصلة أجهزة استشعار التوجيه في جهازك وموقعك الحالي لحساب اتجاه القبلة.",
+    "deviceOrientation": "بيانات توجيه الجهاز",
+    "qiblaBearing": "اتجاه القبلة",
     "angleToTurn": "زاوية الدوران",
-    "turnInstruction": "استدر {degrees}° لمواجهة القبلة"
+    "facingQibla": "أنت تواجه القبلة!"
   },
   "compass": {
     "title": "البوصلة",
@@ -289,9 +299,11 @@
     "ageInWeeks": "بالأسابيع",
     "ageInDays": "بالأيام",
     "ageInHours": "بالساعات",
-    "dayOfWeek": "ولدت يوم",
-    "season": "ولدت في فصل",
-    "zodiac": "برجك",
+    "dayOfWeek": "اليوم من الأسبوع",
+    "dayOfYear": "اليوم من السنة",
+    "moonPhase": "طور القمر عند الولادة",
+    "season": "موسم الولادة",
+    "zodiac": "برج الميلاد",
     "year": "سنة",
     "years": "سنة",
     "month": "شهر",
@@ -319,6 +331,14 @@
     "dropdownInput": "إدخال يدوي",
     "selectDay": "اختر اليوم",
     "selectMonth": "اختر الشهر",
-    "selectYear": "اختر السنة"
+    "selectYear": "اختر السنة",
+    "newMoon": "المحاق",
+    "waxingCrescent": "الهلال المتزايد",
+    "firstQuarter": "التربيع الأول",
+    "waxingGibbous": "الأحدب المتزايد",
+    "fullMoon": "البدر",
+    "waningGibbous": "الأحدب المتناقص",
+    "lastQuarter": "التربيع الأخير",
+    "waningCrescent": "الهلال المتناقص"
   }
 }

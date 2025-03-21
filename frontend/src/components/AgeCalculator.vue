@@ -130,6 +130,16 @@
           </div>
           
           <div class="result-row">
+            <div class="result-label">{{ $t('ageCalculator.dayOfYear') }}:</div>
+            <div class="result-value">{{ ageResults.gregorian.dayOfYear }}</div>
+          </div>
+          
+          <div class="result-row">
+            <div class="result-label">{{ $t('ageCalculator.moonPhase') }}:</div>
+            <div class="result-value">{{ ageResults.gregorian.moonPhase }}</div>
+          </div>
+          
+          <div class="result-row">
             <div class="result-label">{{ $t('ageCalculator.season') }}:</div>
             <div class="result-value">{{ ageResults.gregorian.season }}</div>
           </div>
@@ -442,6 +452,43 @@ const getHijriMonthName = (monthNumber, language) => {
   return months[language][monthNumber - 1];
 };
 
+// Moon phase calculation
+const getMoonPhase = (date) => {
+  // More accurate algorithm for moon phase calculation
+  // Based on the Brown lunation number formula that works for all dates
+  const JD = (timestamp) => {
+    // Convert timestamp to Julian Date
+    return timestamp / 86400000 + 2440587.5;
+  };
+  
+  const julian = JD(date.getTime());
+  // Calculate the approximate phase of the moon
+  const elongation = (julian - 2451550.1) / 29.530588853; // Lunar cycle
+  const phase = elongation - Math.floor(elongation);
+  
+  // Normalize the phase to be between 0 and 1
+  const normalizedPhase = phase < 0 ? phase + 1 : phase;
+  
+  // Convert the phase to an actual description
+  if (normalizedPhase < 0.025 || normalizedPhase >= 0.975) return t('ageCalculator.newMoon');
+  if (normalizedPhase < 0.225) return t('ageCalculator.waxingCrescent');
+  if (normalizedPhase < 0.275) return t('ageCalculator.firstQuarter');
+  if (normalizedPhase < 0.475) return t('ageCalculator.waxingGibbous');
+  if (normalizedPhase < 0.525) return t('ageCalculator.fullMoon');
+  if (normalizedPhase < 0.725) return t('ageCalculator.waningGibbous');
+  if (normalizedPhase < 0.775) return t('ageCalculator.lastQuarter');
+  return t('ageCalculator.waningCrescent');
+};
+
+// Get day of year
+const getDayOfYear = (date) => {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date - start;
+  const oneDay = 1000 * 60 * 60 * 24;
+  const dayOfYear = Math.floor(diff / oneDay);
+  return dayOfYear;
+};
+
 // Calculate age
 const calculateAge = async () => {
   if (!birthdate.value || isLoading.value) return;
@@ -484,6 +531,12 @@ const calculateAge = async () => {
     const days = Math.floor(timeToNextBirthday / (1000 * 60 * 60 * 24));
     const hours = Math.floor((timeToNextBirthday % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((timeToNextBirthday % (1000 * 60 * 60)) / (1000 * 60));
+    
+    // Get day of year for birth date
+    const dayOfYear = getDayOfYear(birthDate);
+    
+    // Get moon phase for birth date
+    const moonPhase = getMoonPhase(birthDate);
     
     // Format the next birthday string - defined before any conditional logic
     let nextBirthdayFormatted = `${days} ${t('ageCalculator.days')} ${hours} ${t('ageCalculator.hours')} ${minutes} ${t('ageCalculator.minutes')}`;
@@ -542,6 +595,8 @@ const calculateAge = async () => {
         age: gregorianAgeFormatted,
         nextBirthday: nextBirthdayFormatted,
         dayOfWeek,
+        dayOfYear,
+        moonPhase,
         season,
         zodiac
       },
@@ -783,8 +838,8 @@ const calculateAge = async () => {
 .results-container {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  animation: fadeIn 0.5s ease-out;
+  gap: 1.8rem;
+  animation: fadeIn 0.6s ease-out;
 }
 
 @keyframes fadeIn {
@@ -800,44 +855,50 @@ const calculateAge = async () => {
 
 .result-section {
   background-color: var(--card-bg);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  border-left: 4px solid transparent;
+  border-left: 5px solid transparent;
   position: relative;
   overflow: hidden;
+  margin-bottom: 0.5rem;
 }
 
 .result-section:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
 }
 
 .result-section:nth-child(1) {
   border-left-color: #3b82f6; /* Blue */
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.05), transparent 50%);
 }
 
 .result-section:nth-child(2) {
   border-left-color: #10b981; /* Green */
+  background: linear-gradient(to right, rgba(16, 185, 129, 0.05), transparent 50%);
 }
 
 .result-section:nth-child(3) {
   border-left-color: #8b5cf6; /* Purple */
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.05), transparent 50%);
 }
 
 .result-section:nth-child(4) {
   border-left-color: #f59e0b; /* Amber */
+  background: linear-gradient(to right, rgba(245, 158, 11, 0.05), transparent 50%);
 }
 
 .result-section h3 {
   position: relative;
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: bold;
   margin-top: 0;
   margin-bottom: 1.2rem;
   color: var(--text-color);
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .result-section h3::after {
@@ -845,17 +906,32 @@ const calculateAge = async () => {
   position: absolute;
   bottom: 0;
   left: 0;
-  width: 50px;
+  width: 60px;
   height: 3px;
-  background-color: inherit;
+  background-color: currentColor;
   border-radius: 3px;
   transition: width 0.3s ease;
-  background-color: currentColor;
-  opacity: 0.3;
+  opacity: 0.5;
 }
 
 .result-section:hover h3::after {
-  width: 100px;
+  width: 120px;
+}
+
+.result-section:nth-child(1) h3 {
+  color: #3b82f6; /* Blue */
+}
+
+.result-section:nth-child(2) h3 {
+  color: #10b981; /* Green */
+}
+
+.result-section:nth-child(3) h3 {
+  color: #8b5cf6; /* Purple */
+}
+
+.result-section:nth-child(4) h3 {
+  color: #f59e0b; /* Amber */
 }
 
 .result-section::before {
@@ -866,37 +942,14 @@ const calculateAge = async () => {
   width: 0;
   height: 0;
   border-style: solid;
-  border-width: 0 2rem 2rem 0;
-  border-color: transparent rgba(0, 0, 0, 0.03) transparent transparent;
+  border-width: 0 3rem 3rem 0;
+  border-color: transparent rgba(0, 0, 0, 0.02) transparent transparent;
   transition: all 0.3s ease;
 }
 
 .result-section:hover::before {
-  border-width: 0 3rem 3rem 0;
-}
-
-.gregorian-age {
-  border-top: 4px solid #3b82f6; /* Blue */
-}
-
-.hijri-age {
-  border-top: 4px solid #10b981; /* Green */
-}
-
-.age-formats {
-  border-top: 4px solid #f59e0b; /* Amber */
-}
-
-.birth-info {
-  border-top: 4px solid #8b5cf6; /* Purple */
-}
-
-.section-title {
-  font-size: 1.3rem;
-  font-weight: bold;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: var(--text-color);
+  border-width: 0 4rem 4rem 0;
+  border-color: transparent rgba(0, 0, 0, 0.03) transparent transparent;
 }
 
 .result-content {
@@ -907,15 +960,18 @@ const calculateAge = async () => {
 
 .result-row {
   display: flex;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.7rem;
   line-height: 1.5;
   transition: all 0.2s ease;
-  padding: 0.5rem;
-  border-radius: 6px;
+  padding: 0.7rem;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 .result-row:hover {
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  transform: translateX(5px);
 }
 
 .result-row:last-child {
@@ -924,14 +980,15 @@ const calculateAge = async () => {
 
 .result-label {
   flex: 1;
-  font-weight: bold;
+  font-weight: 600;
   color: var(--text-secondary);
-  min-width: 120px;
+  min-width: 140px;
 }
 
 .result-value {
   flex: 2;
   color: var(--text-color);
+  font-weight: 500;
 }
 
 @media (max-width: 640px) {

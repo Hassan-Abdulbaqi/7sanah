@@ -67,6 +67,12 @@ const router = createRouter({
       component: App,
       meta: { mode: 'age-calculator', transitionName: 'fade' }
     },
+    {
+      path: '/tasbeeh',
+      name: 'tasbeeh',
+      component: App,
+      meta: { mode: 'tasbeeh', transitionName: 'fade' }
+    },
     // Wildcard route for 404
     {
       path: '/:pathMatch(.*)*',

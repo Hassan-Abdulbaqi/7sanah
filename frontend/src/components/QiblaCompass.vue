@@ -1,65 +1,121 @@
 <template>
-  <div class="qibla-container">
-    <h2 class="qibla-title">{{ $t('qibla.title') }}</h2>
-    <p class="qibla-subtitle">{{ $t('qibla.subtitle') }}</p>
-    
-    <div class="status-message" v-if="errorMessage">{{ errorMessage }}</div>
-    <div class="status-message" v-if="!hasLocation && !errorMessage">{{ $t('qibla.noLocation') }}</div>
-    
-    <div class="map-wrapper" v-if="hasLocation">
-      <!-- Real map with OpenStreetMap -->
-      <div class="real-map-container">
-        <div id="qibla-map" class="real-map" ref="qiblaMap"></div>
-        <div class="navigation-mode" v-if="isFollowingUser">
-          <div class="navigation-label">{{ $t('qibla.navigationMode') }}</div>
+  <div class="qibla-compass-container">
+    <div class="compass-wrapper">
+      <div class="direction-instruction" v-if="compassActive">
+        <span class="direction-arrow">⬆️</span> Face this way for Qibla
+      </div>
+      
+      <div class="compass">
+        <div class="compass-background"></div>
+        <div class="compass-arrow" ref="compassArrow">
+          <div class="arrow"></div>
+          <div class="kaaba-icon">🕋</div>
+          <div class="qibla-beam"></div>
+        </div>
+        <div class="qibla-indicator">QIBLA</div>
+        
+        <div class="you-indicator">YOU</div>
+      </div>
+      
+      <div class="qibla-label">Qibla Direction</div>
+      <div v-if="debugMode" class="debug-info">
+        Compass Rotation: {{ currentRotation }}°
+        <div v-if="deviceHeading !== null">Device Heading: {{ deviceHeading }}°</div>
+        <div class="manual-controls" v-if="isSimulating">
+          <button @click="rotateLeft">←</button>
+          <button @click="rotateRight">→</button>
         </div>
       </div>
       
-      <div class="info-panel">
-        <div class="qibla-info">
-          <div class="qibla-direction">
-            <div class="direction-chip">{{ Math.round(qiblaDirection) }}°</div>
-            <div class="direction-label">{{ $t('qibla.direction') }}</div>
-          </div>
-          
-          <div class="navigation-instructions" v-if="isCompassActive">
-            <div v-if="isNearQibla" class="facing-qibla">
-              <span>🟢</span> {{ $t('qibla.facingQibla') }}
-            </div>
-            <div v-else class="turn-instruction">
-              <span>↺</span> {{ $t('qibla.turnInstruction', { degrees: Math.round((qiblaDirection - heading + 360) % 360) }) }}
-            </div>
-          </div>
-          
-          <div class="location-info">
-            <div class="distance-chip">
-              <span>📏</span> {{ calculateDistance().toFixed(0) }} km
-            </div>
-          </div>
-        </div>
-        
-        <div class="button-group">
-          <button class="compass-button" @click="toggleCompass">
-            <span class="button-icon">{{ isCompassActive ? '🧭 ✓' : '🧭' }}</span>
-            <span class="button-text">{{ isCompassActive ? $t('qibla.compassActive') : $t('qibla.activateCompass') }}</span>
-          </button>
-          <button class="locate-button" @click="requestLocation">
-            <span class="button-icon">📍</span>
-            <span class="button-text">{{ $t('qibla.updateLocation') }}</span>
-          </button>
-        </div>
+      <div class="usage-instructions">
+        <h4>How to use the Qibla Compass:</h4>
+        <ol>
+          <li>Enable the compass by clicking the button below</li>
+          <li>Hold your device flat with the screen facing up</li>
+          <li>The <strong>🕋 Kaaba icon</strong> shows the Qibla direction from your location</li>
+          <li>Rotate yourself until the arrow points <strong>upward (⬆️)</strong></li>
+          <li>You are now facing the Qibla direction!</li>
+        </ol>
       </div>
     </div>
     
-    <div class="location-controls" v-if="!hasLocation && !isLoading">
-      <button @click="requestLocation" class="primary-button">
-        {{ $t('qibla.detectLocation') }}
+    <div class="compass-info">
+      <div class="info-text" :class="{ active: compassActive }">
+        <div class="location-info">
+          <div class="latitude">
+            Latitude: <span>{{ latitude }}</span>
+          </div>
+          <div class="longitude">
+            Longitude: <span>{{ longitude }}</span>
+          </div>
+          <div class="deg">
+            Direction: <span>{{ directionAngle }}</span>
+          </div>
+          <div class="distance">
+            Distance to Kaaba: <span>{{ distance }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <button class="toggle" :class="{ 'toggle-on': compassActive }" @click="toggleCompass">
+        {{ compassActive ? 'Disable Compass' : 'Enable Compass' }}
       </button>
-    </div>
-    
-    <div class="loading" v-if="isLoading">
-      <div class="spinner"></div>
-      <div>{{ $t('qibla.detecting') }}</div>
+      
+      <div class="prayer-times">
+        <h3>Prayer Times</h3>
+        <div class="prayer-time">
+          <div id="time-fajr" class="dawn">
+            <div class="head">Dawn</div>
+            <i class="icon"></i>
+            <span>{{ prayerTimes.fajr }}</span>
+          </div>
+          <div id="time-dhuhr" class="noon">
+            <div class="head">Noon</div>
+            <i class="icon"></i>
+            <span>{{ prayerTimes.dhuhr }}</span>
+          </div>
+          <div id="time-asr" class="afternoon">
+            <div class="head">Afternoon</div>
+            <i class="icon"></i>
+            <span>{{ prayerTimes.asr }}</span>
+          </div>
+          <div id="time-maghrib" class="maghrib">
+            <div class="head">Maghrib</div>
+            <i class="icon"></i>
+            <span>{{ prayerTimes.maghrib }}</span>
+          </div>
+          <div id="time-isha" class="isha">
+            <div class="head">Isha</div>
+            <i class="icon"></i>
+            <span>{{ prayerTimes.isha }}</span>
+          </div>
+        </div>
+        
+        <div class="next-time">
+          <h4>Time until next prayer:</h4>
+          <div id="countdown">{{ countdown }}</div>
+        </div>
+      </div>
+      
+      <div class="settings">
+        <div class="calculation-method">
+          <label for="calculation-method">Calculation Method:</label>
+          <select id="calculation-method" v-model="calculationMethod" @change="updatePrayerTimes">
+            <option value="MuslimWorldLeague">Muslim World League</option>
+            <option value="Egyptian">Egyptian</option>
+            <option value="Karachi">Karachi</option>
+            <option value="UmmAlQura">Umm Al-Qura</option>
+            <option value="Dubai">Dubai</option>
+            <option value="MoonsightingCommittee">Moonsighting Committee</option>
+            <option value="NorthAmerica">North America</option>
+            <option value="Kuwait">Kuwait</option>
+            <option value="Qatar">Qatar</option>
+            <option value="Singapore">Singapore</option>
+            <option value="Tehran">Tehran</option>
+            <option value="Turkey">Turkey</option>
+          </select>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -69,760 +125,853 @@ export default {
   name: 'QiblaCompass',
   data() {
     return {
-      hasLocation: false,
-      isCompassActive: false,
-      isLoading: false,
-      errorMessage: '',
+      // Location data
       latitude: 0,
       longitude: 0,
-      heading: 0,
-      qiblaDirection: 0,
-      watchId: null,
-      orientationWatch: null,
-      map: null,
-      userMarker: null,
-      kaabaMarker: null,
-      directionLine: null,
-      qiblaArrow: null,
-      headingIndicator: null,
-      isFollowingUser: true, // Auto-follow mode enabled by default
-      previousPosition: null,
-      // Kaaba coordinates
-      kaabaLatitude: 21.4225,
-      kaabaLongitude: 39.8262
-    }
-  },
-  computed: {
-    isNearQibla() {
-      // Consider the user facing Qibla if within 5 degrees
-      const diff = Math.abs(this.qiblaDirection - this.heading) % 360;
-      return diff < 5 || diff > 355;
-    }
+      position: null,
+      
+      // Compass data
+      deviceHeading: null,
+      deviceAngleDelta: 0,
+      currentRotation: 0,
+      geolocationID: null,
+      permissionGranted: false,
+      isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+      
+      // UI state
+      compassActive: false,
+      directionAngle: '',
+      distance: '',
+      qiblaPoint: {
+        lat: 21.422487,
+        lng: 39.826206,
+      },
+      
+      // Prayer time data
+      prayerTimes: {
+        fajr: '00:00',
+        dhuhr: '00:00',
+        asr: '00:00',
+        maghrib: '00:00',
+        isha: '00:00'
+      },
+      nextPrayer: null,
+      countdown: '00 : 00 : 00',
+      countdownInterval: null,
+      endTime: null,
+      calculationMethod: 'MuslimWorldLeague',
+      
+      // Debug and simulation
+      debugMode: true, // Set to false in production
+      isSimulating: false,
+      simulationInterval: null,
+      orientationInterval: null
+    };
   },
   mounted() {
-    this.loadMapLibraries();
-    this.requestLocation();
-    // Start compass automatically when component is mounted
-    this.startCompass();
-  },
-  beforeUnmount() {
-    // Clean up event listeners and watchPosition
-    this.stopCompass();
-    if (this.watchId !== null) {
-      navigator.geolocation.clearWatch(this.watchId);
-    }
-    if (this.map) {
-      this.map.remove();
-      this.map = null;
+    // Get stored calculation method if available
+    const storedMethod = localStorage.getItem('calculation-method');
+    if (storedMethod) {
+      this.calculationMethod = storedMethod;
     }
   },
   methods: {
-    loadMapLibraries() {
-      // Load Leaflet CSS
-      if (!document.getElementById('leaflet-css')) {
-        const link = document.createElement('link');
-        link.id = 'leaflet-css';
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-        link.crossOrigin = '';
-        document.head.appendChild(link);
-      }
+    async toggleCompass() {
+      this.compassActive = !this.compassActive;
       
-      // Load Leaflet JS only if it's not already loaded
-      if (!window.L) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
-        script.crossOrigin = '';
-        script.onload = () => {
-          // Initialize the map after Leaflet is loaded
-          if (this.hasLocation) {
-            this.initMap();
-          }
-        };
-        document.head.appendChild(script);
-      }
-    },
-    initMap() {
-      if (!window.L || !this.$refs.qiblaMap) return;
-      
-      // If map already exists, remove it first
-      if (this.map) {
-        this.map.remove();
-        this.map = null;
-      }
-      
-      // Create map centered at user's location with higher zoom level for navigation
-      this.map = L.map(this.$refs.qiblaMap).setView([this.latitude, this.longitude], 16);
-      
-      // Add OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(this.map);
-      
-      // Custom Kaaba icon
-      const kaabaIcon = L.divIcon({
-        html: '<span style="font-size: 24px;">🕋</span>',
-        className: 'kaaba-map-icon',
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
-      });
-      
-      // Custom user icon that rotates with heading
-      this.createUserMarker();
-      
-      // Add Kaaba marker
-      this.kaabaMarker = L.marker([this.kaabaLatitude, this.kaabaLongitude], {
-        icon: kaabaIcon
-      }).addTo(this.map);
-      this.kaabaMarker.bindPopup('Kaaba, Mecca');
-      
-      // Draw a line between user and Kaaba
-      this.directionLine = L.polyline(
-        [[this.latitude, this.longitude], [this.kaabaLatitude, this.kaabaLongitude]], 
-        {
-          color: '#4caf50',
-          weight: 2,
-          opacity: 0.7,
-          dashArray: '5, 5'
-        }
-      ).addTo(this.map);
-      
-      // Add navigation controls
-      this.addCustomControls();
-      
-      // Handle map interaction to disable auto-follow
-      this.map.on('dragstart', () => {
-        this.isFollowingUser = false;
-      });
-      
-      // Initial fit bounds to show context
-      const bounds = L.latLngBounds([
-        [this.latitude, this.longitude],
-        [this.kaabaLatitude, this.kaabaLongitude]
-      ]);
-      this.map.fitBounds(bounds, { padding: [30, 30] });
-    },
-    createUserMarker() {
-      // Remove existing marker if any
-      if (this.userMarker) {
-        this.map.removeLayer(this.userMarker);
-      }
-      
-      // Create a custom HTML marker that shows direction
-      const markerHtml = `
-        <div class="user-marker-container">
-          <div class="direction-arrow" style="transform: rotate(${this.heading}deg)">
-            <svg viewBox="0 0 24 24" width="40" height="40">
-              <path d="M12,2L18,12L12,22L6,12L12,2Z" fill="#f44336" />
-            </svg>
-          </div>
-          <div class="user-dot"></div>
-        </div>
-      `;
-      
-      const userIcon = L.divIcon({
-        html: markerHtml,
-        className: 'user-map-icon',
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
-      });
-      
-      // Add user marker
-      this.userMarker = L.marker([this.latitude, this.longitude], {
-        icon: userIcon,
-        zIndexOffset: 1000
-      }).addTo(this.map);
-    },
-    addCustomControls() {
-      // Create follow mode toggle button
-      const followControl = L.Control.extend({
-        options: {
-          position: 'topright'
-        },
-        
-        onAdd: (map) => {
-          const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-          container.style.backgroundColor = 'white';
-          container.style.width = '34px';
-          container.style.height = '34px';
-          container.style.cursor = 'pointer';
-          container.style.display = 'flex';
-          container.style.alignItems = 'center';
-          container.style.justifyContent = 'center';
-          container.innerHTML = '<span style="font-size: 18px;">📱</span>';
-          container.title = 'Toggle follow mode';
-          container.setAttribute('data-mode', this.isFollowingUser ? 'on' : 'off');
-          
-          if (this.isFollowingUser) {
-            container.style.backgroundColor = '#4caf5066';
-          }
-          
-          container.onclick = () => {
-            this.isFollowingUser = !this.isFollowingUser;
-            container.style.backgroundColor = this.isFollowingUser ? '#4caf5066' : 'white';
-            container.setAttribute('data-mode', this.isFollowingUser ? 'on' : 'off');
-            if (this.isFollowingUser) {
-              this.map.setView([this.latitude, this.longitude], 18);
-            }
-          };
-          
-          return container;
-        }
-      });
-      
-      // Full map view control (show both user and Kaaba)
-      const fullViewControl = L.Control.extend({
-        options: {
-          position: 'topright'
-        },
-        
-        onAdd: (map) => {
-          const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
-          container.style.backgroundColor = 'white';
-          container.style.width = '34px';
-          container.style.height = '34px';
-          container.style.cursor = 'pointer';
-          container.style.display = 'flex';
-          container.style.alignItems = 'center';
-          container.style.justifyContent = 'center';
-          container.innerHTML = '<span style="font-size: 18px;">🗺️</span>';
-          container.title = 'Show full route to Kaaba';
-          
-          container.onclick = () => {
-            this.isFollowingUser = false;
-            const bounds = L.latLngBounds([
-              [this.latitude, this.longitude],
-              [this.kaabaLatitude, this.kaabaLongitude]
-            ]);
-            this.map.fitBounds(bounds, { padding: [30, 30] });
-          };
-          
-          return container;
-        }
-      });
-      
-      // Add the controls to the map
-      this.map.addControl(new followControl());
-      this.map.addControl(new fullViewControl());
-    },
-    updateMap() {
-      if (!this.map || !this.userMarker) return;
-      
-      // Check if user has moved significantly
-      const hasMoved = !this.previousPosition || 
-        this.calculateDistance(
-          this.latitude, this.longitude, 
-          this.previousPosition.lat, this.previousPosition.lng
-        ) > 0.005; // 5 meters threshold
-      
-      if (hasMoved) {
-        // Update user marker position
-        this.userMarker.setLatLng([this.latitude, this.longitude]);
-        
-        // Create a new user marker with updated heading
-        this.createUserMarker();
-        
-        // Update direction line
-        this.directionLine.setLatLngs([
-          [this.latitude, this.longitude],
-          [this.kaabaLatitude, this.kaabaLongitude]
-        ]);
-        
-        // If in follow mode, center map on user
-        if (this.isFollowingUser) {
-          this.map.setView([this.latitude, this.longitude], this.map.getZoom());
-        }
-        
-        // Store current position for next comparison
-        this.previousPosition = {
-          lat: this.latitude,
-          lng: this.longitude
-        };
-      } else if (this.heading !== this.previousHeading) {
-        // Just update the marker for heading changes
-        this.createUserMarker();
-        this.previousHeading = this.heading;
-      }
-    },
-    requestLocation() {
-      this.isLoading = true;
-      this.errorMessage = '';
-      
-      if ('geolocation' in navigator) {
-        const options = {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        };
-        
-        this.watchId = navigator.geolocation.watchPosition(
-          this.locationSuccess,
-          this.locationError,
-          options
-        );
+      if (this.compassActive) {
+        await this.initCompass();
       } else {
-        this.isLoading = false;
-        this.errorMessage = this.$t('qibla.geolocationNotSupported');
-      }
-    },
-    locationSuccess(position) {
-      this.hasLocation = true;
-      this.isLoading = false;
-      this.latitude = position.coords.latitude;
-      this.longitude = position.coords.longitude;
-      
-      // Calculate Qibla direction
-      this.calculateQiblaDirection();
-      
-      // Initialize or update the map
-      if (!this.map && window.L) {
-        this.initMap();
-      } else if (this.map) {
-        this.updateMap();
-      }
-    },
-    locationError(error) {
-      this.isLoading = false;
-      
-      switch(error.code) {
-        case error.PERMISSION_DENIED:
-          this.errorMessage = this.$t('qibla.permissionDenied');
-          break;
-        case error.POSITION_UNAVAILABLE:
-          this.errorMessage = this.$t('qibla.locationError');
-          break;
-        case error.TIMEOUT:
-          this.errorMessage = this.$t('qibla.timeout');
-          break;
-        default:
-          this.errorMessage = this.$t('qibla.locationError');
-      }
-    },
-    toggleCompass() {
-      if (this.isCompassActive) {
         this.stopCompass();
-      } else {
-        this.startCompass();
       }
     },
-    startCompass() {
-      // Handle iOS permission request
-      if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') {
-        // iOS 13+ requires user interaction to request permission
-        DeviceOrientationEvent.requestPermission()
-          .then(permissionState => {
-            if (permissionState === 'granted') {
-              this.initCompass();
-            } else {
-              this.errorMessage = this.$t('qibla.permissionDenied');
-            }
-          })
-          .catch(error => {
-            // This might happen if called in a non-secure context or not from a user gesture
-            // In that case, try to start the compass normally
-            this.initCompass();
-          });
-      } else {
-        // For non-iOS or older iOS versions
-        this.initCompass();
+    async initCompass() {
+      try {
+        // Request orientation permission on iOS
+        if (typeof DeviceOrientationEvent.requestPermission === "function") {
+          const permission = await DeviceOrientationEvent.requestPermission();
+          if (permission !== "granted") {
+            alert("Device orientation permission denied");
+            this.compassActive = false;
+            return;
+          }
+          this.permissionGranted = true;
+        } else if (window.DeviceOrientationEvent) {
+          this.permissionGranted = true;
+        } else {
+          this.permissionGranted = false;
+          alert("Device orientation not supported");
+        }
+        
+        // Get user location
+        await this.watchPosition();
+        
+        // Set up device orientation
+        if (this.permissionGranted) {
+          this.setupDeviceOrientation();
+        }
+        
+        // For desktop testing
+        if (!this.permissionGranted || !window.DeviceOrientationEvent) {
+          console.log("Device orientation not supported, using simulation");
+          this.simulateCompass();
+        }
+        
+        // Calculate qibla direction
+        this.updateQiblaDirection();
+        
+        // Set up prayer times
+        this.updatePrayerTimes();
+        
+        // Calculate distance to Kaaba
+        this.calculateDistance();
+        
+        // Set up interval to regularly update our UI
+        this.orientationInterval = setInterval(() => {
+          this.updateRotation();
+        }, 100);
+        
+      } catch (error) {
+        console.error("Error initializing compass:", error);
+        alert("Error initializing compass: " + error.message);
+        this.compassActive = false;
       }
     },
-    initCompass() {
-      if (!window.DeviceOrientationEvent) {
-        this.errorMessage = this.$t('qibla.compassNotSupported');
+    setupDeviceOrientation() {
+      if (this.isIOS) {
+        window.addEventListener("deviceorientation", this.deviceOrientationHandler, true);
+      } else {
+        window.addEventListener("deviceorientationabsolute", this.deviceOrientationHandler, true);
+      }
+    },
+    deviceOrientationHandler(evt) {
+      if (evt.webkitCompassHeading) {
+        // iOS
+        this.deviceAngleDelta = 360 - evt.webkitCompassHeading;
+        this.deviceHeading = evt.webkitCompassHeading;
+      } else if (evt.alpha) {
+        // Android
+        this.deviceAngleDelta = 360 - Math.abs(evt.alpha - 360);
+        this.deviceHeading = evt.alpha;
+      }
+      
+      // Round the angle
+      this.deviceAngleDelta = Math.round(this.deviceAngleDelta);
+      
+      if (this.debugMode) {
+        console.log("Device orientation:", this.deviceAngleDelta);
+      }
+    },
+    async watchPosition() {
+      try {
+        this.geolocationID = navigator.geolocation.watchPosition((position) => {
+          this.position = position;
+          this.latitude = position.coords.latitude;
+          this.longitude = position.coords.longitude;
+          
+          // Update direction and distance when position changes
+          if (this.compassActive) {
+            this.updateQiblaDirection();
+            this.calculateDistance();
+          }
+        }, (error) => {
+          console.error("Geolocation error:", error);
+        }, { enableHighAccuracy: true });
+        
+        // Get initial position
+        const initialPosition = await this.getPosition();
+        this.position = initialPosition;
+        this.latitude = initialPosition.coords.latitude;
+        this.longitude = initialPosition.coords.longitude;
+        
+        return initialPosition;
+      } catch (error) {
+        console.error("Error watching position:", error);
+        throw error;
+      }
+    },
+    stopCompass() {
+      // Clear our interval that updates the UI
+      clearInterval(this.orientationInterval);
+      
+      // Remove orientation event listeners
+      if (this.isIOS) {
+        window.removeEventListener("deviceorientation", this.deviceOrientationHandler, true);
+      } else {
+        window.removeEventListener("deviceorientationabsolute", this.deviceOrientationHandler, true);
+      }
+      
+      // Clear simulation interval if it exists
+      if (this.simulationInterval) {
+        clearInterval(this.simulationInterval);
+        this.simulationInterval = null;
+      }
+      
+      // Reset simulation flag
+      this.isSimulating = false;
+      
+      // Stop watching position
+      if (this.geolocationID) {
+        navigator.geolocation.clearWatch(this.geolocationID);
+      }
+      
+      clearInterval(this.countdownInterval);
+    },
+    getPosition() {
+      return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          position => resolve(position),
+          error => {
+            console.error("Geolocation error:", error);
+            reject(error);
+          },
+          { enableHighAccuracy: true }
+        );
+      });
+    },
+    updateQiblaDirection() {
+      const qiblaAngle = this.calcQiblaDirection(this.latitude, this.longitude);
+      const qiblaDirection = this.getCardinalDirection(qiblaAngle);
+      this.directionAngle = `${qiblaDirection} ${qiblaAngle}°`;
+    },
+    calcQiblaDirection(userLatitude, userLongitude) {
+      const phi1 = (userLatitude * Math.PI) / 180;
+      const lambda1 = (userLongitude * Math.PI) / 180;
+      const phi2 = (this.qiblaPoint.lat * Math.PI) / 180;
+      const lambda2 = (this.qiblaPoint.lng * Math.PI) / 180;
+
+      const deltaLambda = lambda2 - lambda1;
+      const y = Math.sin(deltaLambda) * Math.cos(phi2);
+      const x =
+        Math.cos(phi1) * Math.sin(phi2) -
+        Math.sin(phi1) * Math.cos(phi2) * Math.cos(deltaLambda);
+
+      let psi = (Math.atan2(y, x) * 180) / Math.PI;
+
+      if (psi < 0) {
+        psi += 360;
+      }
+
+      return Math.round(psi);
+    },
+    getCardinalDirection(degree) {
+      const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+      const index = Math.round(degree / 45) % 8;
+      return directions[index >= 0 ? index : index + 8];
+    },
+    updateRotation() {
+      if (!this.compassActive) return;
+      
+      if (!this.position) return;
+      
+      // Get the bearing to Kaaba
+      const angleToKaaba = this.getBearingToDestination(
+        { lat: this.latitude, lng: this.longitude },
+        this.qiblaPoint
+      );
+      
+      const deg = Math.round(angleToKaaba);
+      
+      // Update current rotation for display
+      this.currentRotation = deg;
+      
+      // Apply rotation to the arrow, not the whole compass
+      if (this.$refs.compassArrow) {
+        this.$refs.compassArrow.style.transform = `rotate(${deg}deg)`;
+      }
+      
+      // Log for debugging
+      if (this.debugMode) {
+        console.log("Rotating compass to:", deg, "degrees");
+      }
+    },
+    getBearingToDestination(origin, destination) {
+      // Get the bearing from origin to destination
+      const bearing = this.getBearing(origin, destination);
+      
+      // Combine with the device orientation
+      // When the device points north, deviceAngleDelta is 0
+      // When the device points east, deviceAngleDelta is 90, etc.
+      return (bearing - this.deviceAngleDelta + 360) % 360;
+    },
+    getBearing(origin, destination) {
+      return (
+        this.calculateAngle(
+          origin.lat,
+          origin.lng,
+          destination.lat,
+          destination.lng
+        ) * (180 / Math.PI)
+      );
+    },
+    calculateAngle(userLat, userLon, desiredLat, desiredLon) {
+      return Math.atan2(desiredLon - userLon, desiredLat - userLat);
+    },
+    updatePrayerTimes() {
+      // Save calculation method to localStorage
+      localStorage.setItem('calculation-method', this.calculationMethod);
+      
+      // Demo prayer times - these would come from a proper calculation
+      this.prayerTimes = {
+        fajr: '05:30',
+        dhuhr: '12:30',
+        asr: '15:45',
+        maghrib: '18:15',
+        isha: '19:45'
+      };
+      
+      // Find next prayer
+      this.findNextPrayer();
+      
+      // Set up countdown
+      this.setupCountdown();
+    },
+    findNextPrayer() {
+      const currentTime = this.getCurrentTime();
+      const times = Object.keys(this.prayerTimes);
+      let minDifference = Infinity;
+      this.nextPrayer = null;
+
+      times.forEach(prayer => {
+        const timeDifference = this.timeToMinutes(this.prayerTimes[prayer]) - this.timeToMinutes(currentTime);
+
+        if (timeDifference > 0 && timeDifference < minDifference) {
+          minDifference = timeDifference;
+          this.nextPrayer = prayer;
+        }
+      });
+      
+      // If no next prayer today, set to fajr for tomorrow
+      if (this.nextPrayer === null) {
+        this.nextPrayer = 'fajr';
+        // Get next day's fajr time
+        this.getNextDayPrayerTime();
+      }
+      
+      // Reset active classes
+      document.querySelectorAll('.prayer-time > div').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Add active class to next prayer
+      document.querySelector(`#time-${this.nextPrayer}`)?.classList.add('active');
+    },
+    getCurrentTime() {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    },
+    timeToMinutes(time) {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    },
+    getNextDayPrayerTime() {
+      // For a real app, this should use proper prayer time calculation
+      // Here we're just setting it to 05:30 for demo purposes
+      this.prayerTimes.fajr = '05:30';
+    },
+    setupCountdown() {
+      clearInterval(this.countdownInterval);
+      
+      if (!this.nextPrayer) return;
+      
+      const currentTime = this.getCurrentTime();
+      const currentDate = new Date().toISOString().split('T')[0].replace("/-/g", "/");
+      
+      let currentDateTime = new Date(`${currentDate} ${currentTime}`);
+      let nextDateTime = new Date(`${currentDate} ${this.prayerTimes[this.nextPrayer]}`);
+      
+      // If next prayer is fajr and it's for tomorrow
+      if (this.nextPrayer === 'fajr' && this.timeToMinutes(this.prayerTimes.fajr) < this.timeToMinutes(currentTime)) {
+        let nextDay = new Date();
+        nextDay.setDate(nextDay.getDate() + 1);
+        const nextDayStr = nextDay.toISOString().split('T')[0].replace("/-/g", "/");
+        nextDateTime = new Date(`${nextDayStr} ${this.prayerTimes.fajr}`);
+      }
+      
+      const difference = nextDateTime.getTime() - currentDateTime.getTime();
+      this.endTime = Date.now() + difference;
+      
+      this.updateCountdown();
+      this.countdownInterval = setInterval(this.updateCountdown, 1000);
+    },
+    updateCountdown() {
+      const secondsLeftms = this.endTime - Date.now();
+      const secondsLeft = Math.round(secondsLeftms / 1000);
+      
+      if (secondsLeft < 0) {
+        clearInterval(this.countdownInterval);
+        this.countdown = '00 : 00 : 00';
+        // Recalculate next prayer
+        this.findNextPrayer();
+        this.setupCountdown();
         return;
       }
       
-      // Set compass as active
-      this.isCompassActive = true;
+      let hours = Math.floor(secondsLeft / 3600);
+      let minutes = Math.floor(secondsLeft / 60) - (hours * 60);
+      let seconds = secondsLeft % 60;
       
-      // Add event listener for device orientation
-      window.addEventListener('deviceorientation', this.handleOrientation);
+      hours = hours < 10 ? `0${hours}` : hours;
+      minutes = minutes < 10 ? `0${minutes}` : minutes;
+      seconds = seconds < 10 ? `0${seconds}` : seconds;
       
-      // If we don't get any orientation events after a short delay, try the alternate approach
-      this.orientationWatch = setTimeout(() => {
-        if (this.heading === 0) {
-          // Try to use the device motion event as a fallback
-          window.addEventListener('devicemotion', this.handleDeviceMotion);
-        }
-      }, 1000);
+      this.countdown = `${hours} : ${minutes} : ${seconds}`;
     },
-    stopCompass() {
-      window.removeEventListener('deviceorientation', this.handleOrientation);
-      window.removeEventListener('devicemotion', this.handleDeviceMotion);
-      if (this.orientationWatch) {
-        clearTimeout(this.orientationWatch);
-      }
-      this.isCompassActive = false;
-    },
-    handleOrientation(event) {
-      // Alpha is the compass heading in degrees
-      if (event.webkitCompassHeading) {
-        // For iOS devices
-        this.heading = event.webkitCompassHeading;
-      } else if (event.alpha) {
-        // For Android devices
-        // Alpha returns values from 0 to 360 in a counterclockwise direction
-        // Need to convert it to clockwise for compass
-        this.heading = 360 - event.alpha;
-      }
+    calculateDistance() {
+      const earthRadiusKm = 6371;
+      const earthRadiusMiles = 3958.8;
       
-      // Update the marker with new heading
-      if (this.map && this.hasLocation && this.userMarker) {
-        this.createUserMarker();
-      }
+      const dLat = this.degreesToRadians(this.qiblaPoint.lat - this.latitude);
+      const dLon = this.degreesToRadians(this.qiblaPoint.lng - this.longitude);
+      
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(this.degreesToRadians(this.latitude)) * 
+        Math.cos(this.degreesToRadians(this.qiblaPoint.lat)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      
+      const distanceKm = earthRadiusKm * c;
+      const distanceMiles = earthRadiusMiles * c;
+      
+      const distanceKmRounded = Math.round(distanceKm);
+      const distanceMilesRounded = Math.round(distanceMiles);
+      
+      this.distance = `${distanceKmRounded.toLocaleString()} km (${distanceMilesRounded.toLocaleString()} miles)`;
     },
-    handleDeviceMotion(event) {
-      // This is a fallback for devices that don't properly support deviceorientation
-      // It's less accurate but better than nothing
-      if (event.accelerationIncludingGravity) {
-        const x = event.accelerationIncludingGravity.x;
-        const y = event.accelerationIncludingGravity.y;
+    degreesToRadians(degrees) {
+      return degrees * Math.PI / 180;
+    },
+    formatTime(time) {
+      if (time instanceof Date) {
+        return time.toLocaleTimeString('en-US', { hour12: false });
+      }
+      return time;
+    },
+    // Add a simulation method for desktop testing
+    simulateCompass() {
+      this.isSimulating = true;
+      
+      // If we already have location data, calculate the initial angle
+      if (this.latitude && this.longitude) {
+        const qiblaAngle = this.calcQiblaDirection(this.latitude, this.longitude);
+        this.currentRotation = qiblaAngle;
+        this.rotateCompass(this.currentRotation);
+      } else {
+        // Default values for testing
+        this.latitude = 37.7749;  // Example: San Francisco
+        this.longitude = -122.4194;
         
-        // Calculate approximate heading from accelerometer
-        // This is not as accurate as compass but can give a rough direction
-        if (x !== null && y !== null) {
-          let heading = Math.atan2(y, x) * 180 / Math.PI;
-          heading = (heading + 360) % 360; // Convert to 0-360 range
-          
-          // Only update if significant change to reduce jitter
-          if (Math.abs(heading - this.heading) > 5) {
-            this.heading = heading;
-            
-            // Update the user marker
-            if (this.map && this.hasLocation && this.userMarker) {
-              this.createUserMarker();
-            }
-          }
-        }
+        // Calculate Qibla direction using default values
+        this.updateQiblaDirection();
+        this.calculateDistance();
+        
+        const qiblaAngle = this.calcQiblaDirection(this.latitude, this.longitude);
+        this.currentRotation = qiblaAngle;
+        this.rotateCompass(this.currentRotation);
+      }
+      
+      // For simulation, we'll rotate the device heading slowly
+      this.simulationInterval = setInterval(() => {
+        // Simulate device rotation
+        this.deviceHeading = (this.deviceHeading === null) ? 0 : (this.deviceHeading + 5) % 360;
+        this.deviceAngleDelta = 360 - this.deviceHeading;
+        
+        // Update rotation
+        this.updateRotation();
+      }, 100);
+    },
+    rotateCompass(degrees) {
+      if (this.$refs.compassArrow) {
+        this.$refs.compassArrow.style.transform = `rotate(${degrees}deg)`;
       }
     },
-    calculateQiblaDirection() {
-      // Convert latitude and longitude from degrees to radians
-      const lat1 = this.toRadians(this.latitude);
-      const lon1 = this.toRadians(this.longitude);
-      const lat2 = this.toRadians(this.kaabaLatitude);
-      const lon2 = this.toRadians(this.kaabaLongitude);
-      
-      // Calculate the qibla direction using the haversine formula
-      const y = Math.sin(lon2 - lon1);
-      const x = Math.cos(lat1) * Math.tan(lat2) - Math.sin(lat1) * Math.cos(lon2 - lon1);
-      let qibla = Math.atan2(y, x);
-      
-      // Convert from radians to degrees
-      qibla = this.toDegrees(qibla);
-      
-      // Make sure the result is between 0 and 360 degrees
-      this.qiblaDirection = (qibla + 360) % 360;
+    rotateLeft() {
+      // Simulate turning the device to the left
+      this.deviceHeading = (this.deviceHeading - 15 + 360) % 360;
+      this.deviceAngleDelta = 360 - this.deviceHeading;
+      this.updateRotation();
     },
-    calculateDistance(lat1 = this.latitude, lon1 = this.longitude, lat2 = this.kaabaLatitude, lon2 = this.kaabaLongitude) {
-      // Implementation of the Haversine formula to calculate distance between two points on Earth
-      const R = 6371; // Earth's radius in km
-      const dLat = this.toRadians(lat2 - lat1);
-      const dLon = this.toRadians(lon2 - lon1);
-      
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c; // Distance in km
-      
-      return distance;
-    },
-    toRadians(degrees) {
-      return degrees * (Math.PI / 180);
-    },
-    toDegrees(radians) {
-      return radians * (180 / Math.PI);
+    rotateRight() {
+      // Simulate turning the device to the right
+      this.deviceHeading = (this.deviceHeading + 15) % 360;
+      this.deviceAngleDelta = 360 - this.deviceHeading;
+      this.updateRotation();
     }
+  },
+  beforeDestroy() {
+    this.stopCompass();
   }
-}
+};
 </script>
 
 <style scoped>
-.qibla-container {
+.qibla-compass-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  margin: 0 auto;
+  padding: 20px;
   max-width: 500px;
-}
-
-.qibla-title {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
-.qibla-subtitle {
-  font-size: 1rem;
-  color: #666;
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.map-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  position: relative;
-}
-
-/* Real Map styles */
-.real-map-container {
-  width: 100%;
-  max-width: 100%;
   margin: 0 auto;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.compass-wrapper {
   position: relative;
+  margin-bottom: 40px;
 }
 
-.real-map {
-  width: 100%;
-  height: 350px;
-  z-index: 1;
-}
-
-.navigation-mode {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background-color: rgba(76, 175, 80, 0.8);
-  color: white;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 0.8rem;
+.qibla-label {
+  text-align: center;
   font-weight: bold;
-  z-index: 2;
+  margin-top: 10px;
+  color: #ff5722;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
-/* Custom map marker styles */
-.user-marker-container {
+.compass {
+  width: 300px;
+  height: 300px;
   position: relative;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  border-radius: 50%;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+  border: 2px solid #ccc;
+  overflow: hidden;
 }
 
-.direction-arrow {
+.compass-background {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: transform 0.2s ease;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="49" fill="white" stroke="%23333" stroke-width="0.5"/><text x="50" y="15" text-anchor="middle" fill="%23333" font-size="6">N</text><text x="85" y="50" text-anchor="middle" fill="%23333" font-size="6">E</text><text x="50" y="85" text-anchor="middle" fill="%23333" font-size="6">S</text><text x="15" y="50" text-anchor="middle" fill="%23333" font-size="6">W</text></svg>') center center no-repeat;
+  background-size: contain;
 }
 
-.user-dot {
+.compass-arrow {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  background-color: #f44336;
-  border: 2px solid white;
-  border-radius: 50%;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
-}
-
-.user-map-icon, .kaaba-map-icon {
-  background: none;
-  border: none;
-}
-
-/* Info panel styles */
-.info-panel {
-  margin-top: 1rem;
-  background-color: #f9f9f9;
-  border-radius: 10px;
-  padding: 1rem;
+  top: 0;
+  left: 0;
   width: 100%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  transition: transform 0.2s ease-out;
+  transform-origin: center center;
+  z-index: 5;
 }
 
-.qibla-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 1rem;
+.arrow {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 8px;
+  height: 45%;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, #ff5722, transparent);
+  z-index: 5;
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(255, 87, 34, 0.5);
 }
 
-.qibla-direction {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 0.5rem;
+/* Hide the triangle at the top of the arrow since we have the Kaaba icon */
+.arrow::before {
+  display: none;
 }
 
-.direction-chip {
+.kaaba-icon {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  z-index: 30;
+  text-shadow: 0 0 10px rgba(255, 87, 34, 0.9);
+  animation: glow 2s infinite;
+}
+
+@keyframes glow {
+  0% { text-shadow: 0 0 10px rgba(255, 87, 34, 0.5); }
+  50% { text-shadow: 0 0 20px rgba(255, 87, 34, 1); }
+  100% { text-shadow: 0 0 10px rgba(255, 87, 34, 0.5); }
+}
+
+.qibla-indicator {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  z-index: 20;
+  background-color: rgba(255, 87, 34, 0.9);
+  padding: 3px 10px;
+  border-radius: 10px;
+}
+
+/* Modify the north indicator to make it clearer */
+.compass::before {
+  content: 'N';
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: bold;
+  font-size: 12px;
+  color: white;
+  background-color: #f44336;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 50%;
+  z-index: 6;
+}
+
+/* Remove the old ::after that was on .compass-arrow */
+.compass-arrow::after {
+  content: none;
+}
+
+/* Remove the old ::after that was on .compass */
+.compass::after {
+  content: none;
+}
+
+.compass-info {
+  width: 100%;
+}
+
+.info-text {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.info-text.active {
+  opacity: 1;
+  height: auto;
+}
+
+.location-info div {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.toggle {
+  display: block;
+  width: 100%;
+  padding: 12px;
   background-color: #4caf50;
   color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin-bottom: 0.2rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: background-color 0.3s;
 }
 
-.direction-label {
-  font-size: 0.8rem;
-  color: #666;
+.toggle:hover {
+  background-color: #45a049;
 }
 
-.navigation-instructions {
-  margin: 0.8rem 0;
-  padding: 0.5rem;
-  border-radius: 5px;
-  background-color: #f0f7ff;
-  width: 100%;
+.toggle-on {
+  background-color: #f44336;
+}
+
+.toggle-on:hover {
+  background-color: #d32f2f;
+}
+
+.prayer-times {
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.prayer-times h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
   text-align: center;
+  color: #333;
 }
 
-.facing-qibla {
-  color: #4caf50;
-  font-weight: bold;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-}
-
-.turn-instruction {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 5px;
-}
-
-.location-info {
-  display: flex;
-  justify-content: center;
-  margin-top: 0.5rem;
-}
-
-.distance-chip {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background-color: #f0f0f0;
-  padding: 0.3rem 0.8rem;
-  border-radius: 15px;
-  font-size: 0.9rem;
-}
-
-.button-group {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
+.prayer-time {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-.compass-button, .locate-button {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.8rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.compass-button {
-  background-color: #f0f7ff;
-  color: #0277bd;
-}
-
-.locate-button {
-  background-color: #fff8e1;
-  color: #f57c00;
-}
-
-.compass-button:hover, .locate-button:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
-
-.button-icon {
-  font-size: 1.2rem;
-  margin-bottom: 0.3rem;
-}
-
-.button-text {
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-
-.location-controls {
-  margin: 1.5rem 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.status-message {
-  padding: 1rem;
-  margin: 1rem 0;
-  background-color: #fff3cd;
-  border-radius: 5px;
+.prayer-time > div {
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
   text-align: center;
-  width: 100%;
 }
 
-.primary-button {
+.prayer-time > div.active {
+  background-color: #e8f5e9;
+}
+
+.prayer-time > div.active .head {
   background-color: #4caf50;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 5px;
-  cursor: pointer;
+}
+
+.head {
   font-weight: bold;
-  transition: all 0.2s;
+  margin-bottom: 5px;
+  background-color: #ddd;
+  padding: 5px;
+  border-radius: 3px;
 }
 
-.primary-button:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
+.next-time {
+  margin-top: 20px;
+  text-align: center;
 }
 
-.loading {
+#countdown {
+  font-size: 24px;
+  font-weight: bold;
+  color: #4caf50;
+}
+
+.settings {
+  margin-top: 20px;
+}
+
+.calculation-method {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin: 2rem 0;
+  gap: 5px;
 }
 
-.spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
+.calculation-method label {
+  font-weight: bold;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+select {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
-@media (max-width: 480px) {
-  .real-map {
-    height: 300px;
-  }
+.debug-info {
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-family: monospace;
+}
+
+.manual-controls {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.manual-controls button {
+  background-color: #ff5722;
+  border: none;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.manual-controls button:hover {
+  background-color: #e64a19;
+}
+
+/* Add styles for the "YOU" indicator at the center */
+.you-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 12px;
+  z-index: 25;
+}
+
+/* Add styles for directional instructions */
+.direction-instruction {
+  text-align: center;
+  margin-bottom: 15px;
+  font-weight: bold;
+  font-size: 18px;
+  color: #333;
+  animation: pulse 2s infinite;
+}
+
+.direction-arrow {
+  font-size: 30px;
+  display: block;
+  margin-bottom: 5px;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Add a beam of light effect from center to Kaaba */
+.qibla-beam {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 20px;
+  height: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, rgba(255, 87, 34, 0.3), transparent);
+  z-index: 4;
+  border-radius: 10px;
+}
+
+/* Add styles for the usage instructions */
+.usage-instructions {
+  margin-top: 20px;
+  background-color: #fff9c4;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.usage-instructions h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #ff5722;
+  text-align: center;
+}
+
+.usage-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.usage-instructions li {
+  margin-bottom: 8px;
+}
+
+.usage-instructions strong {
+  color: #ff5722;
 }
 </style>
-
