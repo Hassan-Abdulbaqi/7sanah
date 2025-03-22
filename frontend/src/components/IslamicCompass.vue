@@ -14,7 +14,7 @@
         <!-- Qibla direction marker on compass (moves with compass) -->
         <div class="qibla-marker" ref="qiblaMarker">
           <div class="qibla-icon">🕋</div>
-          <div class="qibla-label">{{ $t('qibla') }}</div>
+          <div class="qibla-label">{{ $t('compass.qibla') }}</div>
         </div>
         
         <!-- Center dot -->
@@ -28,54 +28,58 @@
     
     <div class="controls">
       <button class="button stop-btn">
-        <i class="icon-compass"></i> {{ $t('stopCompass') }}
+        <i class="icon-compass"></i> {{ $t('compass.stopCompass') }}
       </button>
       <div class="toggle-container">
-        <span>{{ $t('locationServices') }}</span>
+        <span>{{ $t('compass.locationServices') }}</span>
         <div class="toggle"></div>
       </div>
+    </div>
+    
+    <div class="location-note">
+      {{ $t('compass.locationNote') }}
     </div>
     
     <div class="info-section">
     <div class="info-box">
       <div class="title_box">
-        <h2>{{ $t('locationInfo') }}</h2>
+        <h2>{{ $t('compass.locationInfo') }}</h2>
       </div>
       <div class="info-content locations-info">
         <div class="latitude">
-          <span>{{ $t('latitude') }}:</span> <span>{{ userLatitude || 0 }}</span>
+          <span>{{ $t('compass.latitude') }}:</span> <span>{{ userLatitude || 0 }}</span>
         </div>
         <div class="longitude">
-          <span>{{ $t('longitude') }}:</span> <span>{{ userLongitude || 0 }}</span>
+          <span>{{ $t('compass.longitude') }}:</span> <span>{{ userLongitude || 0 }}</span>
         </div>
         <div class="location">
-          <span>{{ $t('location') }}:</span> <span>{{ location || $t('unknown') }}</span>
+          <span>{{ $t('compass.location') }}:</span> <span>{{ location || $t('compass.unknown') }}</span>
         </div>
         <div class="sea_level">
-          <span>{{ $t('height') }}:</span> <span>{{ altitude || '0 m = 0 ft' }}</span>
+          <span>{{ $t('compass.height') }}:</span> <span>{{ altitude || '0 m = 0 ft' }}</span>
         </div>
       </div>
       
       <div class="title_box">
-        <h2>{{ $t('sunInfo') }}</h2>
+        <h2>{{ $t('compass.sunInfo') }}</h2>
       </div>
       <div class="info-content">
         <div class="locations-info">
           <div class="sunrise">
-            <span>{{ $t('sunrise') }}:</span> <span>{{ sunrise || '00:00:00' }}</span>
+            <span>{{ $t('compass.sunrise') }}:</span> <span>{{ sunrise || '00:00:00' }}</span>
           </div>
           <div class="sunset">
-            <span>{{ $t('sunset') }}:</span> <span>{{ sunset || '00:00:00' }}</span>
+            <span>{{ $t('compass.sunset') }}:</span> <span>{{ sunset || '00:00:00' }}</span>
           </div>
         </div>
       </div>
       
       <div class="title_box">
-        <h2>{{ $t('qiblaDirection') }}</h2>
+        <h2>{{ $t('compass.qiblaDirection') }}</h2>
       </div>
       <div class="info-content">
         <div id="qibla-direction" style="text-align: center;">
-          {{ $t('enableLocation') }}
+          {{ $t('compass.enableLocation') }}
           </div>
         </div>
       </div>
@@ -130,7 +134,8 @@ export default {
         deviceOrientationNotSupported: 'Device orientation is not supported on your device',
         permissionDenied: 'User denied the request for Geolocation.',
         positionUnavailable: 'The location information is not available.',
-        timeout: 'The attempt to obtain location has timed out.'
+        timeout: 'The attempt to obtain location has timed out.',
+        locationNote: 'Location needs to be enabled for the qibla to appear'
       },
       ar: {
         qibla: 'قِبْلَة',
@@ -156,59 +161,61 @@ export default {
         deviceOrientationNotSupported: 'توجيه الجهاز غير مدعوم على جهازك',
         permissionDenied: 'رفض المستخدم طلب تحديد الموقع الجغرافي.',
         positionUnavailable: 'معلومات الموقع غير متاحة.',
-        timeout: 'انتهت مهلة محاولة الحصول على موقع المستخدم.'
+        timeout: 'انتهت مهلة محاولة الحصول على الموقع.',
+        locationNote: 'يجب تمكين خدمات الموقع لعرض اتجاه القبلة'
       },
-      fr: {
-        qibla: 'QIBLA',
-        stopCompass: 'Arrêter la Boussole',
-        locationServices: 'Services de Localisation',
-        locationInfo: 'Informations de Localisation',
-        latitude: 'Latitude',
-        longitude: 'Longitude',
-        location: 'Emplacement',
-        height: 'Altitude (AMSL)',
-        sunInfo: 'Informations du Soleil',
-        sunrise: 'Lever du Soleil',
-        sunset: 'Coucher du Soleil',
-        qiblaDirection: 'Direction de la Qibla',
-        enableLocation: 'Activez les services de localisation pour afficher la direction de la Qibla',
-        unknown: 'Inconnu',
-        qiblaIs: 'La Qibla est à',
-        fromYourLocation: 'de votre position',
-        distanceToMecca: 'Distance à La Mecque',
-        compassStopped: 'Boussole Arrêtée',
-        grantPermission: 'Pour accéder à cette fonctionnalité, l\'autorisation doit être accordée',
-        notSupported: 'L\'autorisation requise n\'est pas prise en charge sur votre appareil',
-        deviceOrientationNotSupported: 'L\'orientation de l\'appareil n\'est pas prise en charge sur votre appareil',
-        permissionDenied: 'L\'utilisateur a refusé la demande de géolocalisation.',
-        positionUnavailable: 'Les informations de localisation ne sont pas disponibles.',
-        timeout: 'La tentative d\'obtention de la position a échoué en raison d\'un délai d\'attente.'
+      ku: {
+        qibla: 'قیبلە',
+        stopCompass: 'ڕاگرتنی قیبلەنما',
+        locationServices: 'خزمەتگوزاریەکانی شوێن',
+        locationInfo: 'زانیاری شوێن',
+        latitude: 'هێڵی پانی',
+        longitude: 'هێڵی درێژی',
+        location: 'شوێن',
+        height: 'بەرزی',
+        sunInfo: 'زانیاری خۆر',
+        sunrise: 'هەڵاتنی خۆر',
+        sunset: 'ئاوابوونی خۆر',
+        qiblaDirection: 'ئاڕاستەی قیبلە',
+        enableLocation: 'خزمەتگوزاریەکانی شوێن چالاک بکە بۆ نیشاندانی ئاڕاستەی قیبلە',
+        unknown: 'نەزانراو',
+        qiblaIs: 'قیبلە',
+        fromYourLocation: 'لە شوێنی تۆوە',
+        distanceToMecca: 'دووری بۆ مەککە',
+        compassStopped: 'قیبلەنما ڕاگیرا',
+        grantPermission: 'بۆ بەکارهێنانی ئەم تایبەتمەندیە، دەبێت ڕێگەپێدان بدرێت',
+        deviceOrientationNotSupported: 'ئاڕاستەی ئامێر لەسەر ئامێرەکەت پشتگیری ناکرێت',
+        permissionDenied: 'بەکارهێنەر داواکاری شوێنی جوگرافی ڕەتکردەوە.',
+        positionUnavailable: 'زانیاری شوێن بەردەست نیە.',
+        timeout: 'هەوڵدان بۆ بەدەستهێنانی شوێن کاتی تەواو بوو.',
+        locationNote: 'پێویستە خزمەتگوزاریەکانی شوێن چالاک بکرێت بۆ دەرکەوتنی قیبلە'
       },
-      tr: {
-        qibla: 'KIBLE',
-        stopCompass: 'Pusulayı Durdur',
-        locationServices: 'Konum Hizmetleri',
-        locationInfo: 'Konum Bilgisi',
-        latitude: 'Enlem',
-        longitude: 'Boylam',
-        location: 'Yer',
-        height: 'Yükseklik (AMSL)',
-        sunInfo: 'Güneş Bilgisi',
-        sunrise: 'Gün Doğumu',
-        sunset: 'Gün Batımı',
-        qiblaDirection: 'Kıble Yönü',
-        enableLocation: 'Kıble yönünü görüntülemek için konum hizmetlerini etkinleştirin',
-        unknown: 'Bilinmeyen',
-        qiblaIs: 'Kıble',
-        fromYourLocation: 'konumunuzdan',
-        distanceToMecca: 'Mekke\'ye Mesafe',
-        compassStopped: 'Pusula Durduruldu',
-        grantPermission: 'Bu özelliğe erişmek için izin verilmelidir',
-        notSupported: 'Gerekli izin cihazınızda desteklenmiyor',
-        deviceOrientationNotSupported: 'Cihaz yönlendirmesi cihazınızda desteklenmiyor',
-        permissionDenied: 'Kullanıcı Coğrafi Konum isteğini reddetti.',
-        positionUnavailable: 'Konum bilgisi mevcut değil.',
-        timeout: 'Kullanıcının konumunu alma girişimi zaman aşımına uğradı.'
+      fa: {
+        qibla: 'قبله',
+        stopCompass: 'توقف قطب‌نما',
+        locationServices: 'خدمات مکان',
+        locationInfo: 'اطلاعات مکان',
+        latitude: 'عرض جغرافیایی',
+        longitude: 'طول جغرافیایی',
+        location: 'موقعیت',
+        height: 'ارتفاع',
+        sunInfo: 'اطلاعات خورشید',
+        sunrise: 'طلوع آفتاب',
+        sunset: 'غروب آفتاب',
+        qiblaDirection: 'جهت قبله',
+        enableLocation: 'برای نمایش جهت قبله، خدمات مکان را فعال کنید',
+        unknown: 'نامشخص',
+        qiblaIs: 'قبله',
+        fromYourLocation: 'از موقعیت شما',
+        distanceToMecca: 'فاصله تا مکه',
+        compassStopped: 'قطب‌نما متوقف شد',
+        grantPermission: 'برای دسترسی به این ویژگی، باید اجازه داده شود',
+        notSupported: 'مجوز مورد نیاز در دستگاه شما پشتیبانی نمی‌شود',
+        deviceOrientationNotSupported: 'جهت‌گیری دستگاه در دستگاه شما پشتیبانی نمی‌شود',
+        permissionDenied: 'کاربر درخواست موقعیت جغرافیایی را رد کرد.',
+        positionUnavailable: 'اطلاعات مکان در دسترس نیست.',
+        timeout: 'تلاش برای دریافت مکان به پایان رسید.',
+        locationNote: 'برای نمایش قبله باید خدمات مکان فعال باشد'
       }
     }
   },
@@ -262,11 +269,11 @@ export default {
         if (state && state !== city) locationString += locationString ? `, ${state}` : state;
         if (country) locationString += locationString ? `, ${country}` : country;
         
-        return locationString || this.$t('unknown');
+        return locationString || this.$t('compass.unknown');
       })
       .catch(error => {
         console.error('Error fetching location name:', error);
-        return this.$t('unknown');
+        return this.$t('compass.unknown');
       });
     },
     // Get altitude information from coordinates
@@ -360,8 +367,10 @@ export default {
     document.querySelector(".toggle")?.addEventListener("click", function(e) {
       e.preventDefault();
       this.classList.toggle("toggle-on");
-
+      
+      // Ensure the toggle has the right color when enabled
       if (this.classList.contains("toggle-on")) {
+        this.style.backgroundColor = "#4CAF50";
         navigator.geolocation.getCurrentPosition(
           function(position) {
             showPosition(position);
@@ -379,6 +388,7 @@ export default {
           }
         );
       } else {
+        this.style.backgroundColor = "#ccc";
         // Hide the qibla marker when toggle is off
         if (qiblaMarker) {
           qiblaMarker.style.opacity = '0';
@@ -407,8 +417,8 @@ export default {
       
       // Update Qibla info with angle and distance
       document.getElementById('qibla-direction').innerHTML = 
-        `<p>${self.$t('qiblaIs')} <strong>${Math.round(qiblaAngle)}°</strong> ${self.$t('fromYourLocation')}</p>
-         <p>${self.$t('distanceToMecca')}: <strong>${distanceToKaaba} km</strong></p>`;
+        `<p>${self.$t('compass.qiblaIs')} <strong>${Math.round(qiblaAngle)}°</strong> ${self.$t('compass.fromYourLocation')}</p>
+         <p>${self.$t('compass.distanceToMecca')}: <strong>${distanceToKaaba} km</strong></p>`;
 
       // Update Qibla direction with backend API
       fetch(`/api/qibla/${latitude}/${longitude}/`)
@@ -419,8 +429,8 @@ export default {
             
             // Update Qibla info with API data
             document.getElementById('qibla-direction').innerHTML = 
-              `<p>${self.$t('qiblaIs')} <strong>${data.direction}°</strong> ${self.$t('fromYourLocation')}</p>
-               <p>${self.$t('distanceToMecca')}: <strong>${distanceToKaaba} km</strong></p>`;
+              `<p>${self.$t('compass.qiblaIs')} <strong>${data.direction}°</strong> ${self.$t('compass.fromYourLocation')}</p>
+               <p>${self.$t('compass.distanceToMecca')}: <strong>${distanceToKaaba} km</strong></p>`;
             
             // Position the Qibla marker on the compass circle
             positionQiblaMarker();
@@ -467,13 +477,13 @@ export default {
     function showError(error) {
       switch (error.code) {
         case error.PERMISSION_DENIED:
-          alert(self.$t('permissionDenied'));
+          alert(self.$t('compass.permissionDenied'));
           break;
         case error.POSITION_UNAVAILABLE:
-          alert(self.$t('positionUnavailable'));
+          alert(self.$t('compass.positionUnavailable'));
           break;
         case error.TIMEOUT:
-          alert(self.$t('timeout'));
+          alert(self.$t('compass.timeout'));
           break;
       }
     }
@@ -516,15 +526,15 @@ export default {
             if (response === "granted") {
               window.addEventListener("deviceorientation", handler, true);
             } else {
-              alert(self.$t('grantPermission'));
+              alert(self.$t('compass.grantPermission'));
             }
           })
-          .catch(() => alert(self.$t('notSupported')));
+          .catch(() => alert(self.$t('compass.notSupported')));
       } else {
         // For non-iOS devices, just add the event listener
         window.addEventListener("deviceorientationabsolute", handler, true);
         if (!window.DeviceOrientationEvent) {
-          alert(self.$t('deviceOrientationNotSupported'));
+          alert(self.$t('compass.deviceOrientationNotSupported'));
         }
       }
     }
@@ -620,7 +630,7 @@ export default {
       // Remove compass event listeners
       window.removeEventListener("deviceorientationabsolute", handler, true);
       window.removeEventListener("deviceorientation", handler, true);
-      document.querySelector(".stop-btn").innerHTML = `<i class="icon-compass"></i> ${self.$t('compassStopped')}`;
+      document.querySelector(".stop-btn").innerHTML = `<i class="icon-compass"></i> ${self.$t('compass.compassStopped')}`;
       document.querySelector(".stop-btn").style.backgroundColor = "#888";
     }
 
@@ -631,11 +641,9 @@ export default {
 </script>
 
 <style scoped>
-:root {
-  --main-color: #4CAF50;
-}
-
+/* Define color as a direct variable instead of using :root */
 .islamic-compass-wrapper {
+  --main-color: #4CAF50;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -691,7 +699,7 @@ export default {
   position: absolute;
   width: 50%;
   height: 4px;
-  background: linear-gradient(to right, transparent, var(--main-color) 40%, var(--main-color) 60%, transparent);
+  background: linear-gradient(to right, transparent, #4CAF50 40%, #4CAF50 60%, transparent);
   transform-origin: center left;
   left: 50%;
   top: calc(50% - 2px);
@@ -703,7 +711,7 @@ export default {
   height: 0;
   right: 0;
   top: -6px;
-  border-left: 10px solid var(--main-color);
+  border-left: 10px solid #4CAF50;
   border-top: 7px solid transparent;
   border-bottom: 7px solid transparent;
 }
@@ -739,7 +747,7 @@ export default {
 .title_box h2 {
   margin: 0;
   font-size: 16px;
-  color: var(--main-color);
+  color: #4CAF50;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -761,7 +769,7 @@ export default {
 .deg {
   font-size: 24px;
   font-weight: bold;
-  color: var(--main-color);
+  color: #4CAF50;
   text-align: center;
   margin: 15px 0;
   background-color: rgba(255, 255, 255, 0.7);
@@ -814,7 +822,7 @@ export default {
   transition: transform 0.3s;
 }
 .toggle.toggle-on {
-  background-color: var(--main-color);
+  background-color: #4CAF50; /* Set direct color instead of using var */
 }
 .toggle.toggle-on::after {
   transform: translateX(30px);
@@ -1007,5 +1015,15 @@ export default {
   .toggle {
     min-height: 30px; /* Ensure toggle is touch-friendly */
   }
+}
+
+.location-note {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  padding: 0 15px;
+  font-style: italic;
 }
 </style> 

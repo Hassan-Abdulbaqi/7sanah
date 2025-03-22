@@ -120,6 +120,16 @@
         <div v-else-if="currentPage === 'tasbeeh'" class="page-container" :key="'tasbeeh'">
           <TasbeehCounter />
         </div>
+        
+        <!-- Quran Reader Page -->
+        <div v-else-if="currentPage === 'quran'" class="page-container" :key="'quran'">
+          <QuranReader />
+        </div>
+        
+        <!-- Quran Search Page -->
+        <div v-else-if="currentPage === 'quran-search'" class="page-container" :key="'quran-search'">
+          <QuranSearch @navigate-to-verse="navigateToVerse" />
+        </div>
       </transition>
     </main>
 
@@ -143,10 +153,15 @@ import QiblaCompass from './components/QiblaCompass.vue'
 import IslamicCompass from './components/IslamicCompass.vue'
 import AgeCalculator from './components/AgeCalculator.vue'
 import TasbeehCounter from './components/TasbeehCounter.vue'
+import QuranReader from './components/QuranReader.vue'
+import QuranSearch from './components/QuranSearch.vue'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import Notification from './components/Notification.vue'
 import TasbeehIcon from './components/icons/TasbeehIcon.vue'
+import QuranIcon from './components/icons/QuranIcon.vue'
 import { store } from './store'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 export default {
   name: 'App',
@@ -160,6 +175,8 @@ export default {
     IslamicCompass,
     AgeCalculator,
     TasbeehCounter,
+    QuranReader,
+    QuranSearch,
     LanguageSwitcher,
     Notification,
     BookOutline,
@@ -167,7 +184,8 @@ export default {
     CompassOutline,
     HomeOutline,
     CalculatorOutline,
-    TasbeehIcon
+    TasbeehIcon,
+    QuranIcon
   },
   data() {
     return {
@@ -184,7 +202,8 @@ export default {
         { id: 'khatmah', name: this.$t('nav.khatmah'), icon: BookOutline },
         { id: 'calendar', name: this.$t('nav.calendar'), icon: CalendarOutline },
         { id: 'qibla', name: this.$t('nav.qibla'), icon: CompassOutline },
-        { id: 'tasbeeh', name: this.$t('nav.tasbeeh'), icon: TasbeehIcon }
+        { id: 'tasbeeh', name: this.$t('nav.tasbeeh'), icon: TasbeehIcon },
+        { id: 'quran', name: this.$t('nav.quran'), icon: QuranIcon }
       ]
     },
     features() {
@@ -218,6 +237,12 @@ export default {
           name: this.$t('features.tasbeeh.title'),
           description: this.$t('features.tasbeeh.description'),
           icon: TasbeehIcon
+        },
+        { 
+          id: 'quran',
+          name: this.$t('features.quran.title'),
+          description: this.$t('features.quran.description'),
+          icon: QuranIcon
         }
       ]
     }
@@ -290,6 +315,12 @@ export default {
         case 'tasbeeh':
           this.currentPage = 'tasbeeh'
           break
+        case 'quran':
+          this.currentPage = 'quran'
+          break
+        case 'quran-search':
+          this.currentPage = 'quran-search'
+          break
       }
     },
     
@@ -359,6 +390,23 @@ export default {
     
     onKhatmahUpdated() {
       this.khatmahView = 'detail'
+    },
+    
+    navigateToVerse(verse) {
+      console.log('Navigating to verse:', verse)
+      // Set current page to Quran Reader
+      this.navigateTo('quran')
+      
+      // Pass the verse information to the Quran Reader component
+      // We'll use a global event bus or a direct reference to the component
+      // For now, we'll use localStorage as a simple solution
+      localStorage.setItem('quranNavigationTarget', JSON.stringify({
+        surah: verse.surah,
+        verse: verse.verse,
+        edition: verse.edition
+      }))
+      
+      // The QuranReader component will check for this data when mounted
     }
   }
 }
@@ -371,6 +419,22 @@ export default {
   min-height: 100vh;
   background-color: var(--bg-color);
   color: var(--text-color);
+}
+
+/* Adding :root with CSS variables including RGB primary color */
+:root {
+  --primary-color: #10b981;
+  --primary-color-rgb: 16, 185, 129; /* RGB values of #10b981 for opacity */
+  --primary-hover: #059669;
+  --primary-light: rgba(16, 185, 129, 0.1);
+  --primary-bg: rgba(16, 185, 129, 0.15);
+  --hover-color: rgba(0, 0, 0, 0.05);
+  --bg-color: #f9fafb;
+  --card-bg: #ffffff;
+  --text-color: #1f2937;
+  --text-secondary: #6b7280;
+  --border-color: #e5e7eb;
+  --input-bg: #f9fafb;
 }
 
 .app-header {

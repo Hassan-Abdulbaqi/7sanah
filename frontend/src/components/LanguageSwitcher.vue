@@ -8,7 +8,7 @@ const isOpen = ref(false);
 // Available languages with language codes instead of country codes
 const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧', dir: 'ltr', langCode: 'EN' },
-  { code: 'ar', name: 'العربية', flag: '🇸🇦', dir: 'rtl', langCode: 'AR' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦', dir: 'ltr', langCode: 'AR' },
   { code: 'ku', name: 'کوردی', flag: '🇮🇶', dir: 'rtl', langCode: 'KU' },
   { code: 'fa', name: 'فارسی', flag: '🇮🇷', dir: 'rtl', langCode: 'FA' }
 ];
