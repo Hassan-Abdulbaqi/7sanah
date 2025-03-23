@@ -178,6 +178,11 @@
         <div v-else-if="currentPage === 'quran-search'" class="page-container" :key="'quran-search'">
           <QuranSearch @navigate-to-verse="navigateToVerse" />
         </div>
+
+        <!-- Quran Book Page -->
+        <div v-else-if="currentPage === 'quran-book'" class="page-container" :key="'quran-book'">
+          <QuranBook />
+        </div>
       </transition>
     </main>
 
@@ -203,6 +208,7 @@ import AgeCalculator from './components/AgeCalculator.vue'
 import TasbeehCounter from './components/TasbeehCounter.vue'
 import QuranReader from './components/QuranReader.vue'
 import QuranSearch from './components/QuranSearch.vue'
+import QuranBook from './components/quran/views/BookView.vue'
 import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import Notification from './components/Notification.vue'
 import TasbeehIcon from './components/icons/TasbeehIcon.vue'
@@ -225,6 +231,7 @@ export default {
     TasbeehCounter,
     QuranReader,
     QuranSearch,
+    QuranBook,
     LanguageSwitcher,
     Notification,
     BookOutline,
@@ -366,6 +373,9 @@ export default {
           break
         case 'quran':
           this.currentPage = 'quran'
+          break
+        case 'quran-book':
+          this.currentPage = 'quran-book'
           break
         case 'quran-search':
           this.currentPage = 'quran-search'

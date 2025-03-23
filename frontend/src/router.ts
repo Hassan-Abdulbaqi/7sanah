@@ -80,6 +80,12 @@ const router = createRouter({
       meta: { mode: 'quran', transitionName: 'fade' }
     },
     {
+      path: '/quran/book',
+      name: 'quran-book',
+      component: App,
+      meta: { mode: 'quran-book', transitionName: 'fade' }
+    },
+    {
       path: '/quran-search',
       name: 'quran-search',
       component: App,

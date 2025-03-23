@@ -2,7 +2,7 @@
   <div class="quran-reader light-mode">
     <h1 class="text-2xl font-bold text-center mb-6">{{ $t('quran.title') }}</h1>
     
-    <!-- Direct Search Link -->
+    <!-- Advanced Search Button -->
     <div class="flex justify-center mb-4">
       <router-link to="/quran-search" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
@@ -25,15 +25,15 @@
             </svg>
             {{ $t('quran.surahView') }}
           </button>
-          <button 
-            @click="viewMode = 'book'" 
-            :class="['view-mode-button', { active: viewMode === 'book' }]"
+          <router-link 
+            to="/quran/book"
+            :class="['view-mode-button', { active: $route.path.includes('/quran/book') }]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
               <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
             </svg>
             {{ $t('quran.bookView') }}
-          </button>
+          </router-link>
         </div>
       </div>
 
@@ -66,14 +66,6 @@
               {{ $t('quran.hideSurahList') || 'Hide Surah List' }}
             </button>
           </div>
-          
-          <!-- Quran Search Component -->
-          <QuranSearch 
-            :surahs="surahs" 
-            :grouped-translations="groupedTranslations"
-            @jump-to-search-result="jumpToSearchResult"
-            @get-language-name="getLanguageName"
-          />
           
           <!-- Surah List Component -->
           <SurahList 
@@ -142,7 +134,10 @@
 
       <!-- Book View Content will be implemented next -->
       <div v-if="viewMode === 'book'" class="book-view">
-        <p class="text-center py-8">Book view will be implemented in the next phase.</p>
+        <BookView 
+          :grouped-translations="groupedTranslations"
+          :languages="languages"
+        />
       </div>
     </div>
   </div>
@@ -164,18 +159,18 @@
 </template>
 
 <script>
-import QuranSearch from './common/QuranSearch.vue'
 import SurahList from './common/SurahList.vue'
 import SurahContentView from './views/SurahContentView.vue'
 import AudioControls from './common/AudioControls.vue'
+import BookView from './views/BookView.vue'
 
 export default {
   name: 'QuranReader',
   components: {
-    QuranSearch,
     SurahList,
     SurahContentView,
-    AudioControls
+    AudioControls,
+    BookView
   },
   data() {
     return {
@@ -467,19 +462,23 @@ export default {
     },
     
     jumpToSearchResult(match) {
-      // Navigate to the surah and verse from search result
-      this.selectedSurah = match.surah.number
-      
-      // First load the surah
-      this.loadSurah().then(() => {
-        // After the surah is loaded, highlight and scroll to the verse
-        setTimeout(() => {
-          this.highlightedAyah = match.number
-          
-          // Use the surahContentView component to scroll to the verse
-          this.$emit('scroll-to-verse', match.number)
-        }, 500)
-      })
+      if (match && match.surah) {
+        // Set the selected surah
+        this.selectedSurah = match.surah.number
+        
+        // Load the surah content
+        this.loadSurah().then(() => {
+          // After the surah is loaded, highlight and scroll to the verse
+          setTimeout(() => {
+            if (match.numberInSurah) {
+              this.highlightedAyah = match.numberInSurah
+              
+              // Use the existing scrollToVerse method
+              this.scrollToVerse(match.numberInSurah)
+            }
+          }, 500)
+        })
+      }
     },
     
     // Audio methods
