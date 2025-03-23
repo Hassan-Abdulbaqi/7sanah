@@ -441,6 +441,8 @@
     "turkish": "Turkish",
     "urdu": "Urdu",
     "russian": "Russian",
-    "persian": "Persian"
+    "persian": "Persian",
+    "iraqiArabic": "Iraqi Arabic Script",
+    "verseLoadingFailed": "Could not find the requested verse. Please try again."
   }
 } 

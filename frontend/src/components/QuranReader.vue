@@ -39,8 +39,34 @@
 
       <!-- Surah View Content -->
       <div v-if="viewMode === 'surah'">
-        <!-- Surah Selection and Audio Controls -->
-        <div class="surah-selection">
+        <!-- Toggle button for surah list when a surah is selected -->
+        <div v-if="selectedSurah && surahListCollapsed" class="flex justify-center mb-4">
+          <button 
+            @click="surahListCollapsed = false" 
+            class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+            {{ $t('quran.showSurahList') || 'Show Surah List' }}
+          </button>
+        </div>
+        
+        <!-- Surah Selection and Audio Controls - Hide when a surah is selected and list is collapsed -->
+        <div v-if="!selectedSurah || !surahListCollapsed" class="surah-selection">
+          <!-- Collapse button when surah is selected -->
+          <div v-if="selectedSurah" class="flex justify-center mb-4">
+            <button 
+              @click="surahListCollapsed = true" 
+              class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" />
+              </svg>
+              {{ $t('quran.hideSurahList') || 'Hide Surah List' }}
+            </button>
+          </div>
+          
           <div class="mb-4">
             <!-- Search Bar for Quran Text -->
             <div class="search-bar-container mb-4">
@@ -176,56 +202,200 @@
             </div>
           </div>
           
-          <!-- Language and Reciter Selection (unchanged) -->
-          <div class="grid grid-cols-2 gap-4 mb-4" v-if="selectedSurah">
-            <div>
-              <label class="block mb-1 text-sm font-medium">{{ $t('quran.selectLanguage') }}</label>
-              <select v-model="selectedTranslation" @change="loadTranslation" class="select-input" :disabled="loadingTranslations">
-                <option v-if="loadingTranslations" value="">{{ $t('quran.loading') }}</option>
-                <optgroup v-for="(translations, lang) in groupedTranslations" :key="lang" :label="getLanguageName(lang)">
-                  <option v-for="translation in translations" :key="translation.identifier" :value="translation.identifier">
-                    {{ translation.name }}
-                  </option>
-                </optgroup>
-              </select>
+          <!-- Loading State -->
+          <div v-if="loading" class="loading-message">
+            <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p>{{ $t('common.loading') }}</p>
+          </div>
+          
+          <!-- Error State -->
+          <div v-else-if="error" class="error-message">
+            <svg class="h-10 w-10 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <p>{{ error }}</p>
+          </div>
+          
+          <!-- Surah Content -->
+          <div 
+            v-else-if="!loading && !error && selectedSurah && currentSurah" 
+            :class="['surah-content', { 'surah-content-expanded': surahListCollapsed }]"
+          >
+            <!-- Surah Header -->
+            <div class="surah-header">
+              <h2 class="arabic-title">{{ currentSurah.name }}</h2>
+              <h3 class="english-title">{{ currentSurah.englishName }} - {{ currentSurah.englishNameTranslation }}</h3>
+              <p class="ayah-count">{{ currentSurah.numberOfAyahs }} {{ $t('quran.ayah') }}</p>
+              
+              <!-- Bismillah except for Surah 9 -->
+              <div class="bismillah" v-if="currentSurah.number !== 9">
+                {{ $t('quran.bismillah') }}
+              </div>
+              
+              <!-- Audio Controls and Settings -->
+              <div class="surah-actions mt-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <!-- Language Selection -->
+                  <div>
+                    <label class="block mb-1 text-sm font-medium">{{ $t('quran.selectLanguage') }}</label>
+                    <select v-model="selectedTranslation" @change="loadTranslation" class="select-input" :disabled="loadingTranslations">
+                      <option v-if="loadingTranslations" value="">{{ $t('quran.loading') }}</option>
+                      <optgroup v-for="(translations, lang) in groupedTranslations" :key="lang" :label="getLanguageName(lang)">
+                        <option v-for="translation in translations" :key="translation.identifier" :value="translation.identifier">
+                          {{ translation.name }}
+                        </option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  
+                  <!-- Reciter Selection -->
+                  <div>
+                    <label class="block mb-1 text-sm font-medium">{{ $t('quran.selectReciter') }}</label>
+                    <select v-model="selectedReciter" class="select-input" :disabled="loadingReciters">
+                      <option v-if="loadingReciters" value="">{{ $t('quran.loading') }}</option>
+                      <optgroup v-for="(reciters, lang) in groupedReciters" :key="lang" :label="getLanguageName(lang)">
+                        <option v-for="reciter in reciters" :key="reciter.identifier" :value="reciter.identifier">
+                          {{ reciter.name }}
+                        </option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  
+                  <!-- Listen to Surah Button -->
+                  <div class="flex items-end">
+                    <button 
+                      @click="listenToFullSurah" 
+                      class="listen-surah-button w-full"
+                      :disabled="downloadingSurahAudio || isPlayingFullSurah"
+                    >
+                      <svg v-if="downloadingSurahAudio" class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                      </svg>
+                      {{ downloadingSurahAudio ? $t('quran.loading') : $t('quran.listenToSurah') || 'Listen to Surah' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label class="block mb-1 text-sm font-medium">{{ $t('quran.selectReciter') }}</label>
-              <select v-model="selectedReciter" class="select-input" :disabled="loadingReciters">
-                <option v-if="loadingReciters" value="">{{ $t('quran.loading') }}</option>
-                <optgroup v-for="(reciters, lang) in groupedReciters" :key="lang" :label="getLanguageName(lang)">
-                  <option v-for="reciter in reciters" :key="reciter.identifier" :value="reciter.identifier">
-                    {{ reciter.name }}
-                  </option>
-                </optgroup>
-              </select>
+            
+            <!-- Verses with lazy loading -->
+            <div 
+              :class="['verses', { 'verses-when-collapsed': surahListCollapsed, 'verses-container-expanded': surahListCollapsed }]"
+              ref="versesContainer" 
+              @scroll="handleScroll"
+            >
+              <div 
+                v-for="verse in displayedVerses" 
+                :key="verse.number"
+                class="verse"
+                :id="`verse-${verse.number}`"
+                :class="{ 
+                  'highlighted': highlightedAyah === verse.number,
+                  'playing-ayah-audio': loadingVerseAudio === verse.number && !isPartiallyLoaded
+                }"
+              >
+                <div class="verse-number">{{ verse.numberInSurah }}</div>
+                
+                <div class="arabic-text">{{ verse.text }}</div>
+                
+                <div v-if="translatedVerses[verse.number]" class="translation-text">
+                  {{ translatedVerses[verse.number] }}
+                </div>
+                
+                <div class="verse-footer">
+                  <div class="verse-actions">
+                    <button 
+                      @click="toggleVerseAudio(verse.numberInSurah)"
+                      class="verse-action-button"
+                      :class="{ 'active': currentPlayingVerse === verse.numberInSurah }"
+                      :disabled="loadingVerseAudio !== null"
+                    >
+                      <svg v-if="currentPlayingVerse === verse.numberInSurah && !paused" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                      </svg>
+                      <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Loading more indicator -->
+              <div v-if="isLoadingMore" class="text-center py-4">
+                <div class="inline-block animate-spin rounded-full h-5 w-5 border-2 border-indigo-600 border-t-transparent"></div>
+                <p class="text-sm text-gray-600 mt-2">{{ $t('quran.loadingMore') || 'جارٍ تحميل المزيد من الآيات...' }}</p>
+                
+                <!-- Manual load button as a fallback -->
+                <button 
+                  @click="loadAllRemainingVerses" 
+                  class="load-all-button mt-3 px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-md text-sm font-medium transition-colors"
+                >
+                  {{ $t('quran.loadAllVerses') || 'تحميل جميع الآيات دفعة واحدة' }}
+                </button>
+              </div>
             </div>
+            
+            <!-- Audio Controls (separate from verses) -->
+            <div v-if="audioPlayer && !audioPlayer.paused" class="audio-controls">
+              <button @click="stopAudio" class="audio-control-button">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
+                </svg>
+              </button>
+              
+              <button @click="togglePause" class="audio-control-button play-pause">
+                <svg v-if="paused" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+              
+              <div class="audio-time">{{ formatTime(audioProgress) }}</div>
+              <div class="audio-progress-container" @click="seekAudio">
+                <div class="audio-progress-bar" :style="{ width: `${(audioProgress / audioDuration) * 100}%` }"></div>
+              </div>
+              <div class="audio-time">{{ formatTime(audioDuration) }}</div>
+            </div>
+          </div>
+          
+          <!-- No Surah Selected -->
+          <div class="no-selection" v-if="!loading && !error && !selectedSurah">
+            <p class="text-center text-gray-500">{{ $t('quran.selectSurahPrompt') }}</p>
           </div>
         </div>
         
         <!-- Loading State -->
-        <div class="loading-spinner" v-if="loading">
-          <svg class="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <div v-if="loading" class="loading-message">
+          <svg class="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <p class="mt-2">{{ $t('quran.loading') }}</p>
+          <p>{{ $t('common.loading') }}</p>
         </div>
         
-        <!-- Error Message -->
-        <div class="error-message" v-if="error">
-          <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            <p>{{ error }}</p>
-          </div>
-        </div>
-        
-        <!-- No Surah Selected -->
-        <div class="no-selection" v-if="!loading && !error && !selectedSurah">
-          <p class="text-center text-gray-500">{{ $t('quran.selectSurahPrompt') }}</p>
+        <!-- Error State -->
+        <div v-else-if="error" class="error-message">
+          <svg class="h-10 w-10 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p>{{ error }}</p>
         </div>
         
         <!-- Surah Content -->
-        <div v-if="!loading && !error && selectedSurah && currentSurah" class="surah-content">
+        <div 
+          v-else-if="!loading && !error && selectedSurah && currentSurah" 
+          :class="['surah-content', { 'surah-content-expanded': surahListCollapsed }]"
+        >
           <!-- Surah Header -->
           <div class="surah-header">
             <h2 class="arabic-title">{{ currentSurah.name }}</h2>
@@ -236,89 +406,143 @@
             <div class="bismillah" v-if="currentSurah.number !== 9">
               {{ $t('quran.bismillah') }}
             </div>
+            
+            <!-- Audio Controls and Settings -->
+            <div class="surah-actions mt-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- Language Selection -->
+                <div>
+                  <label class="block mb-1 text-sm font-medium">{{ $t('quran.selectLanguage') }}</label>
+                  <select v-model="selectedTranslation" @change="loadTranslation" class="select-input" :disabled="loadingTranslations">
+                    <option v-if="loadingTranslations" value="">{{ $t('quran.loading') }}</option>
+                    <optgroup v-for="(translations, lang) in groupedTranslations" :key="lang" :label="getLanguageName(lang)">
+                      <option v-for="translation in translations" :key="translation.identifier" :value="translation.identifier">
+                        {{ translation.name }}
+                      </option>
+                    </optgroup>
+                  </select>
+                </div>
+                
+                <!-- Reciter Selection -->
+                <div>
+                  <label class="block mb-1 text-sm font-medium">{{ $t('quran.selectReciter') }}</label>
+                  <select v-model="selectedReciter" class="select-input" :disabled="loadingReciters">
+                    <option v-if="loadingReciters" value="">{{ $t('quran.loading') }}</option>
+                    <optgroup v-for="(reciters, lang) in groupedReciters" :key="lang" :label="getLanguageName(lang)">
+                      <option v-for="reciter in reciters" :key="reciter.identifier" :value="reciter.identifier">
+                        {{ reciter.name }}
+                      </option>
+                    </optgroup>
+                  </select>
+                </div>
+                
+                <!-- Listen to Surah Button -->
+                <div class="flex items-end">
+                  <button 
+                    @click="listenToFullSurah" 
+                    class="listen-surah-button w-full"
+                    :disabled="downloadingSurahAudio || isPlayingFullSurah"
+                  >
+                    <svg v-if="downloadingSurahAudio" class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                    </svg>
+                    {{ downloadingSurahAudio ? $t('quran.loading') : $t('quran.listenToSurah') || 'Listen to Surah' }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
           
           <!-- Verses with lazy loading -->
-          <div class="verses" ref="versesContainer" @scroll="handleScroll">
+          <div 
+            :class="['verses', { 'verses-when-collapsed': surahListCollapsed, 'verses-container-expanded': surahListCollapsed }]"
+            ref="versesContainer" 
+            @scroll="handleScroll"
+          >
             <div 
               v-for="verse in displayedVerses" 
               :key="verse.number"
               class="verse"
               :id="`verse-${verse.number}`"
+              :class="{ 
+                'highlighted': highlightedAyah === verse.number,
+                'playing-ayah-audio': loadingVerseAudio === verse.number && !isPartiallyLoaded
+              }"
             >
-              <div class="verse-header">
-                <span class="verse-number">{{ verse.numberInSurah }}</span>
-                <div class="verse-audio-controls">
+              <div class="verse-number">{{ verse.numberInSurah }}</div>
+              
+              <div class="arabic-text">{{ verse.text }}</div>
+              
+              <div v-if="translatedVerses[verse.number]" class="translation-text">
+                {{ translatedVerses[verse.number] }}
+              </div>
+              
+              <div class="verse-footer">
+                <div class="verse-actions">
                   <button 
-                    @click="playVerseAudio(verse.number, verse.numberInSurah)"
-                    class="verse-audio-button"
-                    :disabled="loadingVerseAudio === verse.number"
+                    @click="toggleVerseAudio(verse.numberInSurah)"
+                    class="verse-action-button"
+                    :class="{ 'active': currentPlayingVerse === verse.numberInSurah }"
+                    :disabled="loadingVerseAudio !== null"
                   >
-                    <svg v-if="loadingVerseAudio === verse.number" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <svg v-else-if="currentPlayingVerse === verse.number" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828a1 1 0 010-1.415z" clip-rule="evenodd" />
-                    </svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071a1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243a1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828a1 1 0 010-1.415z" clip-rule="evenodd" />
-                    </svg>
-                  </button>
-                  <button 
-                    v-if="currentPlayingVerse === verse.number" 
-                    @click="toggleVerseAudio(verse.number)"
-                    class="verse-audio-button ml-2"
-                  >
-                    <svg v-if="!paused" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg v-if="currentPlayingVerse === verse.numberInSurah && !paused" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
                     </svg>
                   </button>
                 </div>
               </div>
-              
-              <!-- Audio Progress Bar (only shown for currently playing verse) -->
-              <div v-if="currentPlayingVerse === verse.number && audioDuration > 0" class="audio-progress-container">
-                <div class="audio-progress-bar" :class="{'loading': verse.number === loadingVerseAudio || (currentPlayingVerse === verse.number && isPartiallyLoaded)}" @click="seekAudio($event)">
-                  <div class="audio-progress-fill" :style="{ width: `${(audioProgress / audioDuration) * 100}%` }"></div>
-                </div>
-                <div class="audio-time">
-                  {{ formatTime(audioProgress) }} / {{ formatTime(audioDuration) }}
-                </div>
-              </div>
-              
-              <!-- Verse arabic text -->
-              <div class="verse-arabic" dir="rtl">
-                {{ cleanAyahText(verse.text, currentSurah.number, verse.numberInSurah) }}
-              </div>
-              <div class="verse-translation" v-if="translatedVerses[verse.numberInSurah]">
-                {{ translatedVerses[verse.numberInSurah] }}
-              </div>
             </div>
             
             <!-- Loading more indicator -->
-            <div v-if="isLoadingMore && currentSurah.ayahs.length > displayedVerses.length" class="loading-more">
-              <svg class="animate-spin h-6 w-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>
-                {{ $t('quran.loadingMore') }}
-                <span v-if="isLargeSurah" class="text-sm opacity-70">
-                  ({{ displayedVerses.length }} / {{ currentSurah.ayahs.length }} {{ $t('quran.verses') }})
-                </span>
-              </span>
-            </div>
-            
-            <!-- Progress bar for large suras -->
-            <div v-if="isLargeSurah && currentSurah.ayahs.length > displayedVerses.length" class="verse-loading-progress">
-              <div class="progress-bar" :style="{ width: `${(displayedVerses.length / currentSurah.ayahs.length) * 100}%` }"></div>
-              <div class="progress-text">{{ Math.round((displayedVerses.length / currentSurah.ayahs.length) * 100) }}%</div>
+            <div v-if="isLoadingMore" class="text-center py-4">
+              <div class="inline-block animate-spin rounded-full h-5 w-5 border-2 border-indigo-600 border-t-transparent"></div>
+              <p class="text-sm text-gray-600 mt-2">{{ $t('quran.loadingMore') || 'جارٍ تحميل المزيد من الآيات...' }}</p>
+              
+              <!-- Manual load button as a fallback -->
+              <button 
+                @click="loadAllRemainingVerses" 
+                class="load-all-button mt-3 px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-md text-sm font-medium transition-colors"
+              >
+                {{ $t('quran.loadAllVerses') || 'تحميل جميع الآيات دفعة واحدة' }}
+              </button>
             </div>
           </div>
+          
+          <!-- Audio Controls (separate from verses) -->
+          <div v-if="audioPlayer && !audioPlayer.paused" class="audio-controls">
+            <button @click="stopAudio" class="audio-control-button">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            
+            <button @click="togglePause" class="audio-control-button play-pause">
+              <svg v-if="paused" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            
+            <div class="audio-time">{{ formatTime(audioProgress) }}</div>
+            <div class="audio-progress-container" @click="seekAudio">
+              <div class="audio-progress-bar" :style="{ width: `${(audioProgress / audioDuration) * 100}%` }"></div>
+            </div>
+            <div class="audio-time">{{ formatTime(audioDuration) }}</div>
+          </div>
+        </div>
+        
+        <!-- No Surah Selected -->
+        <div class="no-selection" v-if="!loading && !error && !selectedSurah">
+          <p class="text-center text-gray-500">{{ $t('quran.selectSurahPrompt') }}</p>
         </div>
       </div>
 
@@ -497,6 +721,38 @@
       </div>
     </div>
   </div>
+  
+  <!-- Floating Audio Controls Bar - fixed at bottom of screen -->
+  <div v-if="audioPlayer && !audioPlayer.paused" class="floating-audio-controls">
+    <div class="audio-controls-container">
+      <button @click="stopAudio" class="audio-control-button">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
+        </svg>
+      </button>
+      
+      <button @click="togglePause" class="audio-control-button play-pause">
+        <svg v-if="paused" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+      </button>
+      
+      <div class="audio-progress-wrapper">
+        <div class="audio-time">{{ formatTime(audioProgress) }}</div>
+        <div class="audio-progress-container" @click="seekAudio">
+          <div class="audio-progress-bar" :style="{ width: `${(audioProgress / audioDuration) * 100}%` }"></div>
+        </div>
+        <div class="audio-time">{{ formatTime(audioDuration) }}</div>
+      </div>
+      
+      <div class="now-playing-info">
+        <span v-if="currentSurah">{{ currentSurah.name }} - {{ $t('quran.surah') }}</span>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -505,8 +761,8 @@ export default {
   data() {
     return {
       surahs: [],
-      currentSurah: null,
       selectedSurah: '',
+      currentSurah: null,
       selectedTranslation: 'en.asad',
       selectedReciter: 'ar.alafasy',
       translatedVerses: {},
@@ -544,6 +800,7 @@ export default {
       loadingChunks: false,
       scrollThreshold: 300, // Larger scroll threshold for earlier prefetching
       prefetchThreshold: 500, // Threshold for prefetching the next chunk
+      loadThreshold: 300, // Distance from bottom to trigger loading more verses
       isLargeSurah: false, // Flag to track if current surah is considered large
       currentPlayingVerse: null,
       audioProgress: 0,
@@ -561,31 +818,55 @@ export default {
       searchResults: [],
       searchCount: 0,
       searchLoading: false,
-      searchError: null
+      searchError: null,
+      _loadAttempts: 0,
+      // Surah list collapse state
+      surahListCollapsed: false,
+      backupLoadTimer: null
     }
   },
   async created() {
     try {
       this.loading = true
       
-      // Check if there's navigation data from the search component
-      const navigationData = localStorage.getItem('quranNavigationTarget')
+      // Check for navigation data in localStorage
       let targetSurah = null
       let targetVerse = null
       let targetEdition = null
       
-      if (navigationData) {
-        try {
-          const parsedData = JSON.parse(navigationData)
-          targetSurah = parsedData.surah
-          targetVerse = parsedData.verse
-          targetEdition = parsedData.edition
+      try {
+        const navigationData = localStorage.getItem('quranNavigationTarget')
+        if (navigationData) {
+          const navTarget = JSON.parse(navigationData)
           
-          // Clear the navigation data so it doesn't trigger again on next visit
-          localStorage.removeItem('quranNavigationTarget')
-        } catch (e) {
-          console.error('Error parsing navigation data:', e)
+          // Check if the data is fresh (less than 10 seconds old)
+          const timestamp = navTarget.timestamp || 0
+          const isDataFresh = (new Date().getTime() - timestamp) < 10000 // 10 seconds
+          
+          if (isDataFresh) {
+            targetSurah = navTarget.surah
+            targetVerse = navTarget.verse
+            targetEdition = navTarget.edition
+            
+            // Clear the data so we don't reuse it on next load
+            localStorage.removeItem('quranNavigationTarget')
+            
+            console.log('Found navigation target in localStorage:', navTarget)
+          } else {
+            console.log('Found navigation data but it was stale, ignoring')
+            localStorage.removeItem('quranNavigationTarget')
+          }
+        } else {
+          // Check URL query parameters as fallback
+          const urlParams = new URLSearchParams(window.location.search)
+          if (urlParams.has('surah') && urlParams.has('verse')) {
+            targetSurah = parseInt(urlParams.get('surah'))
+            targetVerse = parseInt(urlParams.get('verse'))
+            console.log('Found navigation target in URL params:', { surah: targetSurah, verse: targetVerse })
+          }
         }
+      } catch (e) {
+        console.error('Error parsing navigation data:', e)
       }
       
       // Fetch surahs
@@ -603,35 +884,50 @@ export default {
       
       // If we have navigation data, navigate to the specified verse
       if (targetSurah && targetVerse) {
+        console.log('Navigating to surah:', targetSurah, 'verse:', targetVerse)
         this.selectedSurah = targetSurah
         if (targetEdition) {
           this.selectedTranslation = targetEdition
         }
         
-        // Load the surah
-        await this.loadSurah()
-        
-        // After the surah is loaded, find and scroll to the verse
-        this.$nextTick(() => {
-          // Find the verse element
-          const verseElement = document.getElementById(`verse-${targetVerse}`)
-          if (verseElement) {
-            // Highlight the verse
-            this.highlightedAyah = targetVerse
-            
-            // Scroll to the verse
-            verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            
-            // Add a temporary highlight effect
-            verseElement.classList.add('search-highlight')
-            setTimeout(() => {
-              verseElement.classList.remove('search-highlight')
-            }, 3000)
-          } else {
-            // The verse might not be loaded yet if it's in a large surah with lazy loading
-            this.loadVersesUntilFound(targetVerse)
-          }
-        })
+        try {
+          // Load the surah
+          await this.loadSurah()
+          
+          // After the surah is loaded, find and scroll to the verse
+          // Use setTimeout to ensure the DOM is fully updated after loadSurah completes
+          setTimeout(() => {
+            try {
+              console.log('Looking for verse element:', targetVerse)
+              // Use our helper method to find the verse element
+              const verseElement = this.findVerseElement(targetVerse)
+              
+              if (verseElement) {
+                console.log('Found verse element, scrolling to it')
+                // Highlight the verse
+                this.highlightedAyah = targetVerse
+                
+                // Scroll to the verse
+                verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                
+                // Add a temporary highlight effect
+                verseElement.classList.add('search-highlight')
+                setTimeout(() => {
+                  verseElement.classList.remove('search-highlight')
+                }, 3000)
+              } else {
+                console.log('Verse element not found immediately, trying to load more verses')
+                // The verse might not be loaded yet if it's in a large surah with lazy loading
+                this.loadVersesUntilFound(targetVerse)
+              }
+            } catch (scrollError) {
+              console.error('Error scrolling to verse:', scrollError)
+            }
+          }, 500) // Giving it a little more time to ensure DOM updates
+        } catch (loadError) {
+          console.error('Error loading surah:', loadError)
+          this.error = this.$t('quran.loadingError')
+        }
       }
       
     } catch (error) {
@@ -800,6 +1096,9 @@ export default {
         this.stopAudio();
         this.displayedVerses = []; // Reset displayed verses
         
+        // Auto-collapse the surah list when loading a new surah
+        this.surahListCollapsed = true;
+        
         const response = await fetch(`http://api.alquran.cloud/v1/surah/${this.selectedSurah}/quran-uthmani`);
         const data = await response.json();
         
@@ -836,85 +1135,422 @@ export default {
     },
     
     loadInitialVerses() {
-      if (!this.currentSurah || !this.currentSurah.ayahs) return
-      
-      // For very large surahs (like Al-Baqarah), use an even smaller initial chunk
-      let initialSize = this.initialChunkSize;
-      if (this.isLargeSurah) {
-        // Adjust initial size based on surah length
-        if (this.currentSurah.ayahs.length > 200) {
-          initialSize = 5; // For extremely large surahs, start with just 5 verses
-        } else if (this.currentSurah.ayahs.length > 150) {
-          initialSize = 8; // For very large surahs, start with 8 verses
-        } else {
-          initialSize = this.initialChunkSize; // Use default small size
-        }
-      } else {
-        initialSize = this.verseChunkSize; // Use regular chunk size for normal surahs
-      }
-      
-      console.log(`Loading initial ${initialSize} verses of ${this.currentSurah.ayahs.length} total verses`);
-      
-      // Load first chunk immediately without delay for better UX
-      this.displayedVerses = this.currentSurah.ayahs.slice(0, initialSize);
-      
-      // If there are more verses, set up loading indicator and prepare to load more
-      if (initialSize < this.currentSurah.ayahs.length) {
-        this.isLoadingMore = true;
-        
-        // Schedule loading of next chunk after a short delay
-        setTimeout(() => {
-          this.isLoadingMore = false;
-          this.loadMoreVerses(this.verseChunkSize);
-        }, 100);
-      }
-    },
-    
-    loadMoreVerses(chunkSize = null) {
-      if (this.loadingChunks || !this.currentSurah || !this.currentSurah.ayahs) return
-      
-      this.loadingChunks = true
-      this.isLoadingMore = true
-      
-      // Determine start index for next chunk
-      const startIndex = this.displayedVerses.length
-      
-      // If all verses are already loaded, do nothing
-      if (startIndex >= this.currentSurah.ayahs.length) {
-        this.isLoadingMore = false
-        this.loadingChunks = false
+      if (!this.currentSurah || !this.currentSurah.ayahs || !Array.isArray(this.currentSurah.ayahs)) {
+        console.error('Cannot load initial verses: Invalid surah data')
         return
       }
       
-      // Use provided chunkSize or default to verseChunkSize (or adjust for large surahs)
-      let actualChunkSize = chunkSize || this.verseChunkSize;
+      // Determine appropriate initial chunk size for the surah
+      let initialSize = this.verseChunkSize
       
-      // For very large surahs, adjust chunk size to prevent UI freezes
-      if (this.isLargeSurah && this.currentSurah.ayahs.length > 200) {
-        // Use smaller chunks for very large surahs
-        actualChunkSize = Math.min(actualChunkSize, 15);
+      if (this.isLargeSurah) {
+        // For very large surahs, use smaller initial chunk but load more later
+        if (this.currentSurah.ayahs.length > 200) {
+          initialSize = Math.min(initialSize, 20)
+        }
+      } else {
+        initialSize = this.verseChunkSize // Use regular chunk size for normal surahs
       }
       
-      // Calculate end index for next chunk
-      const endIndex = Math.min(startIndex + actualChunkSize, this.currentSurah.ayahs.length)
-      
-      console.log(`Loading verses ${startIndex+1} to ${endIndex} of ${this.currentSurah.ayahs.length} (chunk size: ${actualChunkSize})`)
-      
-      // Minimal delay for UI responsiveness
-      setTimeout(() => {
-        // Add next chunk of verses to displayed verses
-        const nextChunk = this.currentSurah.ayahs.slice(startIndex, endIndex)
-        this.displayedVerses = [...this.displayedVerses, ...nextChunk]
-        
-        // Check if we should schedule next chunk loading
-        if (endIndex < this.currentSurah.ayahs.length) {
-          // Schedule prefetch for next chunk if we're not at the end
-          this.scheduleNextChunkLoad(endIndex);
-        }
-        
+      // If the surah is small enough, load all verses at once
+      if (this.currentSurah.ayahs.length <= initialSize) {
+        console.log(`Loading all ${this.currentSurah.ayahs.length} verses at once (small surah)`)
+        this.displayedVerses = this.currentSurah.ayahs
         this.isLoadingMore = false
         this.loadingChunks = false
-      }, 10) // Minimal delay just to keep UI responsive
+        
+        // Tag all verse elements with proper IDs
+        setTimeout(() => {
+          this.tagVerseElementsWithIds(0, this.currentSurah.ayahs.length - 1)
+          this.checkAndResetLoadingState()
+        }, 100)
+        
+        return
+      }
+      
+      console.log(`Loading initial ${initialSize} verses of ${this.currentSurah.ayahs.length} total verses`)
+      
+      // Load first chunk immediately without delay for better UX
+      this.displayedVerses = this.currentSurah.ayahs.slice(0, initialSize)
+      
+      // Tag the loaded verse elements with IDs
+      setTimeout(() => {
+        this.tagVerseElementsWithIds(0, initialSize - 1)
+      }, 100)
+      
+      // If there are more verses, set up loading indicator and prepare to load more
+      if (initialSize < this.currentSurah.ayahs.length) {
+        this.isLoadingMore = true
+        
+        // Schedule loading of next chunk after a short delay
+        setTimeout(() => {
+          if (this.isLoadingMore) {  // Double-check we still need to load more
+            this.loadMoreVerses(this.verseChunkSize)
+              .then(() => {
+                // After loading more verses, check if we need to reset loading state
+                this.checkAndResetLoadingState()
+              })
+              .catch(error => {
+                console.error('Error loading more verses:', error)
+                this.isLoadingMore = false
+                this.loadingChunks = false
+              })
+          }
+        }, 100)
+        
+        // Set up a backup mechanism that loads all verses if lazy loading is stuck
+        this.setupAutoLoadBackup()
+      } else {
+        // All verses are loaded, make sure loading state is reset
+        this.isLoadingMore = false
+        this.loadingChunks = false
+        this.checkAndResetLoadingState()
+      }
+    },
+    
+    // Setup a backup mechanism to load all verses if scrolling doesn't work
+    setupAutoLoadBackup() {
+      // Clear any previous backup timer
+      if (this.backupLoadTimer) {
+        clearTimeout(this.backupLoadTimer)
+      }
+      
+      // Set a timer that will load all verses if scrolling hasn't triggered loading after a delay
+      this.backupLoadTimer = setTimeout(() => {
+        // Check if we still have verses to load but lazy loading appears stuck
+        if (this.displayedVerses && 
+            this.currentSurah?.ayahs &&
+            this.displayedVerses.length < this.currentSurah.ayahs.length &&
+            this.displayedVerses.length < 50) { // Only for cases when very few verses have loaded
+          
+          console.log('Backup solution: Loading all remaining verses since lazy loading appears stuck');
+          
+          // Force loading of all remaining verses
+          this.loadAllRemainingVerses()
+        }
+      }, 10000) // Wait 10 seconds before activating backup
+    },
+    
+    // Method to force load all remaining verses if lazy loading isn't working
+    loadAllRemainingVerses() {
+      // Only proceed if we actually have a surah and verses to load
+      if (!this.currentSurah?.ayahs || !Array.isArray(this.currentSurah.ayahs)) {
+        console.error('Cannot load all verses: Invalid surah data');
+        return Promise.resolve('Invalid surah data');
+      }
+      
+      // Ensure displayedVerses is initialized
+      if (!this.displayedVerses || !Array.isArray(this.displayedVerses)) {
+        this.displayedVerses = [];
+      }
+      
+      // If all verses are already loaded, do nothing
+      if (this.displayedVerses.length >= this.currentSurah.ayahs.length) {
+        console.log('All verses already loaded, nothing to do');
+        this.isLoadingMore = false;
+        this.loadingChunks = false;
+        return Promise.resolve('All verses already loaded');
+      }
+      
+      return new Promise((resolve, reject) => {
+        try {
+          console.log(`Loading all remaining verses (${this.currentSurah.ayahs.length - this.displayedVerses.length} verses)`);
+          
+          // Set loading state
+          this.loadingChunks = true;
+          this.isLoadingMore = true;
+          
+          // For large surahs, load in chunks to prevent UI freezing
+          if (this.currentSurah.ayahs.length > 200) {
+            // Load in chunks of 50 verses with small delays between
+            this.loadInProgressiveChunks(resolve, reject, null, 50);
+          } else {
+            // For smaller surahs, load all at once
+            // Directly load all verses
+            this.displayedVerses = [...this.currentSurah.ayahs];
+            
+            // Reset loading state
+            this.loadingChunks = false;
+            this.isLoadingMore = false;
+            
+            // Tag all verse elements
+            setTimeout(() => {
+              this.tagVerseElementsWithIds(0, this.currentSurah.ayahs.length - 1);
+            }, 100);
+            
+            resolve('All verses loaded successfully');
+          }
+        } catch (error) {
+          console.error('Error loading all verses:', error);
+          this.loadingChunks = false;
+          this.isLoadingMore = false;
+          reject(error);
+        }
+      });
+    },
+    
+    // Load verses in progressive chunks to prevent UI freezing for large surahs
+    loadInProgressiveChunks(resolve, reject, startIndex = null, chunkSize = 50) {
+      try {
+        // Start loading from the current displayedVerses length
+        const currentIndex = startIndex !== null ? startIndex : this.displayedVerses.length;
+        
+        // If we've loaded all verses, we're done
+        if (currentIndex >= this.currentSurah.ayahs.length) {
+          console.log('Finished loading all verses in progressive chunks');
+          this.loadingChunks = false;
+          this.isLoadingMore = false;
+          resolve('All verses loaded successfully');
+          return;
+        }
+        
+        // Calculate the end index for this chunk
+        const endIndex = Math.min(currentIndex + chunkSize, this.currentSurah.ayahs.length);
+        console.log(`Loading progressive chunk from ${currentIndex} to ${endIndex}`);
+        
+        // Get the next chunk of verses
+        const nextChunk = this.currentSurah.ayahs.slice(currentIndex, endIndex);
+        
+        // Add to displayed verses
+        this.displayedVerses = [...this.displayedVerses, ...nextChunk];
+        
+        // Tag the new verse elements
+        setTimeout(() => {
+          this.tagVerseElementsWithIds(currentIndex, endIndex - 1);
+          
+          // Recursively load the next chunk after a short delay
+          setTimeout(() => {
+            this.loadInProgressiveChunks(resolve, reject, endIndex, chunkSize);
+          }, 100);
+        }, 50);
+      } catch (error) {
+        console.error('Error loading verses in progressive chunks:', error);
+        this.loadingChunks = false;
+        this.isLoadingMore = false;
+        reject(error);
+      }
+    },
+    
+    loadMoreVerses(chunkSize = null, targetVerseNumber = null) {
+      // Check for valid state in a more robust way
+      if (this.loadingChunks) {
+        console.log('Already loading chunks, skipping new request')
+        return Promise.resolve('Already loading chunks')
+      }
+      
+      if (!this.currentSurah) {
+        console.error('No current surah loaded, cannot load more verses')
+        return Promise.resolve('No surah loaded')
+      }
+      
+      if (!this.currentSurah.ayahs || !Array.isArray(this.currentSurah.ayahs)) {
+        console.error('Current surah has no valid ayahs array')
+        return Promise.resolve('No valid ayahs array')
+      }
+
+      return new Promise((resolve, reject) => {
+        this.loadingChunks = true
+        this.isLoadingMore = true
+        
+        // Determine start index for next chunk
+        const startIndex = this.displayedVerses?.length || 0
+        
+        // Debug information to help diagnose issues
+        console.log('LoadMoreVerses current state:', {
+          startIndex,
+          totalAyahs: this.currentSurah.ayahs.length,
+          displayedVersesLength: this.displayedVerses?.length || 0,
+          displayedVersesValid: Array.isArray(this.displayedVerses)
+        });
+        
+        // If all verses are already loaded, do nothing
+        if (startIndex >= this.currentSurah.ayahs.length) {
+          console.log('All verses already loaded, resetting loading state')
+          this.isLoadingMore = false
+          this.loadingChunks = false
+          resolve('All verses already loaded')
+          return
+        }
+        
+        // Use provided chunkSize or default to verseChunkSize
+        let actualChunkSize = chunkSize || this.verseChunkSize
+        
+        // Calculate end index for next chunk
+        const endIndex = Math.min(startIndex + actualChunkSize, this.currentSurah.ayahs.length)
+        
+        console.log(`Loading verses ${startIndex+1} to ${endIndex} of ${this.currentSurah.ayahs.length} (chunk size: ${actualChunkSize})`)
+        
+        // Force the loading indicator to be visible before loading verses
+        this.$nextTick(() => {
+          // Use setTimeout to ensure the UI updates before heavy processing
+          setTimeout(() => {
+            try {
+              // Verify the arrays are valid
+              if (!Array.isArray(this.currentSurah.ayahs)) {
+                throw new Error('currentSurah.ayahs is not an array');
+              }
+              
+              // Add next chunk of verses to displayed verses
+              const nextChunk = this.currentSurah.ayahs.slice(startIndex, endIndex)
+              
+              if (!nextChunk || nextChunk.length === 0) {
+                console.error('Failed to get next chunk of verses', {
+                  startIndex,
+                  endIndex,
+                  currentSurahLength: this.currentSurah.ayahs.length
+                });
+                throw new Error('Failed to get next chunk of verses');
+              }
+              
+              console.log(`Successfully sliced ${nextChunk.length} verses from ayahs array`);
+              
+              // Initialize displayedVerses if it's undefined
+              if (!this.displayedVerses || !Array.isArray(this.displayedVerses)) {
+                console.log('Initializing displayedVerses as empty array');
+                this.displayedVerses = []
+              }
+              
+              // Update displayed verses with defensive copy
+              const updatedVerses = [...this.displayedVerses, ...nextChunk];
+              console.log(`Preparing to update displayedVerses from ${this.displayedVerses.length} to ${updatedVerses.length} verses`);
+              
+              // Directly assign the new array
+              this.displayedVerses = updatedVerses;
+              
+              console.log(`DisplayedVerses updated to ${this.displayedVerses.length} verses`);
+              
+              // Wait for next tick to ensure Vue updates the DOM
+              this.$nextTick(() => {
+                // Verify the update happened
+                console.log(`After nextTick, displayedVerses has ${this.displayedVerses.length} verses`);
+                
+                // Tag the new verse elements with IDs
+                this.tagVerseElementsWithIds(startIndex, endIndex - 1)
+                
+                // Resolve the promise after a small delay to ensure the DOM has updated
+                setTimeout(() => {
+                  // Reset loading states only after DOM has updated
+                  this.loadingChunks = false
+                  // Only set isLoadingMore to false if we've loaded all verses
+                  this.isLoadingMore = endIndex < this.currentSurah.ayahs.length
+                  
+                  console.log(`Loading complete. isLoadingMore: ${this.isLoadingMore}, loadingChunks: ${this.loadingChunks}`);
+                  
+                  resolve({
+                    startIndex,
+                    endIndex,
+                    loadedCount: nextChunk.length,
+                    totalLoaded: this.displayedVerses.length,
+                    total: this.currentSurah.ayahs.length
+                  })
+                }, 100)
+              })
+            } catch (error) {
+              console.error('Error loading verse chunk:', error)
+              
+              // Reset the loading state so we can try again
+              this.loadingChunks = false
+              
+              // Don't reset isLoadingMore immediately to avoid UI flicker
+              setTimeout(() => {
+                if (this.loadingChunks === false) {
+                  this.isLoadingMore = false
+                }
+              }, 1000) // Give time for potential retries
+              
+              reject(error)
+            }
+          }, 50) // Short delay to ensure loading indicator appears
+        })
+      })
+    },
+    
+    // Method to tag verse elements with proper IDs for easier finding
+    tagVerseElementsWithIds(startIndex, endIndex) {
+      console.log(`Tagging verse elements with IDs from index ${startIndex} to ${endIndex}`)
+      
+      if (!this.displayedVerses || !Array.isArray(this.displayedVerses)) {
+        console.warn('No displayed verses to tag')
+        return
+      }
+      
+      try {
+        // First try to identify verse elements by their class and position
+        const verseContainers = document.querySelectorAll('.verse, .ayah, .quran-verse, .verse-container')
+        if (verseContainers.length > 0) {
+          // This assumes the verses are in the same order in the DOM as they are in displayedVerses
+          for (let i = startIndex; i <= endIndex && i < this.displayedVerses.length; i++) {
+            if (i < verseContainers.length) {
+              const verse = this.displayedVerses[i]
+              const verseNumber = verse.numberInSurah || (verse.number ? parseInt(verse.number.split('_')[1]) : null)
+              
+              if (verseNumber) {
+                // Add ID and data attributes to verse container
+                const container = verseContainers[i]
+                
+                // Only add if it doesn't already have an ID
+                if (!container.id) {
+                  container.id = `verse-${verseNumber}`
+                }
+                
+                // Add data attributes for easier finding
+                container.setAttribute('data-verse-number', verseNumber)
+                container.setAttribute('data-surah', this.selectedSurah)
+                container.setAttribute('data-verse-index', i)
+                
+                // Add a specific class for verification
+                container.classList.add('tagged-verse')
+                
+                // Also tag any verse number elements within the container
+                const numberElements = container.querySelectorAll('.verse-number, .ayah-number')
+                numberElements.forEach(numEl => {
+                  numEl.setAttribute('data-verse-number', verseNumber)
+                })
+                
+                console.log(`Tagged verse element with ID verse-${verseNumber}`)
+              }
+            }
+          }
+        }
+        
+        // Also try to find verse elements by their content
+        for (let i = startIndex; i <= endIndex && i < this.displayedVerses.length; i++) {
+          const verse = this.displayedVerses[i]
+          const verseNumber = verse.numberInSurah || (verse.number ? parseInt(verse.number.split('_')[1]) : null)
+          
+          if (verseNumber && verse.text) {
+            // Look for elements containing the verse text
+            const textSnippet = verse.text.substring(0, Math.min(30, verse.text.length))
+            
+            // Use XPath to find elements containing this text more efficiently
+            const xpathResult = document.evaluate(
+              `//*[contains(text(), "${textSnippet.replace(/"/g, '\\"')}")]`,
+              document,
+              null,
+              XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+              null
+            )
+            
+            for (let j = 0; j < xpathResult.snapshotLength; j++) {
+              const textElement = xpathResult.snapshotItem(j)
+              const container = textElement.closest('.verse') || textElement.closest('.ayah') || 
+                               textElement.closest('.verse-container') || textElement.parentElement
+              
+              if (container && !container.id) {
+                container.id = `verse-${verseNumber}`
+                container.setAttribute('data-verse-number', verseNumber)
+                container.setAttribute('data-surah', this.selectedSurah)
+                container.setAttribute('data-verse-index', i)
+                container.classList.add('tagged-verse')
+                
+                console.log(`Tagged verse element with ID verse-${verseNumber} via text content`)
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error tagging verse elements:', error)
+      }
     },
     
     scheduleNextChunkLoad(lastLoadedIndex) {
@@ -942,62 +1578,91 @@ export default {
     },
     
     handleScroll(event) {
-      if (!this.currentSurah || this.loadingChunks) return
+      // Don't handle scroll events when no current surah
+      if (!this.currentSurah) return;
       
-      const container = this.$refs.versesContainer
-      if (!container) return
+      // Check if we have more verses to load
+      const hasMoreVersesToLoad = this.displayedVerses && 
+                                 this.currentSurah.ayahs && 
+                                 this.displayedVerses.length < this.currentSurah.ayahs.length;
       
-      // Calculate scroll position
-      const scrollPosition = container.scrollTop + container.clientHeight
-      const scrollHeight = container.scrollHeight
-      
-      // Calculate distance to bottom
-      const distanceToBottom = scrollHeight - scrollPosition;
-      
-      // For performance, add a debounce for scroll-triggered loading
-      if (!this._scrollDebounceTimer) {
-        // If we've reached the loading threshold, load more verses
-        if (distanceToBottom < this.scrollThreshold) {
-          // Add debounce to prevent multiple rapid calls during scrolling
-          this._scrollDebounceTimer = setTimeout(() => {
-            this._scrollDebounceTimer = null;
-            
-            // Only load more if we're not already loading and there are more verses
-            if (!this.loadingChunks && 
-                !this.isLoadingMore && 
-                this.displayedVerses.length < this.currentSurah.ayahs.length) {
-              this.loadMoreVerses();
-            }
-          }, 100); // Short debounce delay
+      // If no more verses to load, reset loading state and exit
+      if (!hasMoreVersesToLoad) {
+        if (this.isLoadingMore) {
+          console.log('All verses loaded, resetting loading indicators');
+          this.isLoadingMore = false;
+          this.loadingChunks = false;
         }
-        // If we're within prefetch threshold but not at loading threshold,
-        // just mark that we should load soon but don't actually start loading
-        else if (
-          this.isLargeSurah && 
-          !this.isLoadingMore &&
-          distanceToBottom < this.prefetchThreshold && 
-          this.displayedVerses.length < this.currentSurah.ayahs.length
-        ) {
-          // Set a flag to indicate we're approaching the end
-          this._shouldPrefetch = true;
-          
-          // Schedule a delayed check to see if we should load more
-          if (!this._prefetchTimer) {
-            this._prefetchTimer = setTimeout(() => {
-              this._prefetchTimer = null;
-              if (this._shouldPrefetch && 
-                  !this.loadingChunks && 
-                  !this.isLoadingMore &&
-                  this.displayedVerses.length < this.currentSurah.ayahs.length) {
+        return;
+      }
+      
+      // Ignore scroll events if we're already loading
+      if (this.loadingChunks) {
+        console.log('Already loading chunks, ignoring scroll event');
+        return;
+      }
+      
+      const container = event.target;
+      const scrollHeight = container.scrollHeight;
+      const scrollTop = container.scrollTop;
+      const clientHeight = container.clientHeight;
+      
+      // Calculate the distance from the bottom
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      
+      // Force detection of very small containers
+      const isNearBottom = distanceFromBottom < this.loadThreshold || 
+                          (scrollHeight <= clientHeight * 1.5 && scrollTop > 0);
+      
+      // Log detailed scrolling info for debugging
+      console.log(`Scroll event - distanceFromBottom: ${distanceFromBottom}px, threshold: ${this.loadThreshold}px, isNearBottom: ${isNearBottom}`);
+      console.log(`Container metrics - scrollHeight: ${scrollHeight}px, scrollTop: ${scrollTop}px, clientHeight: ${clientHeight}px`);
+      console.log(`Displayed verses: ${this.displayedVerses?.length || 0}/${this.currentSurah.ayahs?.length || 0}`);
+      
+      // If we've reached near the bottom and have more verses to load
+      if (isNearBottom) {
+        console.log('Bottom threshold reached, loading more verses...');
+        
+        // Load more verses when scrolling near the bottom
+        this.loadMoreVerses()
+          .then((result) => {
+            console.log('Loaded more verses successfully:', result);
+            
+            // Check if we need to load even more (for small screens)
+            setTimeout(() => {
+              // Get updated container dimensions after new content has rendered
+              const newScrollHeight = container.scrollHeight;
+              const newClientHeight = container.clientHeight;
+              const stillHasMoreToLoad = this.displayedVerses?.length < this.currentSurah.ayahs?.length;
+              
+              // If the container isn't scrollable yet (or barely scrollable) and we have more to load
+              if (stillHasMoreToLoad && (newScrollHeight <= newClientHeight * 1.2)) {
+                console.log('Container needs more content, loading additional verses...');
                 this.loadMoreVerses();
               }
-              this._shouldPrefetch = false;
             }, 300);
-          }
-        } else {
-          // If we're not near the bottom, clear the prefetch flag
-          this._shouldPrefetch = false;
-        }
+          })
+          .catch(error => {
+            console.error('Error loading more verses on scroll:', error);
+            
+            // Reset loading state after error
+            setTimeout(() => {
+              if (this.loadingChunks) {
+                console.log('Resetting stuck loading state after error');
+                this.loadingChunks = false;
+                this.isLoadingMore = false;
+              }
+            }, 3000);
+            
+            // Try again after a delay if it failed
+            setTimeout(() => {
+              // Only retry if we're not already loading and still have more to load
+              if (!this.loadingChunks && this.displayedVerses?.length < this.currentSurah.ayahs?.length) {
+                console.log('Retrying verse loading after previous failure');
+                this.loadMoreVerses();
+              }
+            }, 5000);
+          });
       }
     },
     
@@ -1225,8 +1890,24 @@ export default {
         // Fetch the surah data with the selected audio reciter
         try {
           console.log(`Fetching audio data for surah ${this.selectedSurah} using ${this.selectedReciter}`)
+          
+          // Use more robust error handling for fetching
           const response = await fetch(`http://api.alquran.cloud/v1/surah/${this.selectedSurah}/${this.selectedReciter}`)
+            .catch(error => {
+              console.error(`Network error fetching surah data: ${error.message}`);
+              throw new Error(`Network error: ${error.message}`);
+            });
+          
+          if (!response.ok) {
+            console.error(`API returned error status: ${response.status}`);
+            throw new Error(`API error: ${response.status}`);
+          }
+          
           const data = await response.json()
+            .catch(error => {
+              console.error(`Error parsing API response: ${error.message}`);
+              throw new Error(`Invalid API response: ${error.message}`);
+            });
           
           if (data.code === 200 && data.data && data.data.ayahs) {
             // For verse-by-verse reciters, we'll play the verses sequentially
@@ -1243,10 +1924,13 @@ export default {
               if (firstAyah && firstAyah.audioSecondary && firstAyah.audioSecondary.length > 0) {
                 // Some editions provide a full surah audio in the first ayah's audioSecondary field
                 const fullSurahAudio = firstAyah.audioSecondary[0]
-                console.log(`Playing full surah audio from URL provided by API`)
+                console.log(`Playing full surah audio from URL provided by API: ${fullSurahAudio}`)
                 
                 // Create audio with progressive loading for full surah
                 this.audioPlayer = new Audio()
+                
+                // Start tracking progress for controls visibility immediately
+                this.startProgressTracking()
                 
                 // Set up event listeners for progressive loading
                 this.audioPlayer.addEventListener('canplay', () => {
@@ -1254,9 +1938,15 @@ export default {
                   // Start playing as soon as we have enough data
                   this.audioPlayer.play().catch(error => {
                     console.error('Error starting full surah playback:', error)
+                    // If there's an error starting playback, fall back to verse-by-verse
+                    this.$notification.warning(this.$t('quran.tryingVerseByVerse'))
+                    this.playVerseByVerseWithData(data.data.ayahs)
                   })
                   this.isPlayingFullSurah = true
                   this.paused = false
+                  
+                  // Set current playing verse to first verse of surah
+                  this.currentPlayingVerse = 1
                   
                   // Show notification that playback has started
                   this.$notification.info(this.$t('quran.playbackStarted'))
@@ -1277,11 +1967,34 @@ export default {
                   this.playVerseByVerseWithData(data.data.ayahs)
                 })
                 
+                // Set a timeout to fall back if loading takes too long
+                const loadingTimeout = setTimeout(() => {
+                  if (this.downloadingSurahAudio) {
+                    console.warn('Loading full surah audio timed out, falling back to verse-by-verse')
+                    this.$notification.warning(this.$t('quran.tryingVerseByVerse'))
+                    if (this.audioPlayer) {
+                      this.audioPlayer.removeAttribute('src')
+                      this.audioPlayer.load()
+                    }
+                    this.downloadingSurahAudio = false
+                    this.playVerseByVerseWithData(data.data.ayahs)
+                  }
+                }, 8000) // 8 second timeout
+                
                 // Start loading the audio (will trigger canplay when ready)
                 this.audioPlayer.preload = 'auto'
                 this.audioPlayer.src = fullSurahAudio
                 // Show loading indication while waiting for canplay event
                 this.downloadingSurahAudio = true
+                
+                // Clean up the timeout if audio loads or errors out
+                this.audioPlayer.addEventListener('canplay', () => {
+                  clearTimeout(loadingTimeout)
+                }, { once: true })
+                
+                this.audioPlayer.addEventListener('error', () => {
+                  clearTimeout(loadingTimeout)
+                }, { once: true })
               } else {
                 // Fall back to verse-by-verse if no full surah audio is available
                 this.$notification.info(this.$t('quran.playingVerseByVerse'))
@@ -1393,6 +2106,7 @@ export default {
             // Display current verse being played
             this.loadingVerseAudio = ayahs[index].number
             this.highlightedAyah = ayahs[index].number
+            this.currentPlayingVerse = ayahs[index].numberInSurah // Set current playing verse
             
             // Scroll to the verse being played
             const verseElement = document.getElementById(`verse-${ayahs[index].number}`)
@@ -1403,26 +2117,91 @@ export default {
             
             // Get the audio URL from the ayah data
             if (ayahs[index].audio) {
-              console.log(`Playing verse ${index + 1} from audio URL provided by API`)
+              console.log(`Playing verse ${index + 1} from audio URL provided by API: ${ayahs[index].audio}`)
               
-              // Try to use preloaded audio if available
-              if (preloadedAudio[index]) {
-                try {
-                  this.audioPlayer = await preloadedAudio[index]
-                  console.log(`Using preloaded audio for verse ${index + 1}`)
-                  // The audio is already buffered enough to play
-                  if (verseElement) {
-                    verseElement.classList.remove('loading-ayah-audio')
-                    verseElement.classList.add('playing-ayah-audio')
+              // Check if the URL contains Islamic.network CDN which might have CORS issues
+              const isIslamicNetworkCDN = ayahs[index].audio.includes('islamic.network') || 
+                                         ayahs[index].audio.includes('cdn.alquran.cloud');
+              
+              if (isIslamicNetworkCDN) {
+                console.log(`Using direct audio element for Islamic.network CDN to avoid CORS issues`);
+                // Try to use preloaded audio if available
+                if (preloadedAudio[index]) {
+                  try {
+                    this.audioPlayer = await preloadedAudio[index];
+                    console.log(`Using preloaded audio for verse ${index + 1}`);
+                    if (verseElement) {
+                      verseElement.classList.remove('loading-ayah-audio');
+                      verseElement.classList.add('playing-ayah-audio');
+                    }
+                    // Start tracking progress for controls visibility
+                    this.startProgressTracking();
+                  } catch (error) {
+                    console.warn(`Preloaded audio failed, creating direct audio for verse ${index + 1}`);
+                    // Create direct audio player for Islamic.network CDN
+                    this.audioPlayer = new Audio(ayahs[index].audio);
+                    
+                    // Add event listeners
+                    this.audioPlayer.addEventListener('canplay', () => {
+                      if (verseElement) {
+                        verseElement.classList.remove('loading-ayah-audio');
+                        verseElement.classList.add('playing-ayah-audio');
+                      }
+                    });
+                    
+                    this.audioPlayer.load();
+                    this.audioPlayer.play().catch(error => {
+                      console.error(`Error starting direct playback: ${error}`);
+                    });
+                    // Start tracking progress for controls visibility
+                    this.startProgressTracking();
                   }
-                } catch (error) {
-                  // If preloaded audio fails, create a new one
-                  console.warn(`Preloaded audio failed, creating new audio for verse ${index + 1}`)
-                  this.createProgressiveAudioPlayer(ayahs[index].audio, verseElement)
+                } else {
+                  // No preloaded audio, create a direct audio player
+                  this.audioPlayer = new Audio(ayahs[index].audio);
+                  
+                  // Add event listeners
+                  this.audioPlayer.addEventListener('canplay', () => {
+                    if (verseElement) {
+                      verseElement.classList.remove('loading-ayah-audio');
+                      verseElement.classList.add('playing-ayah-audio');
+                    }
+                  });
+                  
+                  this.audioPlayer.load();
+                  this.audioPlayer.play().catch(error => {
+                    console.error(`Error starting direct playback: ${error}`);
+                  });
+                  // Start tracking progress for controls visibility
+                  this.startProgressTracking();
                 }
               } else {
-                // No preloaded audio, create a new one with progressive loading
-                this.createProgressiveAudioPlayer(ayahs[index].audio, verseElement)
+                // For other sources, use progressive loading
+                // Try to use preloaded audio if available
+                if (preloadedAudio[index]) {
+                  try {
+                    this.audioPlayer = await preloadedAudio[index]
+                    console.log(`Using preloaded audio for verse ${index + 1}`)
+                    // The audio is already buffered enough to play
+                    if (verseElement) {
+                      verseElement.classList.remove('loading-ayah-audio')
+                      verseElement.classList.add('playing-ayah-audio')
+                    }
+                    // Start tracking progress for controls visibility
+                    this.startProgressTracking();
+                  } catch (error) {
+                    // If preloaded audio fails, create a new one
+                    console.warn(`Preloaded audio failed, creating new audio for verse ${index + 1}`)
+                    this.createProgressiveAudioPlayer(ayahs[index].audio, verseElement)
+                    // Start tracking progress for controls visibility
+                    this.startProgressTracking();
+                  }
+                } else {
+                  // No preloaded audio, create a new one with progressive loading
+                  this.createProgressiveAudioPlayer(ayahs[index].audio, verseElement)
+                  // Start tracking progress for controls visibility
+                  this.startProgressTracking();
+                }
               }
               
               // Start preloading the next ayah in the background
@@ -1528,6 +2307,9 @@ export default {
         this.audioPlayer.autobuffer = true;
       }
       
+      // Start tracking progress for controls visibility immediately
+      this.startProgressTracking();
+      
       // Start load and play as soon as metadata is loaded
       this.audioPlayer.addEventListener('loadedmetadata', () => {
         console.log('Audio metadata loaded, attempting immediate playback');
@@ -1607,14 +2389,21 @@ export default {
         // Create audio element
         this.audioPlayer = new Audio();
         
+        // Start tracking progress for controls visibility immediately
+        this.startProgressTracking();
+        
         // Use a small chunk approach for mp3 files
         const response = await fetch(audioUrl, {
           headers: {
             'Range': 'bytes=0-65536' // Request just the first chunk
-          }
+          },
+          mode: 'cors' // Try with CORS mode first
+        }).catch(error => {
+          console.log('CORS request failed, falling back to direct audio playback:', error);
+          return null;
         });
         
-        if (!response.ok) {
+        if (!response || !response.ok) {
           // If range request fails, fall back to standard approach
           console.log('Range request not supported, falling back to standard audio');
           this.audioPlayer.src = audioUrl;
@@ -1661,14 +2450,24 @@ export default {
     // Load the rest of the audio file in the background
     async loadRestOfAudio(audioUrl, verseElement) {
       try {
-        // Fetch the complete file in the background
-        const fullResponse = await fetch(audioUrl);
-        const fullAudioBlob = await fullResponse.blob();
+        // Fetch the complete file in the background, with fallback
+        const fullResponse = await fetch(audioUrl, {
+          mode: 'cors' // Try with CORS mode first 
+        }).catch(error => {
+          console.log('CORS request failed for full audio, falling back to direct audio element:', error);
+          return null;
+        });
         
-        // If the initial playback is complete, don't switch
-        if (!this.audioPlayer || this.audioPlayer.ended) {
+        // If CORS fetch failed or the initial playback is complete, handle accordingly
+        if (!fullResponse || !this.audioPlayer || this.audioPlayer.ended) {
+          if (!fullResponse) {
+            // If CORS fetch failed, just continue with the initial audio element
+            console.log('Continuing with initial audio element as fallback');
+          }
           return;
         }
+        
+        const fullAudioBlob = await fullResponse.blob();
         
         // Store current playback position
         const currentTime = this.audioPlayer.currentTime;
@@ -2515,60 +3314,498 @@ export default {
         }
       }
       
+      // Get the verse number in surah (not the combined ID)
+      let verseNumberInSurah = match.numberInSurah;
+      
+      // If we have a string ID like "3_40", extract the verse number
+      if (typeof match.number === 'string' && match.number.includes('_')) {
+        verseNumberInSurah = parseInt(match.number.split('_')[1]);
+      }
+      
+      console.log('Jumping to search result:', match.surah.number, 'verse:', verseNumberInSurah);
+      
       // Load the surah
       this.loadSurah().then(() => {
         // Wait for the surah to load then scroll to the verse
-        this.$nextTick(() => {
-          const verseElement = document.getElementById(`verse-${match.number}`);
-          if (verseElement) {
-            // Highlight the verse
-            this.highlightedAyah = match.number;
+        setTimeout(() => {
+          try {
+            // Use our helper method to find the verse
+            const verseElement = this.findVerseElement(verseNumberInSurah);
             
-            // Scroll to the verse
-            verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // Add a temporary highlight effect
-            verseElement.classList.add('search-highlight');
-            setTimeout(() => {
-              verseElement.classList.remove('search-highlight');
-            }, 3000);
-          } else {
-            // The verse might not be loaded yet if it's a large surah with lazy loading
-            // So we need to load more verses until we find it
-            this.loadVersesUntilFound(match.number);
-          }
-        });
-      });
-    },
-    
-    async loadVersesUntilFound(verseNumber) {
-      // If the verse is not loaded yet, we need to load more verses
-      if (!document.getElementById(`verse-${verseNumber}`)) {
-        // Only proceed if there are more verses to load
-        if (this.displayedVerses.length < this.currentSurah.ayahs.length) {
-          // Load more verses
-          await this.loadMoreVerses(50); // Load a larger chunk
-          
-          // Check again after loading
-          this.$nextTick(() => {
-            const verseElement = document.getElementById(`verse-${verseNumber}`);
             if (verseElement) {
-              // Found the verse, scroll to it
-              this.highlightedAyah = verseNumber;
+              console.log('Found verse element, scrolling to it');
+              // Highlight the verse
+              this.highlightedAyah = verseNumberInSurah;
+              
+              // Scroll to the verse
               verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
               
-              // Add highlight effect
+              // Add a temporary highlight effect
               verseElement.classList.add('search-highlight');
               setTimeout(() => {
                 verseElement.classList.remove('search-highlight');
               }, 3000);
             } else {
-              // Still not found, try loading more
-              this.loadVersesUntilFound(verseNumber);
+              console.log('Verse element not found immediately, trying to load more verses');
+              // The verse might not be loaded yet
+              this.loadVersesUntilFound(verseNumberInSurah);
             }
-          });
+          } catch (error) {
+            console.error('Error scrolling to search result verse:', error);
+          }
+        }, 500); // Give enough time for the DOM to update
+      });
+    },
+    
+    async loadVersesUntilFound(verseNumber) {
+      // Convert string ID to number if it's in the format "surah_verse"
+      let verseNumberInSurah = verseNumber
+      
+      // Check if verseNumber contains an underscore (format: surah_verse)
+      if (typeof verseNumber === 'string' && verseNumber.includes('_')) {
+        verseNumberInSurah = parseInt(verseNumber.split('_')[1])
+      }
+      
+      // Parse to ensure we have a number
+      verseNumberInSurah = parseInt(verseNumberInSurah)
+      
+      console.log(`Trying to find verse ${verseNumberInSurah} in surah ${this.selectedSurah}`)
+      
+      // If no current surah, wait for it to load first
+      if (!this.currentSurah) {
+        console.log('Waiting for surah to load before finding verse')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Check again after delay
+        if (!this.currentSurah) {
+          console.error('Cannot find verse: Surah failed to load')
+          this.$notification?.warning?.(this.$t('quran.surahLoadingFailed'))
+          return
         }
       }
+      
+      // If no ayahs or verse number is invalid, return
+      if (!this.currentSurah.ayahs || !Array.isArray(this.currentSurah.ayahs) || isNaN(verseNumberInSurah)) {
+        console.error('Cannot find verse: Invalid surah ayahs or verse number')
+        return
+      }
+      
+      // Verify the verse number is within range for this surah
+      if (verseNumberInSurah > this.currentSurah.numberOfAyahs) {
+        console.error(`Verse number ${verseNumberInSurah} is out of range for surah ${this.selectedSurah} (max ${this.currentSurah.numberOfAyahs})`)
+        return
+      }
+      
+      // First try to find the verse in already loaded verses
+      const verseElement = this.findVerseElement(verseNumberInSurah)
+      if (verseElement) {
+        // Found it! Scroll to it
+        this.scrollToVerseElement(verseElement, verseNumberInSurah)
+        return
+      }
+      
+      // If not found, let's try a more systematic approach to loading
+      console.log(`Verse ${verseNumberInSurah} not found in already loaded verses (${this.displayedVerses?.length || 0} of ${this.currentSurah.ayahs.length}). Loading more...`)
+      
+      try {
+        // Show loading notification
+        this.$notification?.info?.(this.$t('quran.navigatingToVerse', { verse: verseNumberInSurah }) || `Navigating to verse ${verseNumberInSurah}...`)
+        
+        // Make sure displayedVerses is initialized
+        if (!this.displayedVerses || !Array.isArray(this.displayedVerses)) {
+          this.displayedVerses = []
+        }
+        
+        // Run our debug function to understand the DOM structure
+        const domInfo = this.debugVerseElementStructure()
+        console.log('DOM structure analysis:', domInfo)
+        
+        // Check if the target verse is already loaded in the displayedVerses array
+        const verseExists = this.displayedVerses.some(v => 
+          v.numberInSurah === verseNumberInSurah || 
+          parseInt(v.numberInSurah) === verseNumberInSurah
+        )
+        
+        if (verseExists) {
+          console.log(`Verse ${verseNumberInSurah} is loaded in the data but not found in DOM. Trying direct text search...`)
+          
+          // Direct DOM text content search for the verse number
+          // This is a more aggressive approach that looks for the verse number in the text content
+          
+          // First ensure all verses are loaded
+          if (this.displayedVerses.length < this.currentSurah.ayahs.length) {
+            console.log(`Loading all verses to ensure verse ${verseNumberInSurah} is in the DOM`)
+            const remainingVerses = this.currentSurah.ayahs.length - this.displayedVerses.length
+            await this.loadMoreVerses(remainingVerses)
+            await new Promise(resolve => setTimeout(resolve, 300)) // Wait for DOM updates
+            
+            // Check if we need to reset loading state
+            this.checkAndResetLoadingState()
+          }
+          
+          // Get the specific verse data
+          const targetVerse = this.displayedVerses.find(v => 
+            v.numberInSurah === verseNumberInSurah || 
+            parseInt(v.numberInSurah) === verseNumberInSurah
+          )
+          
+          if (targetVerse) {
+            // Aggressive approach: search for text content that contains unique parts of the verse text
+            const verseTexts = document.querySelectorAll('.verse-text, .ayah-text, .verse-content, .arabic-text')
+            let matchedElement = null
+            
+            for (const textElement of verseTexts) {
+              // Simple match for verse number in text
+              if (textElement.textContent.includes(`{${verseNumberInSurah}}`) || 
+                  textElement.textContent.includes(`﴿${verseNumberInSurah}﴾`) ||
+                  textElement.textContent.includes(`(${verseNumberInSurah})`) ||
+                  textElement.textContent.includes(`[${verseNumberInSurah}]`)) {
+                
+                console.log(`Found verse ${verseNumberInSurah} by verse number markers in text`)
+                matchedElement = textElement.closest('.verse') || textElement.closest('.ayah') || textElement.parentElement
+                break
+              }
+              
+              // If we have actual text to match, try that
+              if (targetVerse.text && targetVerse.text.length > 10) {
+                // Take a distinctive snippet of the verse text to search for
+                // Use the first 15-20 chars, which should be distinctive enough
+                const snippetLength = Math.min(20, targetVerse.text.length)
+                const textSnippet = targetVerse.text.substring(0, snippetLength)
+                
+                if (textElement.textContent.includes(textSnippet)) {
+                  console.log(`Found verse ${verseNumberInSurah} by matching text snippet: "${textSnippet}"`)
+                  matchedElement = textElement.closest('.verse') || textElement.closest('.ayah') || textElement.parentElement
+                  break
+                }
+              }
+            }
+            
+            if (matchedElement) {
+              this.scrollToVerseElement(matchedElement, verseNumberInSurah)
+              return
+            }
+          }
+        }
+        
+        // If we still haven't found the verse, load more content systematically
+        // Calculate how many verses we need to load to reach the target
+        const versesNeeded = Math.max(0, verseNumberInSurah - this.displayedVerses.length)
+        
+        // First attempt: Load exactly what we need plus a buffer for context
+        const loadSize = versesNeeded + 10 // Add buffer for context
+        console.log(`Loading approximately ${loadSize} verses to reach verse ${verseNumberInSurah}`)
+        
+        try {
+          await this.loadMoreVerses(loadSize, verseNumberInSurah)
+          await new Promise(resolve => setTimeout(resolve, 300)) // Wait for DOM updates
+          
+          // Check if we need to reset loading state
+          this.checkAndResetLoadingState()
+        } catch (loadError) {
+          console.warn('Error during initial verse loading:', loadError)
+          // Continue despite errors - we'll try other approaches
+        }
+        
+        // Check if we found it
+        let element = this.findVerseElement(verseNumberInSurah)
+        if (element) {
+          console.log(`Found verse ${verseNumberInSurah} after targeted loading`)
+          this.scrollToVerseElement(element, verseNumberInSurah)
+          return
+        }
+        
+        // If the displayedVerses array hasn't been properly initialized yet, wait a bit and retry
+        if (!this.displayedVerses || this.displayedVerses.length === 0) {
+          console.log('Waiting for verse display initialization...')
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          // Check one more time after wait
+          element = this.findVerseElement(verseNumberInSurah)
+          if (element) {
+            console.log(`Found verse ${verseNumberInSurah} after waiting for initialization`)
+            this.scrollToVerseElement(element, verseNumberInSurah)
+            return
+          }
+        }
+        
+        // If we still don't have all verses loaded, load in larger chunks
+        if (!this.displayedVerses || this.displayedVerses.length < this.currentSurah.ayahs.length) {
+          console.log(`Still didn't find verse ${verseNumberInSurah}. Loading remaining verses in chunks...`)
+          
+          // Try loading in chunks until we find it or load everything
+          const maxChunks = 5 // Prevent infinite loops
+          let attempts = 0
+          let chunkSize = 50 // Start with medium-sized chunks
+          
+          while (attempts < maxChunks && this.displayedVerses.length < this.currentSurah.ayahs.length) {
+            attempts++
+            console.log(`Attempt ${attempts}: Loading ${chunkSize} more verses...`)
+            
+            try {
+              await this.loadMoreVerses(chunkSize)
+              await new Promise(resolve => setTimeout(resolve, 200)) // Wait for DOM updates
+            } catch (loadError) {
+              console.warn(`Error during chunk loading attempt ${attempts}:`, loadError)
+              // Pause briefly before next attempt
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
+            
+            // Check if we found it after this chunk
+            element = this.findVerseElement(verseNumberInSurah)
+            if (element) {
+              console.log(`Found verse ${verseNumberInSurah} on attempt ${attempts}`)
+              this.scrollToVerseElement(element, verseNumberInSurah)
+              return
+            }
+            
+            // Increase chunk size for next attempt
+            chunkSize = Math.min(chunkSize * 2, 200) // Double size but cap at 200
+            
+            // Check if we need to reset loading state
+            this.checkAndResetLoadingState()
+          }
+          
+          // If still not found, load all remaining verses at once
+          if (!element && this.displayedVerses.length < this.currentSurah.ayahs.length) {
+            console.log(`Final attempt: Loading all remaining verses (${this.currentSurah.ayahs.length - this.displayedVerses.length})`)
+            
+            try {
+              const remaining = this.currentSurah.ayahs.length - this.displayedVerses.length
+              await this.loadMoreVerses(remaining)
+              await new Promise(resolve => setTimeout(resolve, 500)) // Longer wait for more DOM updates
+              
+              // Ensure loading state is reset after loading all verses
+              this.checkAndResetLoadingState()
+            } catch (loadError) {
+              console.warn('Error during final verse loading attempt:', loadError)
+            }
+            
+            // Final check
+            element = this.findVerseElement(verseNumberInSurah)
+            if (element) {
+              console.log(`Found verse ${verseNumberInSurah} after loading all verses`)
+              this.scrollToVerseElement(element, verseNumberInSurah)
+              return
+            }
+          }
+        }
+        
+        // Last resort: Try to estimate the position within the container by verse index
+        if (this.displayedVerses && this.displayedVerses.length > 0) {
+          console.log(`Last resort: Approximating position of verse ${verseNumberInSurah} based on index`)
+          
+          // Find the index of our target verse in the displayed verses
+          const verseIndex = this.displayedVerses.findIndex(v => 
+            v.numberInSurah === verseNumberInSurah || 
+            parseInt(v.numberInSurah) === verseNumberInSurah
+          )
+          
+          if (verseIndex >= 0) {
+            console.log(`Found verse at index ${verseIndex} out of ${this.displayedVerses.length} total verses`)
+            
+            // Calculate the approximate position in the container
+            const container = document.querySelector('.quran-container')
+            if (container) {
+              const containerHeight = container.scrollHeight
+              const approximateScrollPosition = (containerHeight * verseIndex) / this.displayedVerses.length
+              
+              console.log(`Scrolling to approximate position: ${approximateScrollPosition}px of ${containerHeight}px total`)
+              container.scrollTop = approximateScrollPosition
+              
+              // Show a notification
+              this.$notification?.info?.(this.$t('quran.approximateVersePosition') || 
+                `Scrolled to approximate position of verse ${verseNumberInSurah}`)
+              
+              // Ensure loading state is reset
+              this.checkAndResetLoadingState()
+              return
+            }
+          }
+        }
+        
+        // If we still couldn't find it after loading all verses
+        console.error(`Could not find verse ${verseNumberInSurah} after loading all ${this.displayedVerses.length} verses`)
+        this.$notification?.warning?.(this.$t('quran.verseLoadingFailed') || 'Could not locate the verse')
+        
+        // Always ensure loading state is reset
+        this.checkAndResetLoadingState()
+        
+        // As a fallback, try to at least navigate to the beginning of the surah
+        const surahElement = document.querySelector('.quran-surah-container')
+        if (surahElement) {
+          surahElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          this.$notification?.info?.(this.$t('quran.navigatedToSurahStart') || 'Navigated to the beginning of the surah')
+        }
+      } catch (error) {
+        console.error('Error while searching for verse:', error)
+        this.$notification?.error?.(this.$t('quran.loadingError') || 'Error loading verse')
+        
+        // Ensure loading state is reset even on error
+        this.checkAndResetLoadingState()
+      }
+    },
+    
+    // Helper function to scroll to a verse element
+    scrollToVerseElement(element, verseNumber) {
+      if (!element) return
+      
+      // Set the highlighted verse
+      this.highlightedAyah = verseNumber
+      
+      // Scroll to the verse
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      
+      // Add highlight effect
+      element.classList.add('search-highlight')
+      setTimeout(() => {
+        element.classList.remove('search-highlight')
+        this.highlightedAyah = null // Clear the highlight after the animation
+        
+        // Check and reset loading state after scrolling
+        this.checkAndResetLoadingState()
+      }, 3000)
+      
+      // Immediately check if we need to reset loading state
+      this.checkAndResetLoadingState()
+    },
+    
+    // Helper method to find a verse element by verse number in surah
+    findVerseElement(verseNumberInSurah) {
+      console.log('Looking for verse with number in surah:', verseNumberInSurah)
+      
+      if (!verseNumberInSurah || isNaN(parseInt(verseNumberInSurah))) {
+        console.error(`Invalid verse number: ${verseNumberInSurah}`)
+        return null
+      }
+      
+      // Convert to number to ensure consistent comparisons
+      const verseNum = parseInt(verseNumberInSurah)
+      
+      // Try different possible ID formats
+      let element
+      
+      // Try direct verse number format (verse-123)
+      element = document.getElementById(`verse-${verseNum}`)
+      if (element) {
+        console.log(`Found verse element with ID verse-${verseNum}`)
+        return element
+      }
+      
+      // Try verse number in surah format (verse-surah_verse)
+      if (this.selectedSurah) {
+        element = document.getElementById(`verse-${this.selectedSurah}_${verseNum}`)
+        if (element) {
+          console.log(`Found verse element with ID verse-${this.selectedSurah}_${verseNum}`)
+          return element
+        }
+      }
+      
+      // Try composite verse ID format (some implementations use verse-surah-verse)
+      if (this.selectedSurah) {
+        element = document.getElementById(`verse-${this.selectedSurah}-${verseNum}`)
+        if (element) {
+          console.log(`Found verse element with ID verse-${this.selectedSurah}-${verseNum}`)
+          return element
+        }
+      }
+      
+      // Try page-verse format
+      element = document.getElementById(`page-verse-${verseNum}`)
+      if (element) {
+        console.log(`Found verse element with ID page-verse-${verseNum}`)
+        return element
+      }
+      
+      // Try data attribute selector (most reliable)
+      const verseElementsByData = document.querySelectorAll(`[data-verse-number="${verseNum}"]`)
+      if (verseElementsByData.length > 0) {
+        console.log(`Found verse element with data-verse-number=${verseNum}`)
+        return verseElementsByData[0]
+      }
+      
+      // Try data-surah and data-ayah attributes (common in Quran apps)
+      if (this.selectedSurah) {
+        const verseElementsBySurahAyah = document.querySelectorAll(`[data-surah="${this.selectedSurah}"][data-ayah="${verseNum}"]`)
+        if (verseElementsBySurahAyah.length > 0) {
+          console.log(`Found verse element with data-surah=${this.selectedSurah} and data-ayah=${verseNum}`)
+          return verseElementsBySurahAyah[0]
+        }
+      }
+      
+      // Try verse classes with specific patterns
+      const likelyClasses = [
+        `.verse-${verseNum}`,
+        `.ayah-${verseNum}`,
+        `.verse-num-${verseNum}`,
+        `.ayah-num-${verseNum}`,
+        `.quran-verse[data-number="${verseNum}"]`,
+        `.quran-ayah[data-number="${verseNum}"]`
+      ]
+      
+      for (const selector of likelyClasses) {
+        const elements = document.querySelectorAll(selector)
+        if (elements.length > 0) {
+          console.log(`Found verse element with selector ${selector}`)
+          return elements[0]
+        }
+      }
+      
+      // Try looking for the span that contains the verse number
+      const verseNumSpans = document.querySelectorAll('.verse-number')
+      for (const span of verseNumSpans) {
+        if (span.textContent && span.textContent.trim().includes(`${verseNum}`)) {
+          console.log(`Found verse element via verse number text: ${verseNum}`)
+          return span.closest('.verse') || span.closest('.ayah') || span.parentElement
+        }
+      }
+      
+      // Most aggressive search: look for any element that might contain the verse
+      // This is a last resort as it can be less accurate
+      try {
+        // Look for elements that have:
+        // 1. IDs containing the verse number
+        // 2. Attribute values containing the verse number (e.g., data-* attributes)
+        // 3. Class names that might indicate a verse with this number
+        
+        // First, check for any elements with IDs containing the verse number
+        const elementsWithIDs = document.querySelectorAll(`[id*="${verseNum}"]`)
+        for (const el of elementsWithIDs) {
+          // Check if the ID contains words like 'verse', 'ayah'
+          if (el.id.toLowerCase().includes('verse') || el.id.toLowerCase().includes('ayah')) {
+            console.log(`Found possible verse element with ID containing ${verseNum}: ${el.id}`)
+            return el
+          }
+        }
+        
+        // Actually look directly in displayed verses for the right verse
+        if (this.displayedVerses && Array.isArray(this.displayedVerses)) {
+          const verseIndex = this.displayedVerses.findIndex(verse => 
+            verse.numberInSurah === verseNum || 
+            verse.number === verseNum || 
+            verse.number === `${this.selectedSurah}:${verseNum}` ||
+            verse.number === `${this.selectedSurah}_${verseNum}`
+          )
+          
+          if (verseIndex >= 0) {
+            console.log(`Found verse at index ${verseIndex} in displayedVerses array`)
+            // Try to find it in the DOM based on position
+            
+            // Look for verse containers
+            const verseContainers = document.querySelectorAll('.verse, .ayah, .quran-verse, .verse-container')
+            if (verseContainers.length > 0 && verseIndex < verseContainers.length) {
+              console.log(`Found verse element by position in DOM (index ${verseIndex})`)
+              return verseContainers[verseIndex]
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in aggressive verse element search:', error)
+      }
+      
+      // If all else fails, log what we tried
+      console.warn(`Could not find verse element for verse ${verseNum} in DOM with any method`)
+      return null
     },
     
     highlightSearchTerm(text) {
@@ -2624,6 +3861,189 @@ export default {
       }
       return text;
     },
+    
+    // Set up event listeners for navigation events
+    setupNavigationListener() {
+      // Add listener for the custom quran-navigation event
+      this.handleQuranNavigationEvent = (event) => {
+        const { surah, verse, edition } = event.detail
+        console.log('Received quran-navigation event:', event.detail)
+        
+        if (surah && verse) {
+          // If the surah is already loaded, just navigate to the verse
+          if (this.currentSurah && this.selectedSurah === surah) {
+            console.log('Surah already loaded, navigating to verse:', verse)
+            this.loadVersesUntilFound(verse)
+          } else {
+            // Otherwise, need to load the surah first
+            console.log('Loading surah', surah, 'before navigating to verse', verse)
+            this.selectedSurah = surah
+            if (edition) {
+              this.selectedTranslation = edition
+            }
+            
+            // Wait for surah to load, then navigate to verse
+            this.loadSurah()
+              .then(() => {
+                setTimeout(() => {
+                  this.loadVersesUntilFound(verse)
+                }, 500)
+              })
+              .catch(error => {
+                console.error('Error loading surah before verse navigation:', error)
+                this.$notification?.error?.(this.$t('quran.surahLoadingFailed'))
+              })
+          }
+        }
+      }
+      
+      // Register the event listener
+      window.addEventListener('quran-navigation', this.handleQuranNavigationEvent)
+    },
+    
+    // Clean up event listeners
+    cleanupNavigationListener() {
+      if (this.handleQuranNavigationEvent) {
+        window.removeEventListener('quran-navigation', this.handleQuranNavigationEvent)
+      }
+    },
+    
+    // Set up infinite scroll
+    setupInfiniteScroll() {
+      // Find the scroll container
+      if (this.$el && typeof this.$el.querySelector === 'function') {
+        this.scrollContainer = this.$el.querySelector('.quran-container')
+        
+        if (this.scrollContainer) {
+          this.scrollContainer.addEventListener('scroll', this.handleScroll)
+        } else {
+          console.warn('Scroll container not found. Infinite scroll may not work correctly.')
+        }
+      } else {
+        console.warn('Component not fully mounted yet, cannot setup infinite scroll')
+      }
+    },
+    
+    // Clean up infinite scroll
+    cleanupInfiniteScroll() {
+      if (this.scrollContainer) {
+        this.scrollContainer.removeEventListener('scroll', this.handleScroll)
+      }
+    },
+
+    // Add a debugging method to help us understand the DOM structure
+    debugVerseElementStructure() {
+      console.log('=== DEBUG: Examining DOM structure for verse elements ===')
+      
+      // Look for common verse containers
+      const containers = document.querySelectorAll('.verse, .ayah, .quran-verse, .verse-container')
+      console.log(`Found ${containers.length} possible verse containers:`)
+      
+      if (containers.length > 0) {
+        // Check the first few containers to understand structure
+        for (let i = 0; i < Math.min(3, containers.length); i++) {
+          const el = containers[i]
+          console.log(`Container ${i}:`, {
+            tag: el.tagName,
+            id: el.id,
+            classes: Array.from(el.classList),
+            attributes: Array.from(el.attributes).map(attr => `${attr.name}="${attr.value}"`),
+            children: Array.from(el.children).map(child => ({
+              tag: child.tagName,
+              classes: Array.from(child.classList),
+              id: child.id
+            }))
+          })
+        }
+      } else {
+        console.log('No standard verse containers found. Looking for verse elements by other patterns...')
+      }
+      
+      // Check what attributes are used on elements that might be verses
+      const allElements = document.querySelectorAll('.quran-container *')
+      const idPatterns = new Set()
+      const classPatterns = new Set()
+      const dataAttributes = new Set()
+      
+      allElements.forEach(el => {
+        if (el.id && (el.id.includes('verse') || el.id.includes('ayah'))) {
+          idPatterns.add(el.id)
+        }
+        
+        el.classList.forEach(cls => {
+          if (cls.includes('verse') || cls.includes('ayah')) {
+            classPatterns.add(cls)
+          }
+        })
+        
+        Array.from(el.attributes).forEach(attr => {
+          if (attr.name.startsWith('data-')) {
+            dataAttributes.add(`${attr.name}="${attr.value}"`)
+          }
+        })
+      })
+      
+      console.log('ID patterns found:', Array.from(idPatterns).slice(0, 5))
+      console.log('Class patterns found:', Array.from(classPatterns).slice(0, 5))
+      console.log('Data attributes found:', Array.from(dataAttributes).slice(0, 5))
+      
+      // Look specifically for verse numbers
+      const verseNumberElements = document.querySelectorAll('.verse-number, .ayah-number')
+      console.log(`Found ${verseNumberElements.length} verse number elements`)
+      if (verseNumberElements.length > 0) {
+        const sample = verseNumberElements[0]
+        console.log('Sample verse number element:', {
+          tag: sample.tagName,
+          text: sample.textContent,
+          parent: sample.parentElement ? {
+            tag: sample.parentElement.tagName,
+            id: sample.parentElement.id,
+            classes: Array.from(sample.parentElement.classList)
+          } : 'none'
+        })
+      }
+      
+      console.log('=== END DEBUG ===')
+      
+      // Return the findings to help improve the findVerseElement method
+      return {
+        containerCount: containers.length,
+        idPatterns: Array.from(idPatterns),
+        classPatterns: Array.from(classPatterns),
+        dataAttributes: Array.from(dataAttributes),
+        verseNumberElements: verseNumberElements.length
+      }
+    },
+    
+    // Helper method to check and reset loading state if all verses are loaded
+    checkAndResetLoadingState() {
+      if (this.currentSurah && this.displayedVerses && 
+          this.displayedVerses.length >= this.currentSurah.ayahs.length &&
+          (this.isLoadingMore || this.loadingChunks)) {
+        
+        console.log('All verses are loaded, resetting loading states')
+        this.isLoadingMore = false
+        this.loadingChunks = false
+        
+        // Hide any loading indicators in the UI
+        const loadingIndicators = document.querySelectorAll('.loading-indicator, .loading-more')
+        loadingIndicators.forEach(el => {
+          el.style.display = 'none'
+        })
+      }
+    }
+  },
+  mounted() {
+    // Add event listener for custom navigation events
+    this.setupNavigationListener()
+    
+    // Initialize infinite scroll after the DOM is fully rendered
+    this.$nextTick(() => {
+      this.setupInfiniteScroll()
+    })
+    
+    // Check loading state initially
+    this.checkAndResetLoadingState()
   },
   beforeDestroy() {
     this.stopAudio();
@@ -2654,6 +4074,22 @@ export default {
       clearTimeout(this._prefetchTimer);
       this._prefetchTimer = null;
     }
+    
+    // Clear any timers
+    if (this._scrollEndTimer) {
+      clearTimeout(this._scrollEndTimer)
+      this._scrollEndTimer = null
+    }
+    
+    // Clean up event listeners when component is destroyed
+    this.cleanupNavigationListener()
+    this.cleanupInfiniteScroll()
+  },
+  
+  // Add updated lifecycle hook to check loading state after component updates
+  updated() {
+    // Ensure loading state is consistent with actual data
+    this.checkAndResetLoadingState()
   }
 }
 </script>
@@ -3628,6 +5064,496 @@ optgroup {
   
   .search-button {
     padding: 0.5rem;
+  }
+}
+
+.loading-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--primary-color);
+}
+
+.loading-message svg {
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.error-message svg {
+  margin-bottom: 1rem;
+}
+
+.surah-content {
+  position: relative;
+}
+
+.surah-content.surah-content-expanded .verses {
+  max-height: none;
+}
+
+.surah-content.surah-content-expanded .verses-when-collapsed {
+  max-height: 200px;
+}
+
+.surah-content.surah-content-expanded .verses-container-expanded {
+  max-height: none;
+}
+
+.verse-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.verse-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.verse-action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.verse-action-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.verse-action-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.verse-action-button.active {
+  background-color: var(--primary-hover);
+}
+
+.audio-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.audio-control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.audio-control-button:hover {
+  background-color: var(--primary-hover);
+}
+
+.audio-control-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.audio-control-button.play-pause {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.audio-control-button.play-pause:hover {
+  background-color: var(--primary-hover);
+}
+
+.audio-control-button.play-pause:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.audio-control-button.play-pause.active {
+  background-color: var(--primary-hover);
+}
+
+.audio-time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.audio-progress-container {
+  display: flex;
+  flex-direction: column;
+  margin: 0.5rem 0;
+  width: 100%;
+}
+
+.audio-progress-bar {
+  width: 100%;
+  height: 0.5rem;
+  background-color: var(--bg-light);
+  border-radius: 0.25rem;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 0.25rem;
+  border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.audio-progress-bar:hover {
+  background-color: var(--hover-color);
+}
+
+.audio-progress-fill {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 0.25rem;
+  transition: width 0.1s linear;
+  position: relative;
+}
+
+.audio-progress-fill::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--primary-dark);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.audio-progress-bar:hover .audio-progress-fill::after {
+  opacity: 1;
+}
+
+.surah-actions {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+  margin-top: 1rem;
+}
+
+.listen-surah-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  height: 38px;
+}
+
+.listen-surah-button:hover:not(:disabled) {
+  background-color: #4338ca;
+}
+
+.listen-surah-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.surah-content-container {
+  position: relative;
+}
+
+.surah-content-container.expanded .verses {
+  max-height: none;
+}
+
+.surah-content-container.expanded .verses-when-collapsed {
+  max-height: 200px;
+}
+
+.surah-content-container.expanded .verses-container-expanded {
+  max-height: none;
+}
+
+.show-list-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  height: 38px;
+}
+
+.show-list-button:hover:not(:disabled) {
+  background-color: #4338ca;
+}
+
+.show-list-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.surah-content {
+  position: relative;
+}
+
+.surah-content.fullscreen .verses {
+  max-height: none;
+}
+
+.surah-content.fullscreen .verses-when-collapsed {
+  max-height: 200px;
+}
+
+.surah-content.fullscreen .verses-container-expanded {
+  max-height: none;
+}
+
+.sticky-audio-controls {
+  position: sticky;
+  top: 0;
+  background-color: var(--card-bg);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
+}
+
+.audio-now-playing {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.audio-controls-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  height: 38px;
+}
+
+.control-button:hover:not(:disabled) {
+  background-color: #4338ca;
+}
+
+.control-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.now-playing-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.now-playing-surah {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.retry-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  height: 38px;
+}
+
+.retry-button:hover:not(:disabled) {
+  background-color: #4338ca;
+}
+
+.retry-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Loading more indicator styling */
+.text-center.py-4 {
+  background-color: rgba(245, 247, 250, 0.8);
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1rem;
+  padding: 1rem 0;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.text-center.py-4 .animate-spin {
+  height: 1.5rem;
+  width: 1.5rem;
+  border-width: 3px;
+}
+
+.text-center.py-4 p {
+  font-weight: 500;
+  color: #4f46e5;
+  margin-top: 0.5rem;
+}
+
+/* Load all verses button styling */
+.load-all-button {
+  display: block;
+  margin: 1rem auto 0;
+  background-color: #4f46e5;
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.load-all-button:hover {
+  background-color: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.load-all-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Floating audio controls */
+.floating-audio-controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  background-color: rgba(250, 250, 250, 0.95);
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease;
+  padding: 0.75rem 1rem;
+  backdrop-filter: blur(8px);
+}
+
+.audio-controls-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 0.75rem;
+}
+
+.audio-progress-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 0.5rem;
+  margin: 0 0.5rem;
+}
+
+.audio-progress-container {
+  flex: 1;
+  height: 6px;
+  background-color: #e5e7eb;
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  margin: 0 0.5rem;
+}
+
+.audio-progress-bar {
+  height: 100%;
+  background-color: #4f46e5;
+  transition: width 0.1s linear;
+}
+
+.audio-time {
+  font-size: 0.75rem;
+  color: #4b5563;
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+.audio-control-button {
+  border-radius: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.audio-control-button:hover {
+  background-color: #4338ca;
+}
+
+.now-playing-info {
+  font-size: 0.875rem;
+  color: #4b5563;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .audio-controls-container {
+    flex-wrap: wrap;
+  }
+  
+  .now-playing-info {
+    display: none;
+  }
+  
+  .audio-progress-wrapper {
+    width: 100%;
+    order: 3;
+    margin-top: 0.5rem;
   }
 }
 </style> 

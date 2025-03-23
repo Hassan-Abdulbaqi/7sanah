@@ -15,19 +15,6 @@
           @keyup.enter="performSearch"
         />
         <div class="search-options-row">
-          <div class="search-select-container">
-            <select v-model="searchLanguage" class="search-select">
-              <option value="ar">{{ $t('quran.arabicText') }}</option>
-              <option value="en">{{ $t('quran.english') }}</option>
-              <option value="fr">{{ $t('quran.french') }}</option>
-              <option value="id">{{ $t('quran.indonesian') }}</option>
-              <option value="tr">{{ $t('quran.turkish') }}</option>
-              <option value="ur">{{ $t('quran.urdu') }}</option>
-              <option value="ru">{{ $t('quran.russian') }}</option>
-              <option value="fa">{{ $t('quran.persian') }}</option>
-            </select>
-          </div>
-
           <button 
             @click="performSearch" 
             class="search-button"
@@ -69,6 +56,7 @@
           <p 
             class="search-result-text" 
             :dir="getTextDirection(match.text)"
+            :lang="isArabicText(match.text) ? 'ar' : match.edition?.language || 'en'"
           >
             <template v-if="match.words && match.words.length > 0 && match.words.some(w => w.text && typeof w.text === 'string')">
               <!-- Add verse number if present at the end -->
@@ -77,18 +65,18 @@
                   v-if="word.char_type !== 'end'"
                   :key="wordIndex"
                   :class="{
-                    'highlight-match': word.highlight, 
+                    'highlight-match': word.highlight === true, 
                     'quran-word': true
                   }"
                 >
-                  {{ word.text }}
+                  {{ word.text || '' }}
                 </span>
                 <span 
                   v-else
                   :key="`end-${wordIndex}`"
                   class="verse-number-inline"
                 >
-                  {{ word.text }}
+                  {{ word.text || '' }}
                 </span>
               </template>
             </template>
@@ -149,7 +137,6 @@ export default {
   data() {
     return {
       searchKeyword: '',
-      searchLanguage: 'ar',
       searchResults: [],
       searchCount: 0,
       searchLoading: false,
@@ -213,6 +200,7 @@ export default {
       const languageNames = {
         'en': 'English',
         'ar': 'Arabic',
+        'IQ': 'Iraqi Arabic',
         'fr': 'French',
         'es': 'Spanish',
         'id': 'Indonesian',
@@ -260,13 +248,8 @@ export default {
       // Build the search query - using Quran.com API v4
       const query = this.searchKeyword.trim();
       
-      // Auto-switch to Arabic for Arabic queries (UI only)
-      if (this.isArabicText(query) && this.searchLanguage !== 'ar') {
-        this.searchLanguage = 'ar';
-      }
-      
-      // Construct the API URL without language parameter
-      const apiUrl = `https://api.quran.com/api/v4/search?q=${encodeURIComponent(query)}&size=${this.pageSize}&page=${this.currentPage}`;
+      // Construct the API URL with English language parameter
+      let apiUrl = `https://api.quran.com/api/v4/search?q=${encodeURIComponent(query)}&size=${this.pageSize}&page=${this.currentPage}&language=en`;
       
       console.log(`Searching the Quran using Quran.com API: ${apiUrl}`);
       
@@ -297,6 +280,11 @@ export default {
         if (data && data.search && data.search.results) {
           // Extract and format results from the new API
           const results = data.search.results.map(result => {
+            // Ensure we properly preserve the API's word highlighting information
+            const processedWords = result.words?.map(word => {
+              return { ...word }; // Create a shallow copy to preserve all properties including highlight
+            }) || [];
+            
             // Transform the result to match our component's expected format
             return {
               number: result.verse_key.replace(":", "_"), // Use as unique identifier
@@ -308,17 +296,20 @@ export default {
               },
               text: result.text,
               edition: {
-                identifier: this.searchLanguage, // Use language as edition identifier
-                language: this.searchLanguage,
-                name: this.getLanguageName(this.searchLanguage),
+                identifier: 'en', // Always use English
+                language: 'en',
+                name: this.getLanguageName('en'),
                 type: 'translation'
               },
               // Add Quran.com specific fields
               verse_key: result.verse_key,
-              words: result.words || [], // Ensure words array is available
+              words: processedWords, // Use our processed words array that preserves highlight property
               highlighted: result.highlighted
             };
           });
+          
+          // Apply our improved highlighting
+          this.manuallyHighlightResults(results);
           
           this.searchResults = results;
           this.totalResults = data.search.total_results || results.length;
@@ -363,8 +354,8 @@ export default {
         // Build the search query - using Quran.com API v4
         const query = this.searchKeyword.trim();
         
-        // Construct the API URL without language parameter
-        const apiUrl = `https://api.quran.com/api/v4/search?q=${encodeURIComponent(query)}&size=${this.pageSize}&page=${this.currentPage}`;
+        // Construct the API URL with English language parameter
+        let apiUrl = `https://api.quran.com/api/v4/search?q=${encodeURIComponent(query)}&size=${this.pageSize}&page=${this.currentPage}&language=en`;
         
         console.log(`Loading more results using Quran.com API: ${apiUrl}`);
         
@@ -394,6 +385,11 @@ export default {
           if (data && data.search && data.search.results) {
             // Extract and format results from the new API
             const results = data.search.results.map(result => {
+              // Ensure we properly preserve the API's word highlighting information
+              const processedWords = result.words?.map(word => {
+                return { ...word }; // Create a shallow copy to preserve all properties including highlight
+              }) || [];
+              
               // Transform the result to match our component's expected format
               return {
                 number: result.verse_key.replace(":", "_"), // Use as unique identifier
@@ -405,17 +401,20 @@ export default {
                 },
                 text: result.text,
                 edition: {
-                  identifier: this.searchLanguage, // Use language as edition identifier
-                  language: this.searchLanguage,
-                  name: this.getLanguageName(this.searchLanguage),
+                  identifier: 'en', // Always use English
+                  language: 'en',
+                  name: this.getLanguageName('en'),
                   type: 'translation'
                 },
                 // Add Quran.com specific fields
                 verse_key: result.verse_key,
-                words: result.words || [], // Ensure words array is available
+                words: processedWords, // Use our processed words array that preserves highlight property
                 highlighted: result.highlighted
               };
             });
+            
+            // Apply our improved highlighting to the new results
+            this.manuallyHighlightResults(results);
             
             // Append the new results to the existing ones
             this.searchResults = [...this.searchResults, ...results];
@@ -450,30 +449,57 @@ export default {
     goToVerse(match) {
       // Parse the verse_key to get surah number and verse number
       const verseKey = match.verse_key || '';
-      const [surahNumber, verseNumber] = verseKey.split(':').map(num => parseInt(num));
       
-      // Emit an event that can be handled by parent component to navigate
-      this.$emit('navigate-to-verse', {
-        surah: surahNumber,
-        verse: verseNumber,
-        edition: match.edition ? match.edition.identifier : null
-      });
+      try {
+        // Check if verseKey is valid
+        if (!verseKey || !verseKey.includes(':')) {
+          console.error('Invalid verse key format:', verseKey);
+          this.$notification?.error?.(this.$t('quran.invalidVerseKey'));
+          return;
+        }
+        
+        const [surahStr, verseStr] = verseKey.split(':');
+        const surahNumber = parseInt(surahStr);
+        const verseNumber = parseInt(verseStr);
+        
+        // Validate the parsed numbers
+        if (isNaN(surahNumber) || isNaN(verseNumber) || surahNumber <= 0 || verseNumber <= 0) {
+          console.error('Invalid surah or verse number:', surahNumber, verseNumber);
+          this.$notification?.error?.(this.$t('quran.invalidVerseNumber'));
+          return;
+        }
+        
+        // Emit an event that can be handled by parent component to navigate
+        this.$emit('navigate-to-verse', {
+          surah: surahNumber,
+          verse: verseNumber,
+          edition: match.edition ? match.edition.identifier : null
+        });
+      } catch (error) {
+        console.error('Error navigating to verse:', error);
+        this.$notification?.error?.(this.$t('quran.navigationError'));
+      }
     },
     
     highlightSearchTerm(text) {
       if (!text) return text;
       
-      // If the result has a words array with highlight information, use that
+      // Find the matching result for this text
+      let matchingResult = null;
       if (this.searchResults && this.searchResults.length > 0) {
-        const match = this.searchResults.find(m => m.text === text);
-        if (match && match.words && Array.isArray(match.words)) {
-          return match.words.map(word => {
-            if (word.highlight) {
-              return `<span class="highlight-match">${word.text}</span>`;
-            }
-            return word.text;
-          }).join(' ');
-        }
+        matchingResult = this.searchResults.find(m => m.text === text);
+      }
+      
+      // If we have a match with words array and at least one word has highlight property from the API
+      if (matchingResult && matchingResult.words && Array.isArray(matchingResult.words) && 
+          matchingResult.words.some(w => 'highlight' in w)) {
+        // Use the API's highlight property to mark highlighted words
+        return matchingResult.words.map(word => {
+          if (word.highlight) {
+            return `<span class="highlight-match">${word.text || ''}</span>`;
+          }
+          return word.text || '';
+        }).join(' ');
       }
       
       // Otherwise do our own highlighting
@@ -530,6 +556,102 @@ export default {
       }
       
       return highlighted;
+    },
+
+    // Improved manually add highlighting function that will be reused
+    manuallyHighlightResults(results) {
+      if (!results || results.length === 0 || !this.searchKeyword) return;
+      
+      // For Arabic text, we need to be smart about diacritics and normalization
+      let escapedKeyword = this.searchKeyword.trim();
+      let isArabic = this.isArabicText(escapedKeyword);
+      
+      // Escape special regex characters
+      escapedKeyword = escapedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      
+      // If it's Arabic, make a more flexible regex that can match with/without diacritics
+      let regexPattern;
+      if (isArabic) {
+        // Create a pattern that's more flexible with Arabic diacritics
+        regexPattern = escapedKeyword.split('').map(char => {
+          // Base Arabic characters
+          if (/[\u0600-\u061F\u0640-\u064A]/.test(char)) {
+            return char + '[\\u064B-\\u065F\\u0670]*'; // Allow optional diacritics after each character
+          }
+          return char;
+        }).join('');
+      } else {
+        regexPattern = escapedKeyword;
+      }
+      
+      // Create the regex with the appropriate pattern
+      const regex = new RegExp(regexPattern, 'gi');
+      
+      // Process each result
+      results.forEach(result => {
+        if (result.words && Array.isArray(result.words)) {
+          // Check if this result needs highlighting (doesn't already have it)
+          if (!result.words.some(word => word.highlight === true)) {
+            // For Arabic, we might need to check the full text
+            if (isArabic && result.text) {
+              // If the full text matches but individual words don't, try to identify the right word
+              if (regex.test(result.text)) {
+                // Find the most likely word to highlight
+                const words = result.words.filter(w => w.char_type !== 'end');
+                let highlightedAny = false;
+                
+                for (const word of words) {
+                  if (word.text && typeof word.text === 'string') {
+                    // Reset regex before testing
+                    regex.lastIndex = 0;
+                    if (regex.test(word.text)) {
+                      word.highlight = true;
+                      highlightedAny = true;
+                    }
+                  }
+                }
+                
+                // If no matches found, highlight the word that seems most similar
+                if (!highlightedAny && words.length > 0) {
+                  // Simple approach - find the word with the most character overlap
+                  const keyword = this.searchKeyword.replace(/[\u064B-\u065F\u0670]/g, ''); // Remove diacritics
+                  let bestMatch = null;
+                  let bestScore = 0;
+                  
+                  for (const word of words) {
+                    if (word.text && typeof word.text === 'string') {
+                      const cleanWord = word.text.replace(/[\u064B-\u065F\u0670]/g, ''); // Remove diacritics
+                      let score = 0;
+                      for (let i = 0; i < keyword.length; i++) {
+                        if (cleanWord.includes(keyword[i])) score++;
+                      }
+                      if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = word;
+                      }
+                    }
+                  }
+                  
+                  if (bestMatch && bestScore > keyword.length / 2) {
+                    bestMatch.highlight = true;
+                  }
+                }
+              }
+            } else {
+              // Non-Arabic - just do the simple check
+              result.words.forEach(word => {
+                if (word.text && typeof word.text === 'string') {
+                  // Reset regex before testing
+                  regex.lastIndex = 0;
+                  if (regex.test(word.text)) {
+                    word.highlight = true;
+                  }
+                }
+              });
+            }
+          }
+        }
+      });
     }
   },
   computed: {
@@ -580,36 +702,10 @@ export default {
 }
 
 .search-options-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  display: flex;
+  justify-content: flex-end;
   gap: 10px;
   align-items: center;
-}
-
-.search-select-container {
-  position: relative;
-  width: 100%;
-}
-
-.search-select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  background-color: var(--input-bg);
-  color: var(--text-color);
-  font-size: 0.875rem;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  background-size: 1rem;
-  transition: border-color 0.2s ease;
-}
-
-.search-select:focus {
-  border-color: var(--primary-color);
-  outline: none;
 }
 
 .search-button {
@@ -623,6 +719,7 @@ export default {
   font-size: 0.875rem;
   transition: background-color 0.2s ease;
   min-width: 120px;
+  width: 100%;
 }
 
 .search-button:hover {
@@ -737,6 +834,18 @@ export default {
   border-radius: 4px;
   font-weight: 500;
   display: inline-block; /* Helps with RTL text highlighting */
+  position: relative;
+}
+
+/* Enhanced Arabic highlight styles */
+[dir="rtl"] .highlight-match {
+  color: var(--primary-color);
+  background-color: rgba(var(--primary-color-rgb), 0.15);
+  padding: 0 3px;
+  border-radius: 4px;
+  font-weight: bold;
+  /* Slightly increase size for better readability of highlighted Arabic */
+  font-size: 1.05em;
 }
 
 /* For Arabic text in word-by-word display */
@@ -782,11 +891,6 @@ export default {
 
 /* Media query for smaller screens */
 @media (max-width: 640px) {
-  .search-options-row {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-  
   .search-button {
     width: 100%;
   }

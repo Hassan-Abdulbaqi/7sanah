@@ -394,19 +394,68 @@ export default {
     
     navigateToVerse(verse) {
       console.log('Navigating to verse:', verse)
-      // Set current page to Quran Reader
-      this.navigateTo('quran')
       
-      // Pass the verse information to the Quran Reader component
-      // We'll use a global event bus or a direct reference to the component
-      // For now, we'll use localStorage as a simple solution
-      localStorage.setItem('quranNavigationTarget', JSON.stringify({
-        surah: verse.surah,
-        verse: verse.verse,
-        edition: verse.edition
-      }))
-      
-      // The QuranReader component will check for this data when mounted
+      try {
+        // Validate the verse data
+        if (!verse || typeof verse !== 'object' || !verse.surah || !verse.verse) {
+          console.error('Invalid verse data for navigation:', verse)
+          this.$notification?.error?.(this.$t('quran.invalidVerseData'))
+          return
+        }
+        
+        // First, ensure that we're on the Quran page
+        if (this.currentPage !== 'quran') {
+          // Set current page to Quran Reader
+          this.navigateTo('quran')
+          
+          // We'll use localStorage to pass the verse information, but we also need
+          // to give the component time to mount before attempting to navigate
+          setTimeout(() => {
+            this.passVerseToQuranReader(verse)
+          }, 300) // Short delay to allow the page transition
+        } else {
+          // We're already on the Quran page, pass the data directly
+          this.passVerseToQuranReader(verse)
+        }
+      } catch (error) {
+        console.error('Error during navigation to verse:', error)
+        // If using notification system
+        if (this.$notification) {
+          this.$notification.error(this.$t('quran.navigationError') || 'Navigation error. Please try again.')
+        }
+      }
+    },
+    
+    passVerseToQuranReader(verse) {
+      try {
+        // Pass the verse information to the Quran Reader component via localStorage
+        localStorage.setItem('quranNavigationTarget', JSON.stringify({
+          surah: verse.surah,
+          verse: verse.verse,
+          edition: verse.edition || null,
+          timestamp: new Date().getTime() // Add timestamp to ensure freshness
+        }))
+        
+        // Dispatch a custom event to notify QuranReader that navigation data is available
+        // This is an alternative communication method that doesn't rely solely on localStorage
+        window.dispatchEvent(new CustomEvent('quran-navigation', {
+          detail: {
+            surah: verse.surah,
+            verse: verse.verse,
+            edition: verse.edition || null
+          }
+        }))
+        
+        console.log('Verse navigation data passed to QuranReader component')
+      } catch (storageError) {
+        console.error('Error storing verse navigation data:', storageError)
+        // Try an alternative approach if localStorage fails
+        // The QuranReader can potentially check URL parameters as fallback
+        this.$router.push({ 
+          name: 'quran', 
+          query: { surah: verse.surah, verse: verse.verse }
+        })
+      }
     }
   }
 }
