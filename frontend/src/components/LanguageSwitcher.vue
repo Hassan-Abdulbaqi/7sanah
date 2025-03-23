@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n';
 
 const { locale } = useI18n();
 const isOpen = ref(false);
+const dropdownRef = ref(null);
+const buttonRef = ref(null);
 
 // Available languages with language codes instead of country codes
 const languages = [
@@ -20,23 +22,27 @@ const currentLanguage = computed(() => {
 
 // Handle document click to close dropdown
 function handleClickOutside(event) {
-  const dropdown = document.getElementById('language-dropdown');
-  const button = document.getElementById('language-button');
+  if (!dropdownRef.value || !buttonRef.value) return;
   
-  if (isOpen.value && dropdown && button) {
-    if (!dropdown.contains(event.target) && !button.contains(event.target)) {
-      isOpen.value = false;
-    }
+  if (isOpen.value && 
+      !dropdownRef.value.contains(event.target) && 
+      !buttonRef.value.contains(event.target)) {
+    isOpen.value = false;
   }
 }
 
 // Toggle dropdown
-function toggleDropdown() {
+function toggleDropdown(event) {
+  // Prevent event from bubbling up to parent elements
+  event.stopPropagation();
   isOpen.value = !isOpen.value;
 }
 
 // Change language
-function changeLanguage(langCode) {
+function changeLanguage(langCode, event) {
+  // Prevent event from bubbling
+  if (event) event.stopPropagation();
+  
   // Update locale
   locale.value = langCode;
   
@@ -68,9 +74,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative inline-block text-left">
+  <div class="relative inline-block text-left language-dropdown-container">
     <button 
-      id="language-button"
+      ref="buttonRef"
       type="button" 
       @click="toggleDropdown"
       class="inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
@@ -84,11 +90,10 @@ onUnmounted(() => {
 
     <div 
       v-show="isOpen"
-      id="language-dropdown"
-      class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
+      ref="dropdownRef"
+      class="dropdown-menu origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none"
       role="menu"
       aria-orientation="vertical"
-      aria-labelledby="language-button"
       tabindex="-1"
     >
       <div class="py-1" role="none">
@@ -96,7 +101,7 @@ onUnmounted(() => {
           v-for="lang in languages" 
           :key="lang.code"
           href="#"
-          @click.prevent="changeLanguage(lang.code)"
+          @click.prevent="(e) => changeLanguage(lang.code, e)"
           :class="[
             'block px-4 py-2 text-sm hover:bg-gray-100',
             lang.code === locale ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
@@ -115,5 +120,35 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Add any additional styling here */
+.language-dropdown-container {
+  position: relative;
+  display: inline-flex;
+}
+
+.dropdown-menu {
+  z-index: 50;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+/* Desktop adjustments */
+@media (min-width: 769px) {
+  .dropdown-menu {
+    min-width: 180px;
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .mobile-language .dropdown-menu {
+    position: absolute;
+    right: 0;
+    left: auto;
+    width: 100%;
+    max-width: 200px;
+  }
+}
 </style> 

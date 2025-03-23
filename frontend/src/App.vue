@@ -4,12 +4,21 @@
       <div class="logo" @click="navigateTo('home')">
         <span class="logo-text">7sanah</span>
       </div>
+      
+      <!-- Mobile menu toggle button - only visible on mobile -->
+      <button class="mobile-menu-toggle" @click="toggleMobileMenu" aria-label="Toggle menu">
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+        <span class="menu-bar"></span>
+      </button>
+      
+      <!-- Responsive navigation -->
       <nav class="main-nav">
         <div 
           v-for="item in navItems" 
           :key="item.id"
           :class="['nav-item', { active: currentPage === item.id }]"
-          @click="navigateTo(item.id)"
+          @click="navigateAndCloseMenu(item.id)"
         >
           <div class="nav-icon">
             <component :is="item.icon" />
@@ -17,7 +26,46 @@
           <span class="nav-text">{{ item.name }}</span>
         </div>
       </nav>
+      
+      <!-- Language switcher (visible on desktop) -->
       <LanguageSwitcher class="language-switcher" />
+      
+      <!-- Mobile Menu Container -->
+      <div class="mobile-menu-container" :class="{ 'open': mobileMenuOpen }">
+        <!-- Close button for mobile -->
+        <div class="mobile-menu-close" @click="closeMobileMenu">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+        
+        <!-- Mobile navigation items -->
+        <div class="mobile-nav-items">
+          <div 
+            v-for="item in navItems" 
+            :key="item.id"
+            :class="['mobile-nav-item', { active: currentPage === item.id }]"
+            @click="navigateAndCloseMenu(item.id)"
+          >
+            <div class="nav-icon">
+              <component :is="item.icon" />
+            </div>
+            <span class="nav-text">{{ item.name }}</span>
+          </div>
+          
+          <!-- Language switcher in mobile menu -->
+          <div class="mobile-language">
+            <LanguageSwitcher />
+          </div>
+        </div>
+      </div>
+      
+      <!-- Mobile menu overlay -->
+      <div 
+        v-if="mobileMenuOpen" 
+        class="mobile-menu-overlay"
+        @click="closeMobileMenu"
+      ></div>
     </header>
 
     <main class="main-content">
@@ -192,7 +240,8 @@ export default {
       currentPage: 'home',
       khatmahView: 'list',
       selectedKhatmahId: null,
-      store
+      store,
+      mobileMenuOpen: false
     }
   },
   computed: {
@@ -456,6 +505,27 @@ export default {
           query: { surah: verse.surah, verse: verse.verse }
         })
       }
+    },
+    
+    toggleMobileMenu() {
+      this.mobileMenuOpen = !this.mobileMenuOpen;
+      
+      // Prevent body scrolling when menu is open
+      if (this.mobileMenuOpen) {
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+    },
+    
+    closeMobileMenu() {
+      this.mobileMenuOpen = false;
+      document.body.style.overflow = '';
+    },
+    
+    navigateAndCloseMenu(pageId) {
+      this.navigateTo(pageId);
+      this.closeMobileMenu();
     }
   }
 }
@@ -489,19 +559,21 @@ export default {
 .app-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 1rem 2rem;
   background-color: var(--card-bg);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 100;
+  padding: 0 2rem;
+  height: 4rem;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .logo {
   display: flex;
   align-items: center;
   cursor: pointer;
+  margin-right: 1.5rem;
 }
 
 .logo-text {
@@ -511,9 +583,35 @@ export default {
   margin-left: 0.5rem;
 }
 
+/* Mobile menu toggle */
+.mobile-menu-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 21px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 10;
+}
+
+.menu-bar {
+  width: 30px;
+  height: 3px;
+  background-color: var(--primary-color);
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+/* Desktop Navigation */
 .main-nav {
   display: flex;
+  align-items: center;
   gap: 1.5rem;
+  flex: 1;
+  justify-content: center;
 }
 
 .nav-item {
@@ -524,6 +622,8 @@ export default {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-size: 0.875rem;
+  height: 2.5rem;
 }
 
 .nav-item:hover {
@@ -546,6 +646,135 @@ export default {
 .nav-icon svg {
   width: 100%;
   height: 100%;
+}
+
+/* Language Switcher Positioning */
+.language-switcher {
+  position: relative;
+  z-index: 20;
+  margin-left: 1.5rem;
+}
+
+/* Mobile Menu Container */
+.mobile-menu-container {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: -100%;
+  width: 80%;
+  max-width: 300px;
+  height: 100vh;
+  background-color: var(--card-bg);
+  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+  padding: 5rem 1.5rem 2rem;
+  transition: right 0.3s ease;
+  z-index: 50;
+  overflow-y: auto;
+}
+
+.mobile-menu-container.open {
+  right: 0;
+}
+
+.mobile-nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.mobile-nav-item:hover {
+  background-color: var(--hover-color);
+}
+
+.mobile-nav-item.active {
+  color: var(--primary-color);
+  background-color: var(--primary-bg);
+}
+
+.mobile-language {
+  padding: 1rem 0;
+  border-top: 1px solid var(--border-color);
+  margin-top: 1rem;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Mobile menu close button */
+.mobile-menu-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: var(--text-color);
+  cursor: pointer;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.mobile-menu-close:hover {
+  background-color: var(--hover-color);
+}
+
+/* Mobile menu overlay */
+.mobile-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 1rem;
+    justify-content: space-between;
+  }
+  
+  .mobile-menu-toggle {
+    display: flex;
+    order: 3;
+  }
+  
+  .main-nav {
+    display: none;
+  }
+  
+  .mobile-menu-container {
+    display: block;
+  }
+  
+  /* Hide desktop language switcher on mobile */
+  .app-header > .language-switcher {
+    display: none;
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Make main content padding responsive */
+  .main-content {
+    padding: 1rem;
+  }
 }
 
 .main-content {
@@ -635,41 +864,6 @@ export default {
   text-align: center;
   padding: 1.5rem;
   margin-top: 2rem;
-}
-
-.language-switcher {
-  margin-left: 1rem;
-}
-
-@media (max-width: 768px) {
-  .app-header {
-    flex-direction: column;
-    padding: 1rem;
-    gap: 1rem;
-  }
-  
-  .main-nav {
-    width: 100%;
-    justify-content: space-between;
-  }
-  
-  .nav-text {
-    display: none;
-  }
-  
-  .nav-item {
-    flex-direction: column;
-    padding: 0.75rem;
-  }
-  
-  .feature-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .language-switcher {
-    margin-top: 1rem;
-  margin-left: 0;
-}
 }
 
 /* Page Transitions */
