@@ -1,39 +1,39 @@
 <template>
   <div class="book-view-container">
     <div class="controls" v-if="navControlsVisible">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="control-groups-container">
         <!-- Control Group: Page Navigation -->
-        <div class="control-group">
-          <label for="pageInput" class="text-sm font-medium text-gray-700 mb-1">Page</label>
+        <div class="control-group page-controls">
+          <label for="pageInput" class="control-label">{{ $t('quran.bookViewPage.page') }}</label>
           <div class="page-selector flex items-center">
             <input 
               id="pageInput"
               v-model="currentPage"
               type="number" 
-              class="w-20 mr-2 border rounded py-1 px-2 text-center"
+              class="page-input"
               min="1" 
               :max="totalPages"
               @keyup.enter="loadPage"
             />
-            <span class="text-sm text-gray-500 whitespace-nowrap">/ {{ totalPages }}</span>
-            <button class="go-button" @click="loadPage" :disabled="isLoading">Go</button>
+            <span class="page-counter">/ {{ totalPages }}</span>
+            <button class="go-button" @click="loadPage" :disabled="isLoading">{{ $t('quran.go') }}</button>
           </div>
-          </div>
+        </div>
           
         <!-- Control Group: Text Type -->
         <div class="control-group">
-          <label for="textTypeSelect" class="text-sm font-medium text-gray-700 mb-1">Display Type</label>
+          <label for="textTypeSelect" class="control-label">{{ $t('quran.bookViewPage.displayType') }}</label>
           <select id="textTypeSelect" v-model="selectedTextType" class="select-input" @change="loadPage">
-            <option value="quran">Quran</option>
-            <option value="quran-simple">Quran (Simple)</option>
-            <option value="translation">Translation</option>
-            <option value="quran-and-translation">Quran & Translation</option>
+            <option value="quran">{{ $t('quran.bookViewPage.quran') }}</option>
+            <option value="quran-simple">{{ $t('quran.bookViewPage.quranSimple') }}</option>
+            <option value="translation">{{ $t('quran.bookViewPage.translation') }}</option>
+            <option value="quran-and-translation">{{ $t('quran.bookViewPage.quranAndTranslation') }}</option>
           </select>
         </div>
         
         <!-- Control Group: Translation -->
         <div class="control-group" v-if="showTranslationSelect">
-          <label for="translationSelect" class="text-sm font-medium text-gray-700 mb-1">Translation</label>
+          <label for="translationSelect" class="control-label">{{ $t('quran.bookViewPage.translation') }}</label>
           <select id="translationSelect" v-model="selectedTranslation" class="select-input" @change="loadPage">
             <option 
               v-for="translation in translations" 
@@ -41,22 +41,22 @@
               :value="translation.id"
             >
               {{ translation.language }} - {{ translation.name }}
-                </option>
-            </select>
-          </div>
+            </option>
+          </select>
+        </div>
           
         <!-- Control Group: Reciter -->
         <div class="control-group" v-if="audioAvailable">
-          <label for="reciterSelect" class="text-sm font-medium text-gray-700 mb-1">Reciter</label>
-          <div class="flex items-center">
+          <label for="reciterSelect" class="control-label">{{ $t('quran.bookViewPage.reciter') }}</label>
+          <div class="reciter-selector">
             <select id="reciterSelect" v-model="selectedReciter" class="select-input" @change="loadPage">
               <option 
                 v-for="reciter in reciters" 
                 :key="reciter.id" 
                 :value="reciter.id"
               >
-                {{ reciter.name }}
-                </option>
+                {{ getReciterDisplayName(reciter) }}
+              </option>
             </select>
             <button 
               class="audio-button" 
@@ -64,12 +64,12 @@
               :disabled="isLoadingAudio || !pageAudiosReady || isLoading"
               aria-label="Play audio"
             >
-              <span class="sr-only md:not-sr-only">Play</span>
+              <span class="sr-only md:not-sr-only">{{ $t('quran.bookViewPage.play') }}</span>
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:ml-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-            </svg>
-          </button>
-            </div>
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -77,20 +77,20 @@
     <!-- Loading State -->
     <div v-if="isLoading" class="loading-message">
       <div class="spinner"></div>
-      <p>Loading page {{ currentPage }}...</p>
+      <p>{{ $t('quran.bookViewPage.loading', { page: currentPage }) }}</p>
     </div>
     
     <!-- Error State -->
     <div v-else-if="error" class="error-message">
       <p>{{ error }}</p>
       <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg" @click="loadPage">
-        Try Again
+        {{ $t('common.retry') }}
       </button>
     </div>
     
     <!-- No Page State -->
     <div v-else-if="!page" class="no-page">
-      <p>No page to display. Select a page to view.</p>
+      <p>{{ $t('quran.bookViewPage.noPage') }}</p>
       </div>
       
     <!-- Quran Content -->
@@ -101,11 +101,11 @@
           <template v-if="shouldAddSurahHeader(index, ayah)">
             <div class="surah-decoration">
               <div class="decoration-left"></div>
-              <span class="surah-name">سورة {{ ayah.surah.name }}</span>
+              <span class="surah-name">{{ ayah.surah.name }}</span>
               <div class="decoration-right"></div>
             </div>
-            <div v-if="ayah.numberInSurah === 1 && ayah.surah.number !== 1 && ayah.surah.number !== 9" class="bismillah">
-              بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+            <div v-if="ayah.numberInSurah === 1 && shouldDisplayBismillah(ayah.surah.number)" class="bismillah">
+              {{ extractBismillah() }}
             </div>
           </template>
           <div :id="`ayah-${ayah.number}`" class="ayah-wrapper" :class="{ 'playing-ayah-audio': currentAudioAyah === ayah.number }">
@@ -120,15 +120,18 @@
                   <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
                 </svg>
               </button>
-            <span class="ayah-text">{{ ayah.text }}</span>
+            <span class="ayah-text">{{ cleanAyahText(ayah.text, ayah.surah.number, ayah.numberInSurah) }}</span>
             <span class="ayah-number">﴿{{ ayah.numberInSurah }}﴾</span>
             <span v-if="ayah.sajda" class="sajda-mark">۩</span>
           </div>
         </template>
+        
+        <!-- Decorative page marker -->
+        <div class="quran-page-marker"></div>
         </div>
 
       <!-- Translation Text -->
-      <div v-if="showTranslation" class="mt-8">
+      <div v-if="showTranslation" class="mt-8 translation-container">
         <div v-for="ayah in page.ayahs" :key="`translation-${ayah.number}`" class="ayah translation-text" :class="{ 'playing-ayah-audio': currentAudioAyah === ayah.number }">
             <div class="ayah-header">
             <span>{{ ayah.surah.name }} {{ ayah.numberInSurah }}</span>
@@ -139,10 +142,10 @@
               :class="{ 'active': currentAudioAyah === ayah.number }"
               :disabled="isLoadingAudio"
             >
-              Play
+              {{ $t('quran.bookViewPage.playButton') }}
               </button>
             </div>
-          <div class="ayah-text">{{ ayah.translation }}</div>
+          <div class="ayah-text">{{ cleanAyahText(ayah.translation, ayah.surah.number, ayah.numberInSurah) }}</div>
           </div>
         </div>
         
@@ -154,26 +157,28 @@
         </div>
     
       <!-- Navigation Buttons -->
-      <div class="flex justify-center gap-4 mt-4">
-        <button 
-          class="bottom-nav-button"
-          @click="loadPreviousPage"
-          :disabled="isLoading || currentPage <= 1"
-        >
-          Previous Page 
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-          </svg>
-        </button>
+      <div class="flex justify-center gap-4 mt-6 mb-4">
         <button 
           class="bottom-nav-button"
           @click="loadNextPage"
           :disabled="isLoading || currentPage >= totalPages"
         >
+          <!-- Left-pointing arrow for "Next" in Arabic reading direction -->
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
           </svg>
-          Next Page
+          {{ $t('quran.bookViewPage.nextPage') }}
+        </button>
+        <button 
+          class="bottom-nav-button"
+          @click="loadPreviousPage"
+          :disabled="isLoading || currentPage <= 1"
+        >
+          {{ $t('quran.bookViewPage.previousPage') }}
+          <!-- Right-pointing arrow for "Previous" in Arabic reading direction -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
         </button>
       </div>
     </div>
@@ -185,20 +190,20 @@
           {{ getCurrentAudioAyahText() }}
         </span>
         <span v-else>
-          Playing page {{ currentPage }}
+          {{ $t('quran.bookViewPage.playingPage', { page: currentPage }) }}
         </span>
       </div>
       <div class="flex items-center space-x-4">
         <button class="play-pause-button" @click="toggleAudioPlayPause">
-          <svg v-if="audioElement && !audioElement.paused" xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+          <svg v-if="audioElement && !audioElement.paused" xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-[#8a672a]" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-[#8a672a]" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
           </svg>
         </button>
         <button class="stop-button" @click="stopAudio">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-indigo-600" viewBox="0 0 20 20" fill="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-[#8a672a]" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" />
           </svg>
         </button>
@@ -394,6 +399,47 @@ export default {
     }
   },
   methods: {
+    // Add getReciterDisplayName as the first method
+    getReciterDisplayName(reciter) {
+      // If current locale is Arabic, show Arabic name if available, otherwise fallback to English name
+      if (this.$i18n.locale === 'ar' && reciter.name) {
+        return reciter.name;
+      } 
+      // For other locales or if Arabic name is not available, show English name
+      return reciter.englishName || reciter.name;
+    },
+    
+    // Add the method to clean ayah text and remove Bismillah
+    cleanAyahText(ayahText, surahNumber, ayahNumberInSurah) {
+      // Only process the first ayah of each surah (except for Surah Al-Fatiha and At-Tawbah)
+      if (ayahNumberInSurah === 1 && surahNumber !== 1 && surahNumber !== 9) {
+        // Find where the Bismillah ends by checking for space or special character after it
+        let cleanedText = '';
+        
+        // Start with standard length of 38-40 characters which is typically the Bismillah length
+        if (ayahText.length > 39) {
+          cleanedText = ayahText.substring(39);
+        } else if (ayahText.length > 38) {
+          cleanedText = ayahText.substring(38);
+        } else {
+          cleanedText = ayahText;
+        }
+        
+        return cleanedText;
+      }
+      return ayahText;
+    },
+    
+    // Function to extract Bismillah for display
+    extractBismillah() {
+      return 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+    },
+    
+    // Function to check if a surah should display Bismillah
+    shouldDisplayBismillah(surahNumber) {
+      return surahNumber !== 9; // Surah At-Tawbah (9) doesn't have Bismillah
+    },
+    
     getLanguageName(langCode) {
       return this.effectiveLanguages[langCode] || langCode.toUpperCase();
     },
@@ -644,24 +690,11 @@ export default {
     },
     
     playNextInPlaylist() {
-      if (!this.audioPlayerLocal || !this.audioPlayerLocal._playlist) return;
-      
-      // If not playing full page (single ayah mode), stop after one ayah
-      if (!this.isPlayingFullPageLocal) {
-        this.stopAnyPlayingAudio();
-        return;
-      }
-      
-      // Move to the next track
-      this.audioPlayerLocal._currentTrack++;
-      
-      console.log(`Moving to next track: ${this.audioPlayerLocal._currentTrack} of ${this.audioPlayerLocal._playlist.length}`);
-      
-      if (this.audioPlayerLocal._currentTrack < this.audioPlayerLocal._playlist.length) {
-        // Play the next track
-        this.playCurrentTrack();
+      this.currentPlaylistIndex++;
+      if (this.currentPlaylistIndex < this.audioPlaylist.length) {
+        this.playCurrentInPlaylist();
       } else {
-        // Playlist finished
+        // End of playlist
         console.log('Playlist finished, stopping audio');
         this.stopAnyPlayingAudio();
       }
@@ -855,10 +888,11 @@ export default {
         const data = await response.json();
         
         if (data.code === 200) {
-          // Filter for audio editions only
+          // Map the data to include both name and englishName
           this.reciters = data.data.map(reciter => ({
             id: reciter.identifier,
-            name: reciter.englishName || reciter.name,
+            name: reciter.name,
+            englishName: reciter.englishName,
             language: reciter.language
           }));
           
@@ -1095,7 +1129,7 @@ export default {
       
       const ayah = this.page.ayahs.find(a => a.number === this.currentAudioAyah);
       if (ayah) {
-        return `${ayah.surah.name} ${ayah.numberInSurah}`;
+        return this.$t('quran.bookViewPage.playingAyah', { surah: ayah.surah.name, ayah: ayah.numberInSurah });
       }
       
       return '';
@@ -1120,40 +1154,177 @@ export default {
 
 <style scoped>
 .book-view-container {
-  min-height: 100vh;
-  min-height: 100dvh;
-  width: 100vw;
+  min-height: calc(100vh - 4rem); /* Subtract navbar height */
+  height: calc(100vh - 4rem); /* Set explicit height */
+  width: 100%;
   max-width: 100%;
   display: flex;
   flex-direction: column;
-  background-color: #f8f5e6; /* Light parchment color for the entire container */
+  background-color: #f3eee1; /* Warmer parchment color */
+  background-image: url("data:image/svg+xml,%3Csvg width='52' height='26' viewBox='0 0 52 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23a77e2d' fill-opacity='0.05'%3E%3Cpath d='M10 10c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm25.464-1.95l8.486 8.486-1.414 1.414-8.486-8.486 1.414-1.414z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  overflow-y: auto; /* Enable vertical scrolling */
   overflow-x: hidden;
   margin: 0;
   padding: 0;
+  /* Position to cover the entire viewport below navbar */
+  position: fixed;
+  top: 4rem; /* Match the header height from App.vue */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40; /* Higher than App content but lower than header */
+  box-sizing: border-box;
 }
 
 .controls {
   width: 100%;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(243, 238, 225, 0.95);
   border-bottom: 1px solid #d7c89b;
-  border-top: none;
-  border-left: none;
-  border-right: none;
-  border-radius: 0;
-  margin: 0 0 0.5rem 0;
-  padding: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 10px rgba(167, 126, 45, 0.1);
+  z-index: 10;
+  position: sticky;
+  top: 0; /* Stick to the top of the book view container */
+}
+
+/* New control groups container with better organization */
+.control-groups-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.control-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b5128;
+  margin-bottom: 0.25rem;
+}
+
+.page-input {
+  width: 60px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #d7c89b;
+  border-radius: 0.25rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.select-input {
+  width: 100%;
+  border: 1px solid #d7c89b;
+  border-radius: 0.25rem;
+  padding: 0.35rem 0.75rem;
+  padding-right: 30px; /* Ensure enough space for the dropdown arrow */
+  background-color: white;
+  font-size: 0.875rem;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0,0 L5,5 L10,0 Z' fill='%238a672a' /%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  box-sizing: border-box;
+}
+
+.page-counter {
+  color: #8a672a;
+  font-size: 0.875rem;
+  margin: 0 0.5rem;
+  white-space: nowrap;
+}
+
+.page-selector {
+  display: flex;
+  align-items: center;
+}
+
+.reciter-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsive refinements */
+@media (max-width: 640px) {
+  .controls {
+    padding: 0.4rem 0.5rem;
+  }
+  
+  .control-groups-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+  
+  .control-group {
+    gap: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .control-label {
+    font-size: 0.75rem;
+    margin-bottom: 0.1rem;
+  }
+  
+  .page-input, .select-input {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+    height: 28px;
+  }
+  
+  .page-counter {
+    font-size: 0.75rem;
+    margin: 0 0.25rem;
+  }
+  
+  .go-button, .audio-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    height: 28px;
+  }
+  
+  .reciter-selector {
+    gap: 0.25rem;
+  }
+  
+  /* Make the play button more compact on mobile */
+  .audio-button .sr-only {
+    display: none;
+  }
+  
+  .audio-button svg {
+    margin: 0;
+  }
+  
+  /* Optimize select dropdowns on mobile */
+  .select-input {
+    padding-right: 22px; /* Ensure space for dropdown arrow */
+    background-position: right 5px center;
+    width: 100%;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 960px) {
+  .control-groups-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 961px) {
+  .control-groups-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 @media (min-width: 768px) {
   .controls {
-    padding: 0.75rem;
-    max-width: 100%;
-    margin: 0 0 1rem 0;
-    background-color: transparent;
-    border: none;
-    border-bottom: 1px solid #d7c89b;
-    border-radius: 0;
-    box-shadow: none;
+    padding: 0.75rem 1rem;
   }
 }
 
@@ -1162,159 +1333,120 @@ export default {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin: 0 auto;
-  padding: 2.5rem 0;
+  max-width: 100%; /* Allow to take full width */
+  margin: 0;
+  padding: 0; /* Remove all padding */
   min-height: 70vh;
   background-color: #fcf9ee; /* Slightly lighter parchment color for text area */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  box-shadow: none; /* Remove box shadow for full-width look */
+  border-radius: 0; /* Remove border radius for full-width look */
   position: relative;
-  border: 1px solid rgba(167, 126, 45, 0.2);
-  max-width: 90%;
+  border: none; /* Remove border for full-width look */
+  /* Add subtle texture to mimic paper */
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23a77e2d' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
-/* Ornate border */
+/* Remove responsive adjustments that limit width */
+@media (max-width: 768px) {
+  .quran-text-wrapper {
+    margin: 0;
+    width: 100%;
+  }
+}
+
+/* Ornate border design */
 .quran-text-wrapper::before {
-  content: "";
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
-  border: 1px solid rgba(167, 126, 45, 0.3);
-  border-radius: 4px;
-  pointer-events: none;
-  background-image: 
-    linear-gradient(45deg, transparent 49.5%, rgba(167, 126, 45, 0.2) 49.5%, rgba(167, 126, 45, 0.2) 50.5%, transparent 50.5%),
-    linear-gradient(-45deg, transparent 49.5%, rgba(167, 126, 45, 0.2) 49.5%, rgba(167, 126, 45, 0.2) 50.5%, transparent 50.5%);
-  background-size: 20px 20px;
-  background-position: 0 0, 10px 0;
-  background-repeat: repeat-x, repeat-x;
-  background-position-y: top, top;
+  display: none;
 }
 
-/* Add decorative border to all sides */
+/* Traditional Quran page frame with ornate corners - remove for full-width view */
 .quran-text-wrapper::after {
-  content: "";
-  position: absolute;
-  top: 25px;
-  left: 25px;
-  right: 25px;
-  bottom: 25px;
-  border: 1px solid rgba(167, 126, 45, 0.15);
-  border-radius: 2px;
-  pointer-events: none;
-  
-  /* Add decorative corner elements */
-  background-image: 
-    /* Top-left corner */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath fill='%23a77e2d' fill-opacity='0.2' d='M0,40 L40,40 L40,37 C40,16.5 23.5,0 3,0 L0,0 L0,40 Z'/%3E%3C/svg%3E"),
-    /* Top-right corner */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath fill='%23a77e2d' fill-opacity='0.2' d='M0,40 L40,40 L40,0 L37,0 C16.5,0 0,16.5 0,37 L0,40 Z'/%3E%3C/svg%3E"),
-    /* Bottom-left corner */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath fill='%23a77e2d' fill-opacity='0.2' d='M0,0 L0,3 C0,23.5 16.5,40 37,40 L40,40 L40,0 L0,0 Z'/%3E%3C/svg%3E"),
-    /* Bottom-right corner */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath fill='%23a77e2d' fill-opacity='0.2' d='M40,0 L0,0 L0,40 L3,40 C23.5,40 40,23.5 40,3 L40,0 Z'/%3E%3C/svg%3E");
-  
-  background-position: 
-    top left,     /* Top-left corner */
-    top right,    /* Top-right corner */
-    bottom left,  /* Bottom-left corner */
-    bottom right; /* Bottom-right corner */
-  
-  background-repeat: no-repeat;
-  background-size: 40px 40px;
+  display: none;
 }
 
-/* Corner decorations */
 .quran-text-flow {
   text-align: justify;
-  line-height: 2;
+  line-height: 2.6;
   white-space: normal;
   text-justify: inter-word;
-  padding: 2.5rem 2rem 2rem;
+  padding: 2rem 1.5rem;
   margin: 0;
   width: 100%;
   column-count: 1;
   overflow-wrap: break-word;
   direction: rtl;
-  font-size: 1.25rem;
+  font-size: 1.6rem;
   background-color: transparent;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
 }
 
-/* Inner decorative corners */
-.quran-text-flow::before,
-.quran-text-flow::after,
-.quran-text-flow .top-left-corner,
-.quran-text-flow .bottom-right-corner {
-  content: "";
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  opacity: 0.4;
-  z-index: 0;
+/* Surah header decoration */
+.surah-decoration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0 1.5rem;
+  padding-top: 1.5rem;
+  position: relative;
 }
 
-/* Top-right corner decoration */
-.quran-text-flow::before {
-  top: 10px;
-  right: 10px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23a77e2d' d='M95,5v40c0,27.614-22.386,50-50,50H5V5H95z M85,15H15v70h30c22.091,0,40-17.909,40-40V15z'/%3E%3Cpath fill='%23a77e2d' d='M50,50c-16.569,0-30-13.431-30-30h10c0,11.046,8.954,20,20,20V50z'/%3E%3C/svg%3E");
-}
-
-/* Bottom-left corner decoration */
-.quran-text-flow::after {
-  bottom: 10px;
-  left: 10px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23a77e2d' d='M5,95v-40c0-27.614,22.386-50,50-50H95V95H5z M15,85H85V15H55c-22.091,0-40,17.909-40,40V85z'/%3E%3Cpath fill='%23a77e2d' d='M50,50c16.569,0,30,13.431,30,30H70c0-11.046-8.954-20-20-20V50z'/%3E%3C/svg%3E");
-}
-
-/* Add the missing corners using ::before and ::after pseudo-elements on new elements */
-.quran-text-wrapper .top-left-corner {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 50px;
-  height: 50px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23a77e2d' d='M5,5v90h90V5H5z M15,15h70v70H15V15z'/%3E%3Cpath fill='%23a77e2d' d='M50,50c16.569,0,30-13.431,30-30H70c0,11.046-8.954,20-20,20V50z'/%3E%3C/svg%3E");
-  background-size: contain;
-  background-repeat: no-repeat;
-  opacity: 0.4;
-  z-index: 5;
-  pointer-events: none;
-}
-
-.quran-text-wrapper .bottom-right-corner {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 50px;
-  height: 50px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23a77e2d' d='M95,95H5V5h90V95z M85,15H15v70h70V15z'/%3E%3Cpath fill='%23a77e2d' d='M50,50c-16.569,0-30,13.431-30,30h10c0-11.046,8.954-20,20-20V50z'/%3E%3C/svg%3E");
-  background-size: contain;
-  background-repeat: no-repeat;
-  opacity: 0.4;
-  z-index: 5;
-  pointer-events: none;
-}
-
-/* Add decorative horizontal rule above surah name */
+/* More elaborate surah separator */
 .surah-decoration::before {
   content: "";
   position: absolute;
-  top: -10px;
-  left: 30px;
-  right: 30px;
-  height: 5px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='5' viewBox='0 0 100 5'%3E%3Cpath fill='%23a77e2d' fill-opacity='0.3' d='M0,2.5 Q25,0 50,2.5 T100,2.5'/%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-size: 100px 5px;
-  opacity: 0.6;
-  z-index: 2;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='12' viewBox='0 0 300 12'%3E%3Cpath d='M0,6 C50,0 100,12 150,6 C200,0 250,12 300,6' stroke='%23a77e2d' stroke-width='1' fill='none' stroke-opacity='0.5'/%3E%3Ccircle cx='150' cy='6' r='4' fill='%23a77e2d' fill-opacity='0.5'/%3E%3Ccircle cx='50' cy='6' r='3' fill='%23a77e2d' fill-opacity='0.3'/%3E%3Ccircle cx='250' cy='6' r='3' fill='%23a77e2d' fill-opacity='0.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 12px;
+}
+
+.decoration-left, .decoration-right {
+  flex-grow: 1;
+  height: 1px;
+  margin-left: 2rem;
+  margin-right: 2rem;
+  background: linear-gradient(to right, rgba(167, 126, 45, 0.05), rgba(167, 126, 45, 0.4), rgba(167, 126, 45, 0.05));
+}
+
+.surah-name {
+  font-size: 1.8rem;
+  font-family: "Amiri", "QuranFont", "Traditional Arabic", serif;
+  color: #8a672a;
+  letter-spacing: 0.05em;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-weight: bold;
+}
+
+.bismillah {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #8a672a;
+  font-family: "Amiri", "QuranFont", "Traditional Arabic", serif;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+/* Add decorative element under bismillah */
+.bismillah::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: 25%;
+  right: 25%;
+  height: 6px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='6' viewBox='0 0 200 6'%3E%3Cpath d='M0,3 C33.3,1 66.7,5 100,3 C133.3,1 166.7,5 200,3' stroke='%23a77e2d' stroke-width='1' fill='none' stroke-opacity='0.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 6px;
 }
 
 .arabic-text {
@@ -1329,18 +1461,12 @@ export default {
   letter-spacing: normal;
   margin: 0;
   padding: 0;
-  font-family: "QuranFont", "Traditional Arabic", serif;
-  font-size: 1.25rem;
+  font-family: "Amiri", "QuranFont", "Traditional Arabic", "Scheherazade New", "KFGQPC Uthmanic Script HAFS", serif;
+  font-size: 1.6rem;
   color: #000;
   word-spacing: normal;
   white-space: normal;
-}
-
-/* Override typical paragraph behavior for this specific use case */
-.quran-text-flow p {
-  display: inline;
-  margin: 0;
-  padding: 0;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.03);
 }
 
 .ayah-wrapper {
@@ -1351,275 +1477,178 @@ export default {
 }
 
 .ayah-wrapper.playing-ayah-audio {
-  background-color: rgba(79, 70, 229, 0.1);
+  background-color: rgba(167, 126, 45, 0.1);
   border-radius: 3px;
   padding: 0.6em 2px 0 2px;
 }
 
-/* Media queries for responsive font sizing */
+.arabic-text .ayah-number {
+  display: inline;
+  color: #8a672a;
+  font-family: "Amiri", "QuranFont", "Traditional Arabic", serif;
+  margin: 0 1px;
+  padding: 0;
+  font-size: 0.7em;
+  vertical-align: middle;
+  opacity: 0.8;
+}
+
+.sajda-mark {
+  display: inline;
+  color: #a03030;
+  font-family: "Amiri", "QuranFont", "Traditional Arabic", serif;
+  margin: 0 2px;
+  padding: 0;
+  font-size: 0.8em;
+  vertical-align: middle;
+}
+
+/* Page number decoration */
+.page-number {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.page-number-container {
+  @apply flex items-center justify-center text-[#8a672a] font-quran text-xl;
+  width: 4rem;
+  height: 4rem;
+  background-color: rgba(201, 169, 89, 0.12);
+  border: 1px solid rgba(201, 169, 89, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+  position: relative;
+  z-index: 10;
+  border-radius: 50%;
+  /* Add decorative elements */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='29' fill='none' stroke='%23a77e2d' stroke-width='1' stroke-opacity='0.3' stroke-dasharray='3,3'/%3E%3C/svg%3E");
+  background-size: cover;
+}
+
+/* Responsive adjustments */
 @media (max-width: 480px) {
   .quran-text-flow {
     padding: 1.5rem 1rem 1.5rem;
-    font-size: 1rem;
-    line-height: 1.8;
+    font-size: 1.2rem;
+    line-height: 2.2;
   }
   
   .arabic-text .ayah-text {
-    font-size: 1rem;
+    font-size: 1.2rem;
   }
   
   .quran-text-wrapper {
-    max-width: 95%;
-    padding: 1.5rem 0;
+    max-width: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
   }
   
-  .quran-text-wrapper::before,
-  .quran-text-wrapper::after {
-    display: none;
+  .bismillah {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
   }
   
-  .quran-text-flow::before,
-  .quran-text-flow::after {
-    width: 30px;
-    height: 30px;
+  .surah-name {
+    font-size: 1.4rem;
   }
 }
 
 @media (min-width: 481px) and (max-width: 767px) {
   .quran-text-flow {
     padding: 2rem 1.25rem 1.75rem;
-    font-size: 1.125rem;
-    line-height: 1.9;
+    font-size: 1.3rem;
+    line-height: 2.3;
   }
   
   .arabic-text .ayah-text {
-    font-size: 1.125rem;
+    font-size: 1.3rem;
+  }
+  
+  .bismillah {
+    font-size: 1.7rem;
   }
   
   .quran-text-wrapper {
-    max-width: 95%;
-  }
-  
-  .quran-text-flow::before,
-  .quran-text-flow::after {
-    width: 40px;
-    height: 40px;
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
   }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
   .quran-text-flow {
     padding: 2.5rem 1.5rem 2rem;
-    font-size: 1.375rem;
-    line-height: 2;
+    font-size: 1.5rem;
+    line-height: 2.4;
   }
   
   .arabic-text .ayah-text {
-    font-size: 1.375rem;
+    font-size: 1.5rem;
+  }
+  
+  .bismillah {
+    font-size: 1.9rem;
+  }
+  
+  .quran-text-wrapper {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
   }
 }
 
 @media (min-width: 1024px) {
   .quran-text-flow {
-    padding: 2.5rem 2rem 2rem;
-    font-size: 1.5rem;
-    line-height: 2.1;
+    padding: 2.5rem 2.5rem 2.5rem;
+    font-size: 1.8rem;
+    line-height: 2.6;
   }
   
   .arabic-text .ayah-text {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
   }
   
+  /* Remove max-width and padding constraints for full-width view */
   .quran-text-wrapper {
-    max-width: 85%;
+    max-width: 100%;
+    padding: 0;
+  }
+  
+  .bismillah {
+    font-size: 2.2rem;
+    margin-bottom: 2.5rem;
   }
 }
 
-.nav-button {
-  @apply flex items-center justify-center space-x-1 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-200 transition-colors;
-}
-
-.page-selector {
-  @apply px-3 py-2 bg-gray-50 rounded-lg border border-gray-300 flex items-center;
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-.go-button {
-  @apply ml-2 px-3 py-1 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors;
-}
-
-.control-group {
-  @apply flex flex-col;
-  margin-bottom: 0.5rem;
-}
-
-.select-input {
-  @apply border rounded py-2 px-3 bg-white text-sm appearance-none;
-  min-width: 100px;
-  max-width: 200px;
-  width: auto;
-}
-
-.audio-button {
-  @apply ml-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg flex items-center justify-center hover:bg-indigo-700 
-  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 
-  disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-indigo-600 transition-colors;
-}
-
-.loading-message, .error-message, .no-page {
-  @apply flex flex-col items-center justify-center py-12 space-y-4;
-  flex: 1;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 8px;
-  padding: 2rem;
-  margin: 0 auto;
-  max-width: 90%;
-  border: 1px solid rgba(167, 126, 45, 0.2);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.loading-message {
-  @apply text-gray-500;
-}
-
-.error-message {
-  @apply text-red-500;
-}
-
-.page-number {
-  @apply flex justify-center items-center my-4;
-}
-
-.page-number-container {
-  @apply rounded-full flex items-center justify-center text-[#a77e2d] font-quran text-xl;
-  width: 3rem;
-  height: 3rem;
-  background-color: rgba(201, 169, 89, 0.12);
-  border: 1px solid rgba(201, 169, 89, 0.3);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
-  position: relative;
-  z-index: 10;
-}
-
-.ayah {
-  @apply mb-4 leading-loose;
-}
-
-.surah-decoration {
+/* Navigation buttons styled to fit the Quran theme */
+.bottom-nav-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.5rem;
-  padding-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #f5f1e4;
+  color: #8a672a;
+  border-radius: 0.5rem;
+  border: 1px solid #d7c89b;
+  transition: all 0.2s ease;
+  font-family: "Amiri", "QuranFont", "Traditional Arabic", serif;
 }
 
-.decoration-left, .decoration-right {
-  flex-grow: 1;
-  height: 1px;
-  margin-left: 1rem;
-  margin-right: 1rem;
-  background: linear-gradient(to right, rgba(167, 126, 45, 0.05), rgba(167, 126, 45, 0.3), rgba(167, 126, 45, 0.05));
+.bottom-nav-button:hover {
+  background-color: #ebe3d0;
+  border-color: #c4aa6e;
 }
 
-.surah-name {
-  font-size: 1.5rem;
-  font-family: "QuranFont", "Traditional Arabic", serif;
-  color: #a77e2d;
-  letter-spacing: 0.05em;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+.bottom-nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.bismillah {
-  text-align: center;
-  font-size: 1.875rem;
-  margin-bottom: 1.5rem;
-  color: #a77e2d;
-  font-family: "QuranFont", "Traditional Arabic", serif;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.arabic-text {
-  font-size: 0;  /* Remove space between inline elements */
-  text-align: justify;
-  word-spacing: 0;
-  padding: 0.5rem;
-}
-
-.arabic-text .ayah-text,
-.arabic-text .ayah-number,
-.arabic-text .sajda-mark,
-.arabic-text .ayah-audio-button {
-  font-size: 1.25rem; /* Restore font size for actual text */
-}
-
-.arabic-text .ayah-number {
-  display: inline;
-  color: #a77e2d;
-  font-family: "QuranFont", "Traditional Arabic", serif;
-  margin: 0 1px;
-  padding: 0;
-  font-size: 0.6em;
-  vertical-align: middle;
-  opacity: 0.7;
-}
-
-.ayah-wrapper {
-  position: relative;
-  display: inline;
-  margin: 0;
-  padding: 0.6em 0 0;
-}
-
-.arabic-text .ayah-text {
-  color: #333;
-  display: inline;
-  letter-spacing: 0;
-  margin: 0;
-  padding: 0;
-  font-family: "QuranFont", "Traditional Arabic", serif;
-}
-
-.sajda-mark {
-  display: inline;
-  color: #a03030;
-  font-family: "QuranFont", "Traditional Arabic", serif;
-  margin: 0 2px;
-  padding: 0;
-  font-size: 0.7em;
-  vertical-align: middle;
-}
-
-.translation-text .ayah-header {
-  @apply flex justify-between mb-1 text-sm text-gray-500;
-}
-
-.translation-text .ayah-text {
-  @apply text-lg leading-relaxed;
-}
-
-/* Add Quran-specific Arabic fonts */
-@font-face {
-  font-family: "QuranFont";
-  src: url("@/assets/fonts/ScheherazadeNew-Regular.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "QuranFont";
-  src: url("@/assets/fonts/ScheherazadeNew-Bold.ttf") format("truetype");
-  font-weight: bold;
-  font-style: normal;
-}
-
-.font-quran {
-  font-family: "QuranFont", "Traditional Arabic", serif;
-}
-
-/* Audio Controls and Styling */
+/* Audio control styling */
 .ayah-audio-button {
   position: absolute;
   top: -0.5em;
@@ -1630,15 +1659,15 @@ export default {
   justify-content: center;
   width: 1.2em;
   height: 1.2em;
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #4F46E5;
+  background-color: rgba(255, 255, 255, 0.6); /* More transparent background */
+  color: rgba(138, 103, 42, 0.7); /* Slightly transparent color */
   border-radius: 50%;
-  border: 1px solid #d1d5db;
+  border: 1px solid rgba(209, 213, 219, 0.5); /* More transparent border */
   cursor: pointer;
-  opacity: 0.8;
+  opacity: 0.5; /* Reduced opacity from 0.7 to 0.5 */
   z-index: 10;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* Lighter shadow */
 }
 
 .ayah-audio-button svg {
@@ -1649,152 +1678,263 @@ export default {
 
 .ayah-audio-button:hover {
   transform: translateX(50%) scale(1.1);
-  opacity: 1;
-  background-color: rgba(255, 255, 255, 1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0.8; /* Hover opacity increased but still transparent */
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .ayah-audio-button.active {
-  background-color: #4F46E5;
+  background-color: rgba(138, 103, 42, 0.8); /* More transparent when active */
   color: white;
-  border-color: #4F46E5;
-  opacity: 1;
+  border-color: rgba(138, 103, 42, 0.6);
+  opacity: 0.8;
 }
 
-.ayah-wrapper {
+/* Font faces */
+@font-face {
+  font-family: "QuranFont";
+  src: url("/fonts/ScheherazadeNew-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "QuranFont";
+  src: url("/fonts/ScheherazadeNew-Bold.ttf") format("truetype");
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Additional font options */
+@font-face {
+  font-family: "KFGQPC Uthmanic Script HAFS";
+  src: url("/fonts/UthmanicHafs1Ver09.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.font-quran {
+  font-family: "Amiri", "QuranFont", "Traditional Arabic", "Scheherazade New", "KFGQPC Uthmanic Script HAFS", serif;
+}
+
+/* Add decorative side markers */
+.quran-text-flow::before {
+  content: ""; /* Remove the star/decorative element */
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  font-size: 1.5rem;
+  color: rgba(167, 126, 45, 0.4);
+  transform: translateY(-50%);
+}
+
+.quran-text-flow::after {
+  content: ""; /* Remove the star/decorative element */
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  font-size: 1.5rem;
+  color: rgba(167, 126, 45, 0.4);
+  transform: translateY(-50%);
+}
+
+/* New decorative elements for Quran page */
+.page-border {
+  display: none; /* Hide the page border instead of removing the class entirely */
+}
+
+.quran-page-marker {
+  position: absolute;
+  top: 30px;
+  right: 30px;
+  width: 30px;
+  height: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle cx='30' cy='30' r='25' fill='none' stroke='%23a77e2d' stroke-width='1.5' stroke-opacity='0.4'/%3E%3Cpath d='M30,5 L30,55 M5,30 L55,30' stroke='%23a77e2d' stroke-width='1' stroke-opacity='0.3'/%3E%3Ccircle cx='30' cy='30' r='5' fill='%23a77e2d' fill-opacity='0.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  z-index: 2;
+  opacity: 0.7;
+}
+
+.translation-container {
   position: relative;
-  display: inline;
+  background-color: rgba(253, 251, 245, 0.7);
+  border-radius: 0;
+  padding: 1rem;
   margin: 0;
-  padding: 0.6em 0 0;
+  box-shadow: none;
+  border: none;
+  border-top: 1px solid rgba(167, 126, 45, 0.15);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23a77e2d' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
-/* Remove the old hover rule since we want buttons always visible */
-.ayah-wrapper:hover .ayah-audio-button {
-  opacity: 1;
+/* Enhanced spinner for loading state */
+.spinner {
+  width: 40px;
+  height: 40px;
+  background-color: transparent;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  border: 3px solid rgba(167, 126, 45, 0.1);
+  border-top: 3px solid rgba(167, 126, 45, 0.7);
+  animation: quran-spin 1s linear infinite;
 }
 
-.ayah-audio-button-translation {
-  @apply inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-gray-50 text-gray-600 rounded border border-gray-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-colors;
+@keyframes quran-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.ayah-audio-button-translation.active {
-  @apply bg-indigo-100 text-indigo-600 border-indigo-300;
+/* Add highlighted ayah effect */
+.ayah-wrapper.playing-ayah-audio {
+  background-color: rgba(167, 126, 45, 0.1);
+  border-radius: 3px;
+  padding: 0.6em 2px 0 2px;
+  box-shadow: 0 0 5px rgba(167, 126, 45, 0.2);
+  transition: background-color 0.3s ease;
 }
 
-.ayah-wrapper.playing-ayah-audio,
-.ayah.playing-ayah-audio {
-  @apply bg-indigo-50 px-1 rounded-md;
-}
-
-.play-button {
-  @apply text-xs;
-}
-
-.stop-button, .play-pause-button {
-  @apply rounded-full p-1 hover:bg-indigo-100 transition-colors;
-}
-
-/* Add specific layout for when audio controls are shown */
+/* Enhance audio player styling */
 .audio-player {
-  @apply transition-all;
-}
-
-/* Mobile responsiveness for audio controls */
-@media (max-width: 640px) {
-  .reciter-selector select {
-    @apply text-xs py-1;
-  }
-  
-  .play-button {
-    @apply text-xs py-1 px-2;
-  }
-  
-  .audio-player {
-    @apply p-2;
-  }
-  
-  .audio-player .play-pause-button svg,
-  .audio-player .stop-button svg {
-    @apply h-8 w-8;
-  }
-  
-  .ayah-audio-button-translation {
-    @apply text-xs py-0.5 px-1.5;
-  }
-  
-  .page-selector {
-    @apply flex-wrap px-2;
-  }
-  
-  .select-input {
-    min-width: 80px;
-    max-width: 150px;
-  }
-  
-  .quran-text-flow {
-    @apply text-xl;
-    line-height: 2.6;
-  }
-  
-  .bottom-nav-button {
-    @apply text-sm px-2 py-1;
-  }
-}
-
-.bottom-nav-button {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(253, 251, 245, 0.97);
+  border-top: 1px solid rgba(167, 126, 45, 0.3);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  padding: 0.75rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  background-color: #f5f1e4;
-  color: #555;
-  border-radius: 0.5rem;
-  border: 1px solid #d7c89b;
+  justify-content: space-between;
+  z-index: 50; /* Above the book view container */
+}
+
+.play-pause-button, .stop-button {
+  background-color: rgba(253, 251, 245, 0.95);
+  border-radius: 50%;
+  padding: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(167, 126, 45, 0.2);
   transition: all 0.2s ease;
 }
 
-.bottom-nav-button:hover {
-  background-color: #ebe3d0;
+.play-pause-button:hover, .stop-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  background-color: rgba(253, 251, 245, 1);
 }
 
-.bottom-nav-button:disabled {
+/* Controls styling */
+.go-button {
+  margin-left: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  color: white;
+  border-radius: 0.25rem;
+  background-color: #8a672a;
+  border: 1px solid #6e5222;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.go-button:hover:not(:disabled) {
+  background-color: #6e5222;
+}
+
+.go-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.no-page {
-  @apply text-center py-8 text-gray-500;
-  flex: 1;
+.audio-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(255, 255, 255, 0.5);
-  border-radius: 8px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 0.35rem 0.75rem;
+  color: white;
+  border-radius: 0.25rem;
+  background-color: #8a672a;
+  border: 1px solid #6e5222;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
 }
 
-/* Media queries for responsive audio button sizing */
-@media (max-width: 480px) {
-  .ayah-audio-button {
-    width: 1.1em;
-    height: 1.1em;
-    top: -0.4em;
-  }
-  
-  .ayah-wrapper {
-    padding: 0.5em 0 0;
-  }
-  
-  .ayah-wrapper.playing-ayah-audio {
-    padding: 0.5em 2px 0 2px;
-  }
+.audio-button:hover:not(:disabled) {
+  background-color: #6e5222;
+}
+
+.audio-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Add these additional styles at the bottom */
+
+/* Loading and error messages should be centered on the full page */
+.loading-message, .error-message, .no-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  width: 100%;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Make control groups more responsive */
+.control-group {
+  margin-bottom: 1rem;
 }
 
 @media (min-width: 768px) {
-  .ayah-audio-button {
-    width: 1.3em;
-    height: 1.3em;
+  .control-group {
+    margin-bottom: 0;
   }
+}
+
+/* Full width background ensures the pattern extends across the entire viewport */
+.book-view-container::before {
+  content: "";
+  position: fixed;
+  top: 4rem; /* Match the header height */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #f3eee1;
+  background-image: url("data:image/svg+xml,%3Csvg width='52' height='26' viewBox='0 0 52 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23a77e2d' fill-opacity='0.05'%3E%3Cpath d='M10 10c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm25.464-1.95l8.486 8.486-1.414 1.414-8.486-8.486 1.414-1.414z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  z-index: -1;
+}
+
+/* Improved styling for the bottom navigation buttons container */
+.flex.justify-center.gap-4.mt-6.mb-4 {
+  margin: 1rem 0 3rem; /* Add bottom margin for spacing */
+  padding: 0;
+}
+
+/* Add extra bottom padding when audio player is active */
+.audio-player + .flex.justify-center.gap-4.mt-6.mb-4 {
+  margin-bottom: calc(env(safe-area-inset-bottom, 0) + 5rem);
+}
+
+/* Ensure footer doesn't overlap with content */
+.app-footer {
+  z-index: 10;
+}
+
+/* Screen reader only text for better accessibility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 </style> 

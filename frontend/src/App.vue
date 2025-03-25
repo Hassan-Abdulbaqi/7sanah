@@ -72,7 +72,7 @@
       <!-- Wrap content in transition group -->
       <transition name="fade" mode="out-in">
         <!-- Home/Landing Page -->
-        <div v-if="currentPage === 'home'" class="page-container landing-page" :key="'home'">
+        <div v-if="currentPage === 'home'" class="page-container landing-page amiri-font" :key="'home'">
           <div class="hero-section">
             <h1 class="app-title">{{ $t('app.title') }}</h1>
             <p class="app-description">{{ $t('app.description') }}</p>
@@ -143,6 +143,7 @@
               :khatmah-id="selectedKhatmahId"
               @edit-khatmah="editKhatmah"
               @cancel="khatmahView = 'list'"
+              @navigate-to-surah="navigateToSurah"
             />
           </transition>
         </div>
@@ -180,7 +181,7 @@
         </div>
 
         <!-- Quran Book Page -->
-        <div v-else-if="currentPage === 'quran-book'" class="page-container" :key="'quran-book'">
+        <div v-else-if="currentPage === 'quran-book'" class="full-width-container" :key="'quran-book'">
           <QuranBook />
         </div>
       </transition>
@@ -305,6 +306,10 @@ export default {
   },
   created() {
     console.log('App created - checking route:', this.$route.path)
+    
+    // Initialize store with data migrations
+    store.init()
+    
     this.initializeFromRoute(this.$route)
   },
   mounted() {
@@ -496,16 +501,18 @@ export default {
         }))
         
         // Dispatch a custom event to notify QuranReader that navigation data is available
-        // This is an alternative communication method that doesn't rely solely on localStorage
         window.dispatchEvent(new CustomEvent('quran-navigation', {
           detail: {
-            surah: verse.surah,
-            verse: verse.verse,
+            surah: parseInt(verse.surah),
+            verse: parseInt(verse.verse),
             edition: verse.edition || null
           }
         }))
         
-        console.log('Verse navigation data passed to QuranReader component')
+        console.log('Verse navigation data passed to QuranReader component', {
+          surah: parseInt(verse.surah),
+          verse: parseInt(verse.verse)
+        })
       } catch (storageError) {
         console.error('Error storing verse navigation data:', storageError)
         // Try an alternative approach if localStorage fails
@@ -514,6 +521,71 @@ export default {
           name: 'quran', 
           query: { surah: verse.surah, verse: verse.verse }
         })
+      }
+    },
+    
+    // Handle navigation to a specific surah from KhatmahDetail
+    navigateToSurah(surahData) {
+      console.log('Navigating to surah:', surahData);
+      
+      try {
+        // Validate the surah data
+        if (!surahData || typeof surahData !== 'object' || !surahData.surah) {
+          console.error('Invalid surah data for navigation:', surahData);
+          this.$notification?.error?.(this.$t('quran.invalidSurahData') || 'Invalid surah data');
+          return;
+        }
+        
+        // First, ensure that we're on the Quran page
+        if (this.currentPage !== 'quran') {
+          // Set current page to Quran Reader
+          this.navigateTo('quran');
+          
+          // Use setTimeout to allow the Quran component to mount
+          setTimeout(() => {
+            this.passSurahToQuranReader(surahData);
+          }, 300); // Short delay to allow the page transition
+        } else {
+          // We're already on the Quran page, pass the data directly
+          this.passSurahToQuranReader(surahData);
+        }
+      } catch (error) {
+        console.error('Error during navigation to surah:', error);
+        // If using notification system
+        if (this.$notification) {
+          this.$notification.error(this.$t('quran.navigationError') || 'Navigation error. Please try again.');
+        }
+      }
+    },
+    
+    passSurahToQuranReader(surahData) {
+      try {
+        // Pass the surah information to the Quran Reader component via localStorage
+        localStorage.setItem('quranNavigationTarget', JSON.stringify({
+          surah: surahData.surah,
+          verse: null, // Explicitly set to null to indicate no specific verse
+          timestamp: new Date().getTime() // Add timestamp to ensure freshness
+        }));
+        
+        // Dispatch a custom event to notify QuranReader that navigation data is available
+        window.dispatchEvent(new CustomEvent('quran-navigation', {
+          detail: {
+            surah: parseInt(surahData.surah),
+            verse: null // Explicitly set to null to indicate no specific verse
+          }
+        }));
+        
+        console.log('Surah navigation data passed to QuranReader component', {
+          surah: parseInt(surahData.surah),
+          verse: null // Logging the null to be clear about intent
+        });
+      } catch (storageError) {
+        console.error('Error storing surah navigation data:', storageError);
+        // Try an alternative approach if localStorage fails
+        this.$router.push({ 
+          name: 'quran', 
+          query: { surah: surahData.surah }
+        });
       }
     },
     
@@ -542,14 +614,6 @@ export default {
 </script>
 
 <style>
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-}
-
 /* Adding :root with CSS variables including RGB primary color */
 :root {
   --primary-color: #10b981;
@@ -564,6 +628,51 @@ export default {
   --text-secondary: #6b7280;
   --border-color: #e5e7eb;
   --input-bg: #f9fafb;
+  --arabic-font: 'Amiri', 'Noto Sans Arabic', serif;
+}
+
+/* Arabic text styling */
+.arabic-text, [lang="ar"] {
+  font-family: var(--arabic-font);
+}
+
+/* Apply Amiri font for RTL content */
+[dir="rtl"] {
+  font-family: var(--arabic-font);
+}
+
+/* Apply Amiri font to home page */
+.amiri-font,
+.amiri-font * {
+  font-family: var(--arabic-font);
+}
+
+/* Special styling for home page with Amiri font */
+.amiri-font .app-title {
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.amiri-font .app-description {
+  line-height: 1.7;
+  font-size: 1.3rem;
+}
+
+.amiri-font .feature-title {
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+
+.amiri-font .feature-description {
+  line-height: 1.6;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 .app-header {
@@ -906,5 +1015,29 @@ export default {
 .slide-leave-to {
   opacity: 0;
   transform: translateX(-20px);
+}
+
+/* Full width container for special pages like QuranBook */
+.full-width-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Adjust padding for the main content when displaying full-width components */
+.main-content .full-width-container {
+  margin-left: -2rem;
+  margin-right: -2rem;
+  width: calc(100% + 4rem);
+}
+
+/* Responsive adjustments for full-width container */
+@media (max-width: 768px) {
+  .main-content .full-width-container {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    width: calc(100% + 2rem);
+  }
 }
 </style>

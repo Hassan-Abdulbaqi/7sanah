@@ -213,7 +213,7 @@ class Command(BaseCommand):
                 'title_ar': 'ليلة الثالث والعشرين منه ليلة القدر على أقرب الاحتمالات فيها',
                 'title_en': 'Laylat al-Qadr (Night of Decree)',
                 'description_ar': 'ليلة الثالث والعشرين منه ليلة القدر على أقرب الاحتمالات فيها',
-                'day': 23,
+                'day': 22,
                 'is_holiday': True,
                 'event_type': 'religious'
             }

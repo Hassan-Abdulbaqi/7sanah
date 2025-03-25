@@ -13,6 +13,7 @@ const hasEndDate = ref(false);
 const endDate = ref('');
 const imageUrl = ref('');
 const imagePreview = ref('');
+const khatmahType = ref('juz'); // Default to juz-based khatmah
 
 function handleImageUrlChange() {
   // Only update preview if URL is valid
@@ -47,7 +48,8 @@ async function createKhatmah() {
     is_private: isPrivate.value,
     require_name: requireName.value,
     end_date: hasEndDate.value ? endDate.value : null,
-    image_url: imageUrl.value || null
+    image_url: imageUrl.value || null,
+    khatmah_type: khatmahType.value
   };
   
   // Create khatmah
@@ -62,6 +64,7 @@ async function createKhatmah() {
     endDate.value = '';
     imageUrl.value = '';
     imagePreview.value = '';
+    khatmahType.value = 'juz';
     
     // Emit event with created khatmah
     emit('khatmah-created', newKhatmah);
@@ -117,6 +120,47 @@ function cancel() {
             </p>
             <p class="mt-2 text-xs text-gray-500">
               {{ t('createKhatmah.nameHelp') }}
+            </p>
+          </div>
+          
+          <!-- Khatmah Type -->
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('createKhatmah.typeLabel') }}</label>
+            <div class="mt-2 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-6">
+              <div class="flex items-center">
+                <input 
+                  id="juzType" 
+                  v-model="khatmahType" 
+                  type="radio" 
+                  value="juz"
+                  class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                />
+                <label for="juzType" class="ml-2 block text-sm text-gray-700">
+                  {{ t('createKhatmah.juzTypeLabel') }}
+                </label>
+                <div class="ml-2 text-xs bg-emerald-100 text-emerald-800 py-0.5 px-2 rounded-full">
+                  30 {{ t('createKhatmah.parts') }}
+                </div>
+              </div>
+              
+              <div class="flex items-center">
+                <input 
+                  id="surahType" 
+                  v-model="khatmahType" 
+                  type="radio" 
+                  value="surah"
+                  class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300"
+                />
+                <label for="surahType" class="ml-2 block text-sm text-gray-700">
+                  {{ t('createKhatmah.surahTypeLabel') }}
+                </label>
+                <div class="ml-2 text-xs bg-blue-100 text-blue-800 py-0.5 px-2 rounded-full">
+                  114 {{ t('createKhatmah.surahs') }}
+                </div>
+              </div>
+            </div>
+            <p class="mt-2 text-xs text-gray-500">
+              {{ t('createKhatmah.typeHelp') }}
             </p>
           </div>
           

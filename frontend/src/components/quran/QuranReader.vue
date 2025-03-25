@@ -113,6 +113,7 @@
             :audio-duration="audioDuration"
             :loading-verse-audio="loadingVerseAudio"
             :current-playing-verse="currentPlayingVerse"
+            :highlighted-ayah="highlightedAyah"
             @get-language-name="getLanguageName"
             @load-more-verses="loadMoreVerses"
             @load-more-verses-completed="loadMoreVersesCompleted"
@@ -150,6 +151,7 @@
     :audio-progress="audioProgress"
     :audio-duration="audioDuration"
     :current-surah="currentSurah"
+    :current-playing-verse="currentPlayingVerse"
     :floating="true"
     :show-listen-button="false"
     @toggle-pause="togglePause"
@@ -210,7 +212,9 @@ export default {
       audioStopped: true,
       currentPlayingVerse: null,
       audioQueue: [],
-      currentAudioIndex: 0
+      currentAudioIndex: 0,
+      currentAudioRequestId: null,
+      _isStoppingAudio: false
     }
   },
   async created() {
@@ -238,15 +242,24 @@ export default {
             
             // Clear the data so we don't reuse it on next load
             localStorage.removeItem('quranNavigationTarget')
+            
+            // Set the highlighted ayah immediately if verse exists
+            if (targetVerse) {
+              this.highlightedAyah = parseInt(targetVerse)
+            }
           } else {
             localStorage.removeItem('quranNavigationTarget')
           }
         } else {
           // Check URL query parameters as fallback
           const urlParams = new URLSearchParams(window.location.search)
-          if (urlParams.has('surah') && urlParams.has('verse')) {
+          if (urlParams.has('surah')) {
             targetSurah = parseInt(urlParams.get('surah'))
-            targetVerse = parseInt(urlParams.get('verse'))
+            
+            if (urlParams.has('verse')) {
+              targetVerse = parseInt(urlParams.get('verse'))
+              this.highlightedAyah = targetVerse
+            }
           }
         }
       } catch (e) {
@@ -266,9 +279,11 @@ export default {
       // Fetch editions
       await this.fetchEditions()
       
-      // If we have navigation data, navigate to the specified verse
-      if (targetSurah && targetVerse) {
-        this.selectedSurah = targetSurah
+      // If we have navigation data, navigate to the specified surah
+      if (targetSurah) {
+        console.log(`Auto-selecting surah ${targetSurah} from navigation data`)
+        this.selectedSurah = parseInt(targetSurah)
+        
         if (targetEdition) {
           this.selectedTranslation = targetEdition
         }
@@ -277,18 +292,20 @@ export default {
           // Load the surah
           await this.loadSurah()
           
-          // After the surah is loaded, scroll to the verse
-          setTimeout(() => {
-            try {
-              // Highlight the verse
-              this.highlightedAyah = targetVerse
-              
-              // Emit an event to the verse container to scroll to the verse
-              this.$emit('scroll-to-verse', targetVerse)
-            } catch (scrollError) {
-              console.error('Error scrolling to verse:', scrollError)
-            }
-          }, 500)
+          // After the surah is loaded, scroll to the verse if specified
+          if (targetVerse) {
+            setTimeout(() => {
+              try {
+                // Make sure the verse is highlighted
+                this.highlightedAyah = parseInt(targetVerse)
+                
+                // Scroll to the verse
+                this.scrollToVerse(parseInt(targetVerse))
+              } catch (scrollError) {
+                console.error('Error scrolling to verse:', scrollError)
+              }
+            }, 500)
+          }
         } catch (loadError) {
           console.error('Error loading surah:', loadError)
           this.error = this.$t('quran.loadingError')
@@ -402,43 +419,80 @@ export default {
     },
     
     async loadSurah() {
+      // Check if a surah is selected
       if (!this.selectedSurah) {
-        this.currentSurah = null
-        return Promise.resolve()
+        console.error('No surah selected')
+        return
       }
       
       try {
+        // Start loading state
         this.loading = true
         this.error = null
+        
+        // First, stop any playing audio completely and wait for cleanup
+        // This needs to happen before any other operations
         this.stopAudio()
         
-        // Auto-collapse the surah list when loading a new surah
-        this.surahListCollapsed = true
+        // Wait a short moment to ensure audio cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 50))
         
+        // Clear any existing surah data
+        this.currentSurah = null
+        
+        console.log(`Loading surah ${this.selectedSurah} with highlighting for verse ${this.highlightedAyah || 'none'}`)
+        
+        // Fetch the surah data from the API
         const response = await fetch(`http://api.alquran.cloud/v1/surah/${this.selectedSurah}/quran-uthmani`)
         const data = await response.json()
         
         if (data.code === 200) {
+          // Set the current surah
           this.currentSurah = data.data
           
-          this.loading = false
-          return Promise.resolve()
+          // If this is the first time loading, collapse the surah list for better readability
+          if (!this.surahListCollapsed) {
+            this.surahListCollapsed = true
+          }
+          
+          // Force a reactivity update for the highlighted verse in case it was set before the surah loaded
+          if (this.highlightedAyah) {
+            console.log(`Highlighting ayah ${this.highlightedAyah} after surah load`)
+            // Use a temporary variable to force Vue to detect the change
+            const ayahToHighlight = this.highlightedAyah
+            this.highlightedAyah = null
+            
+            // Short delay to ensure component updates
+            setTimeout(() => {
+              this.highlightedAyah = ayahToHighlight
+            }, 100)
+          }
         } else {
-          this.error = data.status
-          this.loading = false
-          return Promise.reject(new Error(data.status))
+          this.error = data.status || this.$t('quran.loadingError')
         }
       } catch (error) {
-        console.error('Error fetching surah data:', error)
+        console.error('Error loading surah:', error)
         this.error = this.$t('quran.networkError')
+      } finally {
         this.loading = false
-        return Promise.reject(error)
       }
     },
     
     onSelectSurah(surahNumber) {
-      this.selectedSurah = surahNumber
-      this.loadSurah()
+      // Make sure audio is completely stopped before switching surahs
+      if (this.audioPlayer || this.isPlayingFullSurah || this.currentPlayingVerse) {
+        this.stopAudio();
+        
+        // Give a small delay to ensure audio cleanup is complete before loading the new surah
+        setTimeout(() => {
+          this.selectedSurah = surahNumber;
+          this.loadSurah();
+        }, 100);
+      } else {
+        // No audio playing, can switch immediately
+        this.selectedSurah = surahNumber;
+        this.loadSurah();
+      }
     },
     
     loadMoreVerses(chunkSize) {
@@ -483,95 +537,142 @@ export default {
     
     // Audio methods
     toggleVerseAudio({ verseNumberInSurah, verseNumber, reciter }) {
-      // If already playing this verse, toggle pause
+      // If this verse is already playing, toggle pause/play
       if (this.currentPlayingVerse === verseNumberInSurah) {
         this.togglePause();
         return;
       }
       
-      // If playing another verse or surah, stop it first
+      // We need to ensure audio is fully stopped before creating a new audio player
+      // First, mark that we're loading a new verse
+      const targetVerseNumber = verseNumberInSurah;
+      const targetGlobalVerseNumber = verseNumber;
+      const targetReciter = reciter || 'ar.alafasy';
+      
+      // Set loading state before stopping current audio
+      this.loadingVerseAudio = targetVerseNumber;
+      
+      // Stop any currently playing audio and wait for the cleanup to complete
       this.stopAudio();
       
-      // Set loading state
-      this.loadingVerseAudio = verseNumberInSurah;
-      this.currentPlayingVerse = verseNumberInSurah;
-      
-      // Create audio player if it doesn't exist
-      if (!this.audioPlayer) {
+      // Use setTimeout to ensure the audio cleanup is complete before starting new audio
+      setTimeout(() => {
+        // Now create a new audio player
+        this.currentPlayingVerse = targetVerseNumber;
+        this.audioStopped = false;
         this.audioPlayer = new Audio();
         
         // Set up event listeners
         this.audioPlayer.addEventListener('ended', () => {
           // When single verse ends, stop playback instead of continuing
-          this.stopAudio();
+          console.log('Audio ended normally, cleaning up');
+          this.currentPlayingVerse = null;  // Clear the current playing verse first
+          this.audioStopped = true;  // Mark as stopped before cleanup
+          
+          // Use setTimeout to ensure this happens after the event processing is complete
+          setTimeout(() => {
+            this.stopAudio();
+          }, 0);
         });
         
-        this.audioPlayer.addEventListener('error', () => {
-          console.error('Error playing audio');
-          this.stopAudio();
+        this.audioPlayer.addEventListener('error', (error) => {
+          // Check if the error is happening during normal cleanup
+          if (this.audioStopped) {
+            console.log('Error event occurred during cleanup, ignoring');
+            return;
+          }
+          
+          console.error('Error playing audio:', error.target?.error || 'Unknown error');
+          this.currentPlayingVerse = null;  // Clear the current playing verse first
+          this.audioStopped = true;  // Mark as stopped before cleanup
+          
+          // Use setTimeout to ensure this happens after the event processing is complete
+          setTimeout(() => {
+            this.stopAudio();
+          }, 0);
         });
         
         this.audioPlayer.addEventListener('canplay', () => {
           this.loadingVerseAudio = null;
           this.startProgressTracking();
-          this.audioPlayer.play();
-          this.paused = false;
+          
+          // Store a local reference to the current audio player
+          const currentPlayer = this.audioPlayer;
+          const currentRequestId = this.currentAudioRequestId;
+          
+          // Check if player still exists before attempting to play
+          if (currentPlayer && !this.audioStopped) {
+            currentPlayer.play().catch(err => {
+              console.error('Error starting playback:', err);
+              
+              // Only stop audio if this is still the current player and request
+              if (this.audioPlayer === currentPlayer && this.currentAudioRequestId === currentRequestId && !this.audioStopped) {
+                this.stopAudio();
+              }
+            });
+            this.paused = false;
+          }
           
           // Scroll to the verse once audio starts playing
-          this.scrollToVerse(verseNumberInSurah);
+          this.scrollToVerse(targetVerseNumber);
         });
-      }
-      
-      // API endpoint format: https://api.alquran.cloud/v1/ayah/{ayah_number}/{edition}
-      // Default reciter to Alafasy if not specified
-      const reciterToUse = reciter || 'ar.alafasy';
-      
-      // Fetch the ayah audio URL from the API
-      fetch(`https://api.alquran.cloud/v1/ayah/${verseNumber}/${reciterToUse}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.code === 200 && data.data && data.data.audio) {
-            // Set the source to the audio URL provided by the API
-            this.audioPlayer.src = data.data.audio;
-            this.audioPlayer.load();
-          } else {
-            console.error('Error fetching audio URL:', data);
-            this.stopAudio();
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching audio data:', error);
-          this.stopAudio();
-        });
-      
-      // Preload next verse if available (for smoother playback)
-      if (this.currentSurah && verseNumberInSurah < this.currentSurah.numberOfAyahs) {
-        const nextVerseNumber = verseNumberInSurah + 1;
-        const nextVerse = this.currentSurah.ayahs.find(v => v.numberInSurah === nextVerseNumber);
         
-        if (nextVerse) {
-          // Preload the next verse audio URL
-          fetch(`https://api.alquran.cloud/v1/ayah/${nextVerse.number}/${reciterToUse}`)
-            .then(response => response.json())
-            .then(data => {
-              if (data.code === 200 && data.data && data.data.audio) {
-                // Create a hidden audio element to preload
-                const preloadAudio = new Audio();
-                preloadAudio.src = data.data.audio;
-                preloadAudio.preload = 'auto';
-                preloadAudio.load();
+        // Store a reference to this audio request
+        const requestId = `${targetGlobalVerseNumber}-${Date.now()}`;
+        this.currentAudioRequestId = requestId;
+        
+        // Fetch the ayah audio URL from the API
+        fetch(`https://api.alquran.cloud/v1/ayah/${targetGlobalVerseNumber}/${targetReciter}`)
+          .then(response => response.json())
+          .then(data => {
+            // Check if this is still the current request and if the player exists
+            if (this.currentAudioRequestId !== requestId || !this.audioPlayer || this.audioStopped) {
+              console.log('Audio request completed but player was stopped, ignoring result');
+              return;
+            }
+            
+            if (data.code === 200 && data.data && data.data.audio) {
+              try {
+                // Double check we still want to play before setting the source
+                if (this.audioStopped || !this.audioPlayer) {
+                  console.log('Audio load aborted because playback was stopped');
+                  return;
+                }
                 
-                // Clean up preload after a reasonable time
-                setTimeout(() => {
-                  preloadAudio.src = '';
-                }, 30000);
+                // Use a try-catch block for setting the audio source
+                try {
+                  // Set the source to the audio URL provided by the API
+                  this.audioPlayer.src = data.data.audio;
+                  
+                  // Load the audio (inside a try-catch to handle any loading errors)
+                  try {
+                    this.audioPlayer.load();
+                  } catch (loadError) {
+                    console.error('Error loading audio:', loadError);
+                    this.stopAudio();
+                  }
+                } catch (srcError) {
+                  console.error('Error setting audio source:', srcError);
+                  this.stopAudio();
+                }
+              } catch (error) {
+                console.error('Error setting audio source:', error);
+                this.stopAudio();
               }
-            })
-            .catch(error => {
-              console.error('Error preloading next verse audio:', error);
-            });
-        }
-      }
+            } else {
+              console.error('Error fetching audio URL:', data);
+              this.stopAudio();
+            }
+          })
+          .catch(error => {
+            console.error('Error fetching audio data:', error);
+            
+            // Only call stopAudio if this is still the current audio request
+            if (this.currentAudioRequestId === requestId) {
+              this.stopAudio();
+            }
+          });
+      }, 50); // Small delay to ensure previous audio is fully cleaned up
     },
     
     // Method to scroll to a specific verse
@@ -736,18 +837,34 @@ export default {
       this.audioPlayer.onended = function() {
         console.log(`Verse #${currentItem.verseNumberInSurah} finished playing, moving to next`);
         self.currentAudioIndex++;
+        
+        // Use setTimeout to ensure this happens after event processing is complete
         setTimeout(() => {
-          self.playNextInQueue();
-        }, 10);
+          if (!self.audioStopped) {
+            self.playNextInQueue();
+          }
+        }, 0);
       };
       
-      this.audioPlayer.onerror = function(error) {
-        console.error(`Error playing audio for verse #${currentItem.verseNumberInSurah}:`, error);
+      this.audioPlayer.onerror = function(event) {
+        // Check if the error is happening during normal cleanup
+        if (self.audioStopped) {
+          console.log(`Error event occurred during cleanup for verse #${currentItem.verseNumberInSurah}, ignoring`);
+          return;
+        }
+        
+        console.error(`Error playing audio for verse #${currentItem.verseNumberInSurah}:`, 
+          event.target?.error?.message || event.target?.error || 'Unknown error');
+          
         // Skip to next on error
         self.currentAudioIndex++;
+        
+        // Use setTimeout to ensure this happens after event processing is complete
         setTimeout(() => {
-          self.playNextInQueue();
-        }, 10);
+          if (!self.audioStopped) {
+            self.playNextInQueue();
+          }
+        }, 0);
       };
       
       this.audioPlayer.oncanplay = function() {
@@ -755,17 +872,31 @@ export default {
         self.loadingVerseAudio = null;
         self.startProgressTracking();
         
-        this.play()
-          .catch(error => {
-            console.error(`Error starting playback for verse #${currentItem.verseNumberInSurah}:`, error);
-            // Try to recover by skipping to next
-            self.currentAudioIndex++;
-            setTimeout(() => {
-              self.playNextInQueue();
-            }, 10);
-          });
+        // Store reference to current player and request
+        const currentPlayer = self.audioPlayer;
+        const currentAudioIndex = self.currentAudioIndex;
         
-        self.paused = false;
+        // Only try to play if player still exists and we're still on this item
+        if (currentPlayer && !self.audioStopped && self.currentAudioIndex === currentAudioIndex) {
+          currentPlayer.play()
+            .catch(error => {
+              console.error(`Error starting playback for verse #${currentItem.verseNumberInSurah}:`, error);
+              
+              // Only proceed to next if this is still the current player and index and not stopped
+              if (self.audioPlayer === currentPlayer && self.currentAudioIndex === currentAudioIndex && !self.audioStopped) {
+                self.currentAudioIndex++;
+                
+                // Use setTimeout to ensure this happens after event processing is complete
+                setTimeout(() => {
+                  if (!self.audioStopped) {
+                    self.playNextInQueue();
+                  }
+                }, 0);
+              }
+            });
+          
+          self.paused = false;
+        }
       };
       
       // API endpoint format: https://api.alquran.cloud/v1/ayah/{ayah_number}/{edition}
@@ -782,9 +913,32 @@ export default {
           if (data.code === 200 && data.data && data.data.audio) {
             console.log(`Received audio URL for verse #${currentItem.verseNumberInSurah}:`, data.data.audio);
             
-            // Set the source to the audio URL provided by the API
-            this.audioPlayer.src = data.data.audio;
-            this.audioPlayer.load();
+            // Double check we still want to play before setting the source
+            if (this.audioStopped || !this.audioPlayer) {
+              console.log('Audio load aborted because playback was stopped');
+              return;
+            }
+            
+            // Use a try-catch block for setting the audio source
+            try {
+              // Set the source to the audio URL provided by the API
+              this.audioPlayer.src = data.data.audio;
+              
+              // Load the audio (inside a try-catch to handle any loading errors)
+              try {
+                this.audioPlayer.load();
+              } catch (loadError) {
+                console.error(`Error loading audio for verse #${currentItem.verseNumberInSurah}:`, loadError);
+                // Skip to next on error
+                this.currentAudioIndex++;
+                this.playNextInQueue();
+              }
+            } catch (srcError) {
+              console.error(`Error setting audio source for verse #${currentItem.verseNumberInSurah}:`, srcError);
+              // Skip to next on error
+              this.currentAudioIndex++;
+              this.playNextInQueue();
+            }
           } else {
             console.error(`Error fetching audio URL for verse #${currentItem.verseNumberInSurah}:`, data);
             // Skip to next on error
@@ -827,39 +981,99 @@ export default {
     },
     
     stopAudio() {
+      // Prevent multiple rapid calls to stopAudio
+      if (this._isStoppingAudio) {
+        console.log('Already stopping audio, ignoring duplicate call');
+        return;
+      }
+      
+      this._isStoppingAudio = true;
       console.log('Stopping all audio playback and cleaning up resources');
       
-      if (this.audioPlayer) {
+      // Set stopped flag first to prevent any new operations on the player
+      this.audioStopped = true;
+      
+      // Clear current audio request ID to prevent race conditions
+      this.currentAudioRequestId = null;
+      
+      // Store the current player reference
+      const playerToCleanup = this.audioPlayer;
+      
+      // Immediately set audioPlayer to null to prevent access while it's being cleaned up
+      this.audioPlayer = null;
+      
+      // Reset states first
+      this.isPlayingFullSurah = false;
+      this.loadingVerseAudio = null;
+      this.highlightedAyah = null;
+      this.currentPlayingVerse = null;
+      this.paused = false;
+      
+      // Stop audio progress tracking
+      this.stopProgressTracking();
+      
+      // Clean up the audio player if it exists
+      if (playerToCleanup) {
         try {
-          // Remove all event listeners before cleanup
-          this.audioPlayer.onended = null;
-          this.audioPlayer.onerror = null;
-          this.audioPlayer.oncanplay = null;
+          // Remove all event listeners before doing anything else to prevent errors during cleanup
+          const eventTypes = ['ended', 'error', 'canplay', 'play', 'pause', 'timeupdate', 'loadedmetadata'];
           
-          // Stop playback and reset
-          this.audioPlayer.pause();
-          this.audioPlayer.currentTime = 0;
-          this.audioPlayer.src = '';
-          this.audioPlayer = null;
+          // First method: try to use removeEventListener with null handler (modern browsers)
+          try {
+            eventTypes.forEach(type => {
+              playerToCleanup.removeEventListener(type, null);
+            });
+          } catch (e) {
+            console.log('Could not use generic event removal, removing specific listeners');
+          }
+          
+          // Second method: explicitly set listeners to null
+          playerToCleanup.onended = null;
+          playerToCleanup.onerror = null;
+          playerToCleanup.oncanplay = null;
+          playerToCleanup.onplay = null;
+          playerToCleanup.onpause = null;
+          playerToCleanup.ontimeupdate = null;
+          playerToCleanup.onloadedmetadata = null;
+          
+          // Try to stop playback
+          playerToCleanup.pause();
+          
+          try {
+            playerToCleanup.currentTime = 0;
+          } catch (e) {
+            // Ignore currentTime errors that might happen if the media is not ready
+          }
+          
+          // Set src to empty string first to cancel any pending loads
+          try {
+            playerToCleanup.src = '';
+          } catch (e) {
+            console.error('Error clearing audio source:', e);
+          }
+          
+          // Properly clean up all event listeners
+          try {
+            if (playerToCleanup.parentNode) {
+              const clone = playerToCleanup.cloneNode(false);
+              playerToCleanup.parentNode.replaceChild(clone, playerToCleanup);
+            }
+          } catch (e) {
+            console.error('Error cleaning up audio element DOM references:', e);
+          }
         } catch (error) {
           console.error('Error cleaning up audio player:', error);
         }
-        
-        // Reset states
-        this.isPlayingFullSurah = false;
-        this.loadingVerseAudio = null;
-        this.highlightedAyah = null;
-        this.currentPlayingVerse = null;
-        this.paused = false;
-        
-        // Stop audio progress tracking
-        this.stopProgressTracking();
       }
       
       // Clear the audio queue
       this.audioQueue = [];
       this.currentAudioIndex = 0;
-      this.audioStopped = true;
+      
+      // Reset stopping flag after a small delay to ensure complete cleanup
+      setTimeout(() => {
+        this._isStoppingAudio = false;
+      }, 200);
     },
     
     togglePause() {
@@ -918,6 +1132,56 @@ export default {
       // This method will be implemented in the next phase
       console.log(`Loading page ${this.currentPage}`)
     }
+  },
+  mounted() {
+    // Listen for the custom event for verse navigation
+    window.addEventListener('quran-navigation', this.handleQuranNavigation = (event) => {
+      if (event.detail) {
+        const { surah, verse } = event.detail;
+        console.log(`Received navigation event for surah ${surah}${verse ? `, verse ${verse}` : ', no specific verse'}`);
+        
+        if (surah) {
+          // Set the selected surah
+          this.selectedSurah = parseInt(surah);
+          
+          // If there's a specific verse, highlight it
+          if (verse) {
+            // Set the highlighted verse
+            this.highlightedAyah = parseInt(verse);
+          } else {
+            // Just navigate to the surah without highlighting a specific ayah
+            this.highlightedAyah = null;
+            // Ensure surah list is collapsed for better UI experience
+            this.surahListCollapsed = true;
+          }
+          
+          // Load the surah content
+          this.loadSurah().then(() => {
+            console.log(`Surah ${surah} loaded${verse ? `, navigating to verse ${verse}` : ''}`);
+            
+            // Double check that the verse is highlighted after surah is loaded (if applicable)
+            if (verse) {
+              setTimeout(() => {
+                if (this.highlightedAyah !== parseInt(verse)) {
+                  console.log(`Re-setting highlighted ayah to ${verse} after delay`);
+                  this.highlightedAyah = parseInt(verse);
+                  
+                  // Scroll to the verse
+                  this.scrollToVerse(parseInt(verse));
+                }
+              }, 800); // Give more time for everything to load
+            }
+          });
+        }
+      }
+    });
+  },
+  beforeUnmount() {
+    // Clean up the event listener
+    window.removeEventListener('quran-navigation', this.handleQuranNavigation);
+    
+    // Clean up any audio resources
+    this.stopAudio();
   }
 }
 </script>

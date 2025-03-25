@@ -1,172 +1,149 @@
 <template>
   <div class="hijri-calendar-container">
-    <!-- Tab Navigation -->
-    <div class="tabs-container">
-      <div 
-        :class="['tab', { active: activeTab === 'calendar' }]" 
-        @click="setActiveTab('calendar')"
-      >
-        {{ t('hijriCalendar.title') }}
-      </div>
-      <div 
-        :class="['tab', { active: activeTab === 'ageCalculator' }]" 
-        @click="setActiveTab('ageCalculator')"
-      >
-        {{ t('ageCalculator.title') }}
+    <!-- Calendar Header (Removing Tab Navigation) -->
+    <div class="calendar-header">
+      <h2 class="calendar-title">{{ t('hijriCalendar.title') }}</h2>
+      <div class="calendar-controls">
+        <button @click="previousMonth" class="control-button" :disabled="isNavigating">
+          <span class="icon">→</span>
+        </button>
+        <div class="month-display">
+          <span class="month-name">{{ currentMonth?.name_ar || '' }}</span>
+          <span class="month-name-en">{{ currentMonth?.name_en || '' }}</span>
+          <span class="year" v-if="currentMonth?.year">{{ currentMonth.year }}{{ t('hijriCalendar.hijriYear') }}</span>
+        </div>
+        <button @click="nextMonth" class="control-button" :disabled="isNavigating">
+          <span class="icon">←</span>
+        </button>
       </div>
     </div>
 
-    <!-- Calendar Tab Content -->
-    <div v-if="activeTab === 'calendar'">
-      <div class="calendar-header">
-        <h2 class="calendar-title">{{ t('hijriCalendar.title') }}</h2>
-        <div class="calendar-controls">
-          <button @click="previousMonth" class="control-button" :disabled="isNavigating">
-            <span class="icon">→</span>
-          </button>
-          <div class="month-display">
-            <span class="month-name">{{ currentMonth?.name_ar || '' }}</span>
-            <span class="month-name-en">{{ currentMonth?.name_en || '' }}</span>
-            <span class="year" v-if="currentMonth?.year">{{ currentMonth.year }}{{ t('hijriCalendar.hijriYear') }}</span>
-          </div>
-          <button @click="nextMonth" class="control-button" :disabled="isNavigating">
-            <span class="icon">←</span>
-          </button>
+    <!-- Calendar content with fixed height container -->
+    <div class="calendar-container">
+      <!-- Initial loading state -->
+      <div v-if="loading && !isNavigating" class="calendar-loading">
+        <div class="spinner-container">
+          <div class="spinner"></div>
         </div>
+        <p class="loading-text">{{ t('hijriCalendar.loading') }}</p>
       </div>
 
-      <!-- Calendar content with fixed height container -->
-      <div class="calendar-container">
-        <!-- Initial loading state -->
-        <div v-if="loading && !isNavigating" class="calendar-loading">
-          <div class="spinner-container">
-            <div class="spinner"></div>
-          </div>
-          <p class="loading-text">{{ t('hijriCalendar.loading') }}</p>
-        </div>
+      <div v-else-if="error" class="calendar-error">
+        <p>{{ t('hijriCalendar.error') }}: {{ error }}</p>
+      </div>
 
-        <div v-else-if="error" class="calendar-error">
-          <p>{{ t('hijriCalendar.error') }}: {{ error }}</p>
-        </div>
-
-        <!-- Calendar with transition effects -->
-        <div v-else class="calendar-wrapper">
-          <transition :name="navigationDirection" mode="out-in">
-            <div :key="currentMonth?.name_en + currentMonth?.year" class="calendar-body">
-              <div class="weekdays">
-                <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
+      <!-- Calendar with transition effects -->
+      <div v-else class="calendar-wrapper">
+        <transition :name="navigationDirection" mode="out-in">
+          <div :key="currentMonth?.name_en + currentMonth?.year" class="calendar-body">
+            <div class="weekdays">
+              <div class="weekday" v-for="day in weekdays" :key="day">{{ day }}</div>
+            </div>
+            
+            <div class="days-grid">
+              <!-- Empty cells for days before the month starts -->
+              <div 
+                v-for="n in firstDayOfMonth" 
+                :key="`empty-${n}`" 
+                class="day-cell empty">
               </div>
               
-              <div class="days-grid">
-                <!-- Empty cells for days before the month starts -->
-                <div 
-                  v-for="n in firstDayOfMonth" 
-                  :key="`empty-${n}`" 
-                  class="day-cell empty">
-                </div>
-                
-                <!-- Calendar days -->
-                <div 
-                  v-for="day in calendarDays" 
-                  :key="day.hijri_day" 
-                  class="day-cell"
-                  :class="{ 
-                    'has-events': day.events.length > 0,
-                    'has-holiday': day.events.some(e => e.is_holiday),
-                    'today': isToday(day.gregorian_date)
-                  }"
-                  @click="showDayDetails(day)"
-                >
-                  <div class="day-content">
-                    <div class="day-number-container">
-                      <span class="day-number">{{ day.hijri_day }}</span>
-                      <span class="hijri-indicator">هـ</span>
-                    </div>
-                    <div class="gregorian-date">{{ formatGregorianDate(day.gregorian_date) }}</div>
-                    
-                    <div v-if="day.events.length > 0" class="event-indicators">
-                      <span 
-                        v-for="(event, index) in day.events.slice(0, 2)" 
-                        :key="index" 
-                        class="event-dot"
-                        :class="{ 'holiday': event.is_holiday }"
-                      ></span>
-                      <span v-if="day.events.length > 2" class="more-events">+{{ day.events.length - 2 }}</span>
-                    </div>
-                    
-                    <!-- Event glimpse for larger screens -->
-                    <div v-if="day.events.length > 0" class="event-glimpse">
-                      <div class="event-glimpse-title">{{ day.events[0].title_ar.substring(0, 20) }}{{ day.events[0].title_ar.length > 20 ? '...' : '' }}</div>
-                    </div>
+              <!-- Calendar days -->
+              <div 
+                v-for="day in calendarDays" 
+                :key="day.hijri_day" 
+                class="day-cell"
+                :class="{ 
+                  'has-events': day.events.length > 0,
+                  'has-holiday': day.events.some(e => e.is_holiday),
+                  'today': isToday(day.gregorian_date)
+                }"
+                @click="showDayDetails(day)"
+              >
+                <div class="day-content">
+                  <div class="day-number-container">
+                    <span class="day-number">{{ day.hijri_day }}</span>
+                    <span class="hijri-indicator">هـ</span>
+                  </div>
+                  <div class="gregorian-date">{{ formatGregorianDate(day.gregorian_date) }}</div>
+                  
+                  <div v-if="day.events.length > 0" class="event-indicators">
+                    <span 
+                      v-for="(event, index) in day.events.slice(0, 2)" 
+                      :key="index" 
+                      class="event-dot"
+                      :class="{ 'holiday': event.is_holiday }"
+                    ></span>
+                    <span v-if="day.events.length > 2" class="more-events">+{{ day.events.length - 2 }}</span>
+                  </div>
+                  
+                  <!-- Event glimpse for all screen sizes -->
+                  <div v-if="day.events.length > 0" class="event-glimpse">
+                    <div class="event-glimpse-title">{{ formatEventTitle(day.events[0].title_ar) }}</div>
                   </div>
                 </div>
               </div>
             </div>
-          </transition>
-          
-          <!-- Navigation loading overlay -->
-          <div v-if="isNavigating && showSpinner" class="navigation-loading-overlay">
-            <div class="spinner-container">
-              <div class="spinner"></div>
-            </div>
           </div>
-        </div>
-      </div>
-
-      <!-- Day details modal -->
-      <div v-if="selectedDay" class="day-details-modal">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3 class="modal-title">
-              {{ formatHijriDate(selectedDay) }}
-            </h3>
-            <button @click="closeModal" class="close-button">&times;</button>
-          </div>
-          
-          <div class="modal-body">
-            <div class="date-info">
-              <div class="gregorian-date-full">{{ formatGregorianDateFull(selectedDay.gregorian_date) }}</div>
-            </div>
-            
-            <div class="events-container">
-              <div v-if="selectedDay.events.length > 0" class="events-list">
-                <h4>{{ t('hijriCalendar.events') }}</h4>
-                <div 
-                  v-for="(event, index) in selectedDay.events" 
-                  :key="index"
-                  :class="['event-item', { 'holiday': event.is_holiday }]"
-                >
-                  <div class="event-title">{{ event.title_ar }}</div>
-                  <div class="event-title-en">{{ event.title_en }}</div>
-                  <div v-if="event.description_ar" class="event-description">{{ event.description_ar }}</div>
-                </div>
-              </div>
-              
-              <div v-if="selectedDay.astronomical_events.length > 0" class="astro-events-list">
-                <h4>{{ t('hijriCalendar.astronomicalEvents') }}</h4>
-                <div 
-                  v-for="(event, index) in selectedDay.astronomical_events" 
-                  :key="index"
-                  class="astro-event-item"
-                >
-                  <div class="event-title">{{ event.title_ar }}</div>
-                  <div class="event-time" v-if="event.time">{{ event.time }}</div>
-                  <div v-if="event.description_ar" class="event-description">{{ event.description_ar }}</div>
-                </div>
-              </div>
-              
-              <div v-if="selectedDay.events.length === 0 && selectedDay.astronomical_events.length === 0" class="no-events">
-                {{ t('hijriCalendar.noEvents') }}
-              </div>
-            </div>
+        </transition>
+        
+        <!-- Navigation loading overlay -->
+        <div v-if="isNavigating && showSpinner" class="navigation-loading-overlay">
+          <div class="spinner-container">
+            <div class="spinner"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Age Calculator Tab Content -->
-    <div v-else-if="activeTab === 'ageCalculator'">
-      <AgeCalculator />
+    <!-- Day details modal -->
+    <div v-if="selectedDay" class="day-details-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">
+            {{ formatHijriDate(selectedDay) }}
+          </h3>
+          <button @click="closeModal" class="close-button">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="date-info">
+            <div class="gregorian-date-full">{{ formatGregorianDateFull(selectedDay.gregorian_date) }}</div>
+          </div>
+          
+          <div class="events-container">
+            <div v-if="selectedDay.events.length > 0" class="events-list">
+              <h4>{{ t('hijriCalendar.events') }}</h4>
+              <div 
+                v-for="(event, index) in selectedDay.events" 
+                :key="index"
+                :class="['event-item', { 'holiday': event.is_holiday }]"
+              >
+                <div class="event-title">{{ event.title_ar }}</div>
+                <div class="event-title-en">{{ event.title_en }}</div>
+                <div v-if="event.description_ar" class="event-description">{{ event.description_ar }}</div>
+              </div>
+            </div>
+            
+            <div v-if="selectedDay.astronomical_events.length > 0" class="astro-events-list">
+              <h4>{{ t('hijriCalendar.astronomicalEvents') }}</h4>
+              <div 
+                v-for="(event, index) in selectedDay.astronomical_events" 
+                :key="index"
+                class="astro-event-item"
+              >
+                <div class="event-title">{{ event.title_ar }}</div>
+                <div class="event-time" v-if="event.time">{{ event.time }}</div>
+                <div v-if="event.description_ar" class="event-description">{{ event.description_ar }}</div>
+              </div>
+            </div>
+            
+            <div v-if="selectedDay.events.length === 0 && selectedDay.astronomical_events.length === 0" class="no-events">
+              {{ t('hijriCalendar.noEvents') }}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Source information -->
@@ -178,15 +155,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import axios from 'axios';
-import AgeCalculator from './AgeCalculator.vue';
+import { store } from '../store';
 
 const { t } = useI18n();
 
-// Tab state
-const activeTab = ref('calendar');
+// Extract base API URL from store
+const API_BASE_URL = store.API_URL || 'http://192.168.84.194:8000/api';
 
 // State variables
 const loading = ref(true);
@@ -210,6 +187,14 @@ const showSpinner = ref(false);
 
 // Arabic weekdays
 const weekdays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+// Screen width state for responsive title formatting
+const windowWidth = ref(window.innerWidth);
+
+// Update window width on resize
+const handleResize = () => {
+  windowWidth.value = window.innerWidth;
+};
 
 // Computed properties
 const calendarDays = computed(() => {
@@ -287,7 +272,7 @@ const fetchCalendarData = async (monthNumber = null, year = null) => {
     }
     
     // Construct the API URL with query parameters if provided
-    let url = 'http://127.0.0.1:8000/api/hijri-calendar/';
+    let url = `${API_BASE_URL}/hijri-calendar/`;
     
     // If specific month number and year are provided, use them
     if (monthNumber !== null && year) {
@@ -400,7 +385,7 @@ const fetchAvailableMonths = async () => {
     
     // Start with the first page
     let allMonths = [];
-    let currentUrl = 'http://127.0.0.1:8000/api/hijri-months/';
+    let currentUrl = `${API_BASE_URL}/hijri-months/`;
     let hasMorePages = true;
     
     // Fetch all pages
@@ -685,21 +670,19 @@ const nextMonth = () => {
   }
 };
 
-// Tab methods
-const setActiveTab = (tab) => {
-  activeTab.value = tab;
-};
-
 // Initialize the calendar
 onMounted(async () => {
   try {
+    // Add resize event listener
+    window.addEventListener('resize', handleResize);
+    
     // First fetch available months to see what we have
     await fetchAvailableMonths();
     
     // Try to get the current Hijri month from the API
     try {
       console.log('Fetching current Hijri month');
-      const response = await axios.get('http://127.0.0.1:8000/api/hijri-months/current/', {
+      const response = await axios.get(`${API_BASE_URL}/hijri-months/current/`, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -740,6 +723,11 @@ onMounted(async () => {
   }
 });
 
+// Remove event listener on component unmount
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+});
+
 // Formatted Hijri date for the modal title
 const formatHijriDate = (day) => {
   if (!day || !currentMonth.value) return '';
@@ -750,6 +738,30 @@ const formatHijriDate = (day) => {
 const closeModal = () => {
   selectedDay.value = null;
 };
+
+// Helper function to format event title based on screen size
+const formatEventTitle = (title) => {
+  if (!title) return '';
+  
+  // Use reactive window width
+  const width = windowWidth.value;
+  
+  // Determine character limit based on screen size
+  let charLimit = 20; // Default
+  
+  if (width <= 480) {
+    charLimit = 12;
+  } else if (width <= 768) {
+    charLimit = 15;
+  } else if (width <= 1024) {
+    charLimit = 20;
+  } else {
+    charLimit = 25;
+  }
+  
+  // Truncate title if needed
+  return title.length > charLimit ? title.substring(0, charLimit) + '...' : title;
+};
 </script>
 
 <style scoped>
@@ -758,34 +770,12 @@ const closeModal = () => {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   margin: 20px 0;
-  padding: 20px;
+  padding: 15px;
   direction: rtl;
   position: relative;
-}
-
-.tabs-container {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.tab {
-  padding: 0.75rem 1.5rem;
-  cursor: pointer;
-  font-weight: 600;
-  color: var(--text-secondary);
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.tab:hover {
-  color: var(--primary-color);
-}
-
-.tab.active {
-  color: var(--primary-color);
-  border-bottom: 3px solid var(--primary-color);
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .calendar-header {
@@ -793,6 +783,7 @@ const closeModal = () => {
   flex-direction: column;
   align-items: center;
   margin-bottom: 20px;
+  margin-top: 10px; /* Add top margin since tabs are gone */
 }
 
 .calendar-title {
@@ -928,6 +919,8 @@ const closeModal = () => {
 
 .calendar-body {
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .weekdays {
@@ -935,6 +928,7 @@ const closeModal = () => {
   grid-template-columns: repeat(7, 1fr);
   gap: 5px;
   margin-bottom: 10px;
+  width: 100%;
 }
 
 .weekday {
@@ -950,25 +944,28 @@ const closeModal = () => {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 5px;
+  width: 100%;
+  flex-grow: 1;
 }
 
 .day-cell {
-  aspect-ratio: 1;
   border-radius: 8px;
   background-color: #f8fafc;
-  padding: 8px;
+  padding: 5px;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 80px;
+  min-height: 60px;
+  box-sizing: border-box;
 }
 
 .day-cell:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   background-color: #f1f5f9;
+  z-index: 1; /* Ensure hover effect shows above other cells */
 }
 
 .day-cell.empty {
@@ -979,6 +976,8 @@ const closeModal = () => {
 .day-cell.empty:hover {
   transform: none;
   box-shadow: none;
+  background-color: transparent;
+  z-index: auto;
 }
 
 .day-cell.has-events {
@@ -997,13 +996,13 @@ const closeModal = () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   width: 100%;
 }
 
 .day-number-container {
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
 .day-number {
@@ -1036,7 +1035,8 @@ const closeModal = () => {
   display: flex;
   gap: 3px;
   align-items: center;
-  margin-top: 5px;
+  margin-top: auto;
+  padding-top: 3px;
 }
 
 .event-dot {
@@ -1056,8 +1056,8 @@ const closeModal = () => {
 }
 
 .event-glimpse {
-  display: none;
-  margin-top: 5px;
+  display: block;
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1211,55 +1211,234 @@ const closeModal = () => {
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .hijri-calendar-container {
+    padding: 10px;
+  }
+
   .weekday {
-    font-size: 0.8rem;
-    padding: 5px 0;
+    font-size: 0.7rem;
+    padding: 3px 0;
   }
   
   .day-cell {
-    padding: 5px;
-    min-height: 60px;
+    min-height: 75px; /* Further reduced height */
+    padding: 4px;
+  }
+  
+  .day-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: flex-start;
+    gap: 0;
+  }
+  
+  .day-number-container {
+    margin-bottom: 0; /* No margin after day number */
   }
   
   .day-number {
-    font-size: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .hijri-indicator {
+    font-size: 0.6rem;
   }
   
   .gregorian-date {
+    margin-top: 0;
+    margin-bottom: 2px; /* Consistent small margin */
     font-size: 0.6rem;
     padding: 1px 2px;
   }
   
-  .event-dot {
-    width: 6px;
-    height: 6px;
+  .event-indicators {
+    display: none; /* Hide event dots on mobile */
   }
   
-  .hijri-indicator {
-    font-size: 0.7rem;
+  .event-glimpse {
+    margin-top: 0;
+    padding-top: 0;
   }
   
-  .calendar-container {
-    min-height: 500px; /* Slightly smaller for mobile */
+  .event-glimpse-title {
+    font-size: 0.65rem;
+    line-height: 1.2;
+    color: #1e3a8a;
   }
   
-  .calendar-wrapper {
-    min-height: 500px; /* Slightly smaller for mobile */
+  .calendar-title {
+    font-size: 1.3rem;
   }
-  
-  .calendar-loading, .calendar-error {
-    min-height: 500px; /* Match the mobile min-height */
+
+  .month-display {
+    min-width: 100px;
+  }
+
+  .month-name {
+    font-size: 1.1rem;
+  }
+
+  .month-name-en, .year {
+    font-size: 0.8rem;
+  }
+
+  .control-button {
+    width: 35px;
+    height: 35px;
   }
 }
 
-/* Show event glimpse on larger screens */
-@media (min-width: 1024px) {
+@media (max-width: 480px) {
+  .hijri-calendar-container {
+    padding: 8px;
+  }
+  
+  .weekday {
+    font-size: 0.6rem;
+    padding: 2px 0;
+  }
+  
+  .days-grid {
+    gap: 3px;
+  }
+  
   .day-cell {
-    min-height: 100px;
+    padding: 4px;
+    min-height: 75px; /* Further reduced height */
+  }
+  
+  .day-content {
+    justify-content: flex-start;
+    gap: 0;
+  }
+  
+  .day-number {
+    font-size: 0.85rem;
+  }
+  
+  .hijri-indicator {
+    font-size: 0.55rem;
+  }
+  
+  .gregorian-date {
+    margin-top: 0;
+    margin-bottom: 1px; /* Minimum margin */
+    padding: 1px;
+    font-size: 0.55rem;
+    max-width: 100%;
+  }
+  
+  .event-glimpse {
+    margin-top: 0;
+    padding-top: 0;
+  }
+  
+  .event-glimpse-title {
+    font-size: 0.55rem;
+    line-height: 1.1;
+    max-height: 2.2em;
+    -webkit-line-clamp: 2;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+    color: #1e3a8a;
+  }
+  
+  .calendar-container {
+    min-height: 550px;
+  }
+  
+  .calendar-wrapper {
+    min-height: 550px;
+  }
+  
+  .calendar-loading, .calendar-error {
+    min-height: 550px;
+  }
+  
+  .month-name {
+    font-size: 1rem;
+  }
+
+  .calendar-controls {
+    gap: 8px;
+  }
+
+  .control-button {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* Desktop optimization for square cells */
+@media (min-width: 1024px) {
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    aspect-ratio: 7/6; /* Approximate ratio for the entire grid */
+    gap: 10px;
+  }
+  
+  .day-cell {
+    position: relative;
+    min-height: unset;
+    aspect-ratio: 1/1; /* Make cells square on desktop */
+    padding: 0; /* Remove padding as we'll handle it in day-content */
+    overflow: hidden; /* Ensure content doesn't overflow */
+  }
+  
+  .day-cell.empty {
+    aspect-ratio: 1/1;
+  }
+  
+  .day-cell:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #f1f5f9;
+    z-index: 1; /* Ensure hover effect shows above other cells */
+  }
+  
+  .day-cell.empty:hover {
+    transform: none;
+    box-shadow: none;
+    background-color: transparent;
+    z-index: auto;
+  }
+  
+  .day-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
   }
   
   .event-glimpse {
     display: block;
+    margin-top: auto;
+    max-height: 40%;
+    overflow: hidden;
+    padding-top: 4px;
+  }
+  
+  .event-glimpse-title {
+    font-size: 0.8rem;
+    line-height: 1.3;
+    max-height: 2.6em;
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .calendar-container {
@@ -1272,6 +1451,40 @@ const closeModal = () => {
   
   .calendar-loading, .calendar-error {
     min-height: 700px; /* Match the desktop min-height */
+  }
+}
+
+/* Extra large screens */
+@media (min-width: 1440px) {
+  .hijri-calendar-container {
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .days-grid {
+    aspect-ratio: 7/5; /* Slightly shorter cells for better proportions on large screens */
+  }
+  
+  .day-cell {
+    /* Remove padding since it's now handled in day-content */
+  }
+  
+  .day-content {
+    padding: 10px; /* Increase padding for larger screens */
+  }
+  
+  .day-number {
+    font-size: 1.4rem;
+  }
+  
+  .gregorian-date {
+    font-size: 0.85rem;
+    padding: 3px 6px;
+  }
+  
+  .event-glimpse-title {
+    font-size: 0.9rem;
   }
 }
 

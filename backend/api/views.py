@@ -3,14 +3,16 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from .models import Khatmah, Participant, JuzAssignment, HijriMonth, HijriEvent, AstronomicalEvent
+from .models import Khatmah, Participant, JuzAssignment, SurahAssignment, HijriMonth, HijriEvent, AstronomicalEvent
 from .serializers import (
     KhatmahSerializer, KhatmahListSerializer, ParticipantSerializer, JuzAssignmentSerializer,
-    HijriMonthDetailSerializer, HijriMonthListSerializer, HijriEventSerializer, AstronomicalEventSerializer
+    SurahAssignmentSerializer, HijriMonthDetailSerializer, HijriMonthListSerializer, 
+    HijriEventSerializer, AstronomicalEventSerializer
 )
 import requests
 from django.shortcuts import render
 import math
+import uuid
 
 def home(request):
     return JsonResponse({"message": "Welcome to Quran Khatmah API!"})
@@ -139,12 +141,98 @@ def get_juz_text(request, juz_number):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+@api_view(['GET'])
+def get_surah_text(request, surah_number):
+    """
+    Fetch the text content for a specific Surah from the Quran API
+    """
+    if surah_number < 1 or surah_number > 114:
+        return Response({'error': 'Invalid Surah number. Must be between 1 and 114.'}, 
+                        status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Fetch Arabic text from the Quran API
+        api_url = f"http://api.alquran.cloud/v1/surah/{surah_number}/quran-uthmani"
+        
+        # Add proper headers to the request
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'application/json',
+        }
+        
+        response = requests.get(api_url, headers=headers, timeout=10)
+        
+        # Check if the response is valid
+        if response.status_code != 200:
+            return Response(
+                {'error': f'Failed to fetch Surah text from Quran API: {response.status_code}', 'details': response.text[:200]},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+        
+        # Try to parse the JSON response
+        try:
+            data = response.json()
+        except ValueError as e:
+            return Response(
+                {'error': 'Invalid JSON response from Quran API', 'details': str(e), 'response': response.text[:200]},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+        
+        # Check if the API response is valid
+        if data.get('code') != 200 or 'data' not in data:
+            return Response(
+                {'error': 'Invalid response format from Quran API', 'response': data},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+        
+        # Extract the ayahs from the response
+        ayahs = data['data']['ayahs']
+        surah_name = data['data']['name']
+        
+        # Format the response
+        formatted_text = f"## {surah_name}\n\n"
+        
+        # Add each ayah to the formatted text
+        for ayah in ayahs:
+            formatted_text += f"{ayah['text']} ({ayah['numberInSurah']})\n\n"
+        
+        return Response({
+            'surah_number': surah_number,
+            'surah_name': surah_name,
+            'text': formatted_text,
+            'ayahs': ayahs
+        })
+    except requests.exceptions.RequestException as e:
+        return Response(
+            {'error': f'Network error when connecting to Quran API: {str(e)}'},
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+    except Exception as e:
+        return Response(
+            {'error': f'An error occurred: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
 class KhatmahPagination(PageNumberPagination):
-    page_size = 9
+    page_size = 3
     page_size_query_param = 'page_size'
     max_page_size = 100
 
 class KhatmahViewSet(viewsets.ModelViewSet):
+    """
+    Khatmah API endpoints.
+    
+    Authentication & Authorization:
+    - Creating a khatmah generates a unique creator_token which is returned in the response
+    - For secure ownership verification, provide this creator_token:
+      - In query parameters for GET, DELETE requests: ?creator_token=xxx
+      - In request body for PUT, PATCH, POST requests: {"creator_token": "xxx"}
+    - The token is only returned when requesting a khatmah with a valid creator_token
+    - The creator_token provides permanent ownership rights, even across different devices
+    
+    Alternatively, participant_id can be used for ownership verification, but it's less secure
+    as it requires keeping track of which participant created the khatmah.
+    """
     queryset = Khatmah.objects.all()
     pagination_class = KhatmahPagination
     
@@ -153,10 +241,64 @@ class KhatmahViewSet(viewsets.ModelViewSet):
             return KhatmahListSerializer
         return KhatmahSerializer
     
+    def validate_uuid(self, uuid_string):
+        """Helper method to validate UUID format"""
+        try:
+            uuid_obj = uuid.UUID(str(uuid_string))
+            return True
+        except (ValueError, TypeError, AttributeError):
+            return False
+    
+    def get_queryset(self):
+        queryset = Khatmah.objects.all()
+        
+        # Check if is_private filter is in the request
+        is_private = self.request.query_params.get('is_private', None)
+        if is_private is not None:
+            # Only accept valid boolean string values
+            if is_private.lower() in ('true', 'false'):
+                # Convert string to boolean ('false' -> False, 'true' -> True)
+                is_private_bool = is_private.lower() == 'true'
+                queryset = queryset.filter(is_private=is_private_bool)
+            
+        return queryset
+    
+    def create(self, request, *args, **kwargs):
+        # Validate the creator_token if provided (must be a valid UUID)
+        creator_token_from_request = request.data.get('creator_token')
+        if creator_token_from_request:
+            try:
+                # Verify it's a valid UUID format
+                uuid_obj = uuid.UUID(str(creator_token_from_request))
+            except (ValueError, TypeError, AttributeError):
+                return Response(
+                    {'error': 'Invalid creator_token format. Must be a valid UUID.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Remove it from the request data before creating the instance
+        mutable_data = request.data.copy()
+        if 'creator_token' in mutable_data:
+            del mutable_data['creator_token']
+        request._full_data = mutable_data
+        
+        # Create the khatmah
+        response = super().create(request, *args, **kwargs)
+        
+        # Add the creator_token to the response
+        khatmah_id = response.data['id']
+        khatmah = Khatmah.objects.get(id=khatmah_id)
+        
+        # Set flag for serializer that will add creator_token to response
+        request.creator_token_matched = True
+        
+        return response
+    
     @action(detail=True, methods=['post'])
     def join(self, request, pk=None):
         khatmah = self.get_object()
         name = request.data.get('name')
+        creator_token = request.data.get('creator_token')
         
         # If name is not required and not provided, use "Anonymous Reader"
         if not khatmah.require_name and (not name or not name.strip()):
@@ -166,8 +308,122 @@ class KhatmahViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Name is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         participant = Participant.objects.create(name=name, khatmah=khatmah)
+        
+        # Check if this participant should be the creator based on the creator_token
+        if creator_token and str(khatmah.creator_token) == str(creator_token) and not khatmah.creator:
+            khatmah.creator = participant
+            khatmah.save()
+        
         serializer = ParticipantSerializer(participant)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def update(self, request, *args, **kwargs):
+        khatmah = self.get_object()
+        
+        # Validate the creator_token if provided (must be a valid UUID)
+        creator_token = request.data.get('creator_token')
+        if creator_token:
+            try:
+                # Verify it's a valid UUID format
+                uuid_obj = uuid.UUID(str(creator_token))
+            except (ValueError, TypeError, AttributeError):
+                return Response(
+                    {'error': 'Invalid creator_token format. Must be a valid UUID.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Remove it from the request data before updating
+        mutable_data = request.data.copy()
+        if 'creator_token' in mutable_data:
+            del mutable_data['creator_token']
+        request._full_data = mutable_data
+        
+        # Check authentication
+        if creator_token and str(khatmah.creator_token) == str(creator_token):
+            # Set flag for serializer that will add creator_token to response
+            request.creator_token_matched = True
+            return super().update(request, *args, **kwargs)
+        
+        # Otherwise, check participant ID authentication
+        participant_id = request.data.get('participant_id')
+        if not participant_id:
+            # Check if there's a creator set on the khatmah
+            if khatmah.creator:
+                return Response(
+                    {'error': 'You are not authorized to edit this khatmah. Must provide participant_id or creator_token.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            # For backward compatibility, allow edits if no creator is set
+            return super().update(request, *args, **kwargs)
+            
+        # Verify the participant is the creator
+        if not khatmah.creator or str(khatmah.creator.id) != participant_id:
+            return Response(
+                {'error': 'You are not authorized to edit this khatmah'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        return super().update(request, *args, **kwargs)
+        
+    def destroy(self, request, *args, **kwargs):
+        khatmah = self.get_object()
+        
+        # Validate the creator_token if provided (must be a valid UUID)
+        creator_token = request.query_params.get('creator_token')
+        if creator_token:
+            try:
+                # Verify it's a valid UUID format
+                uuid_obj = uuid.UUID(str(creator_token))
+            except (ValueError, TypeError, AttributeError):
+                return Response(
+                    {'error': 'Invalid creator_token format. Must be a valid UUID.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            # Check token validity
+            if str(khatmah.creator_token) == str(creator_token):
+                return super().destroy(request, *args, **kwargs)
+        
+        # Otherwise check participant ID authentication
+        participant_id = request.query_params.get('participant_id')
+        if not participant_id:
+            # Check if there's a creator set on the khatmah
+            if khatmah.creator:
+                return Response(
+                    {'error': 'You are not authorized to delete this khatmah. Must provide participant_id or creator_token.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            # For backward compatibility, allow deletion if no creator is set
+            return super().destroy(request, *args, **kwargs)
+            
+        # Verify the participant is the creator
+        if not khatmah.creator or str(khatmah.creator.id) != participant_id:
+            return Response(
+                {'error': 'You are not authorized to delete this khatmah'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+            
+        return super().destroy(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        khatmah = self.get_object()
+        
+        # Validate the creator_token if provided (must be a valid UUID)
+        creator_token = request.query_params.get('creator_token')
+        if creator_token:
+            try:
+                # Verify it's a valid UUID format
+                uuid_obj = uuid.UUID(str(creator_token))
+                
+                # If valid, check if it matches
+                if str(khatmah.creator_token) == str(creator_token):
+                    # The serializer will see this match and include creator_token in response
+                    request.creator_token_matched = True
+            except (ValueError, TypeError, AttributeError):
+                # Don't return an error for GET requests, just don't authenticate
+                pass
+        
+        return super().retrieve(request, *args, **kwargs)
 
 class ParticipantViewSet(viewsets.ModelViewSet):
     queryset = Participant.objects.all()
@@ -178,10 +434,42 @@ class JuzAssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = JuzAssignmentSerializer
     
     def create(self, request, *args, **kwargs):
-        # Check if the juz is already assigned in this khatmah
+        # Validate the input data
         khatmah_id = request.data.get('khatmah')
         juz_number = request.data.get('juz_number')
+        participant_id = request.data.get('participant')
         
+        # Validate UUID fields
+        if not khatmah_id or not participant_id:
+            return Response(
+                {'error': 'Khatmah ID and participant ID are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            uuid.UUID(str(khatmah_id))
+            uuid.UUID(str(participant_id))
+        except (ValueError, TypeError, AttributeError):
+            return Response(
+                {'error': 'Invalid UUID format for khatmah ID or participant ID'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate juz_number is within range
+        try:
+            juz_number = int(juz_number)
+            if juz_number < 1 or juz_number > 30:
+                return Response(
+                    {'error': 'Juz number must be between 1 and 30'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid juz number format'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Check if the juz is already assigned in this khatmah
         if JuzAssignment.objects.filter(khatmah_id=khatmah_id, juz_number=juz_number).exists():
             return Response(
                 {'error': f'Juz {juz_number} is already assigned in this khatmah'},
@@ -192,6 +480,81 @@ class JuzAssignmentViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def toggle_complete(self, request, pk=None):
+        # Validate UUID
+        try:
+            uuid.UUID(str(pk))
+        except (ValueError, TypeError, AttributeError):
+            return Response(
+                {'error': 'Invalid assignment ID format'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        assignment = self.get_object()
+        assignment.completed = not assignment.completed
+        assignment.save()
+        serializer = self.get_serializer(assignment)
+        return Response(serializer.data)
+
+class SurahAssignmentViewSet(viewsets.ModelViewSet):
+    queryset = SurahAssignment.objects.all()
+    serializer_class = SurahAssignmentSerializer
+    
+    def create(self, request, *args, **kwargs):
+        # Validate the input data
+        khatmah_id = request.data.get('khatmah')
+        surah_number = request.data.get('surah_number')
+        participant_id = request.data.get('participant')
+        
+        # Validate UUID fields
+        if not khatmah_id or not participant_id:
+            return Response(
+                {'error': 'Khatmah ID and participant ID are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            uuid.UUID(str(khatmah_id))
+            uuid.UUID(str(participant_id))
+        except (ValueError, TypeError, AttributeError):
+            return Response(
+                {'error': 'Invalid UUID format for khatmah ID or participant ID'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate surah_number is within range
+        try:
+            surah_number = int(surah_number)
+            if surah_number < 1 or surah_number > 114:
+                return Response(
+                    {'error': 'Surah number must be between 1 and 114'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid surah number format'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if the surah is already assigned in this khatmah
+        if SurahAssignment.objects.filter(khatmah_id=khatmah_id, surah_number=surah_number).exists():
+            return Response(
+                {'error': f'Surah {surah_number} is already assigned in this khatmah'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        return super().create(request, *args, **kwargs)
+    
+    @action(detail=True, methods=['post'])
+    def toggle_complete(self, request, pk=None):
+        # Validate UUID
+        try:
+            uuid.UUID(str(pk))
+        except (ValueError, TypeError, AttributeError):
+            return Response(
+                {'error': 'Invalid assignment ID format'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
         assignment = self.get_object()
         assignment.completed = not assignment.completed
         assignment.save()

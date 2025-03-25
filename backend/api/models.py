@@ -4,6 +4,13 @@ import uuid
 # Create your models here.
 
 class Khatmah(models.Model):
+    JUZ_TYPE = 'juz'
+    SURAH_TYPE = 'surah'
+    KHATMAH_TYPES = [
+        (JUZ_TYPE, 'Juz Based'),
+        (SURAH_TYPE, 'Surah Based'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -11,6 +18,9 @@ class Khatmah(models.Model):
     require_name = models.BooleanField(default=True)
     end_date = models.DateField(null=True, blank=True)
     image_url = models.URLField(max_length=1000, null=True, blank=True)
+    khatmah_type = models.CharField(max_length=10, choices=KHATMAH_TYPES, default=JUZ_TYPE)
+    creator = models.ForeignKey('Participant', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_khatmahs')
+    creator_token = models.UUIDField(default=uuid.uuid4, editable=False, null=True, blank=True)
     
     def __str__(self):
         return self.name
@@ -37,6 +47,20 @@ class JuzAssignment(models.Model):
     
     def __str__(self):
         return f"Juz {self.juz_number} assigned to {self.participant.name} in {self.khatmah.name}"
+
+class SurahAssignment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    surah_number = models.IntegerField()
+    participant = models.ForeignKey(Participant, related_name='surah_assignments', on_delete=models.CASCADE)
+    khatmah = models.ForeignKey(Khatmah, related_name='surah_assignments', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed = models.BooleanField(default=False)
+    
+    class Meta:
+        unique_together = ('surah_number', 'khatmah')
+    
+    def __str__(self):
+        return f"Surah {self.surah_number} assigned to {self.participant.name} in {self.khatmah.name}"
 
 # Hijri Calendar Models
 class HijriMonth(models.Model):

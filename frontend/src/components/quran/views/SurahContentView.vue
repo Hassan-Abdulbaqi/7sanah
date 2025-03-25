@@ -198,6 +198,10 @@ export default {
     currentPlayingVerse: {
       type: Number,
       default: null
+    },
+    highlightedAyah: {
+      type: Number,
+      default: null
     }
   },
   data() {
@@ -215,7 +219,6 @@ export default {
       prefetchThreshold: 500,
       loadThreshold: 300,
       isLargeSurah: false,
-      highlightedAyah: null,
       _scrollDebounceTimer: null,
       _prefetchTimer: null,
       _shouldPrefetch: false,
@@ -238,6 +241,14 @@ export default {
       },
       immediate: true,
       deep: true
+    },
+    highlightedAyah(newValue) {
+      if (newValue) {
+        // When highlighted ayah changes, scroll to it
+        this.$nextTick(() => {
+          this.scrollToVerse(newValue);
+        });
+      }
     }
   },
   created() {
@@ -587,6 +598,106 @@ export default {
       } catch (error) {
         console.error('Error loading user preferences:', error);
       }
+    },
+    
+    // Method to scroll to a specific verse
+    scrollToVerse(verseNumberInSurah) {
+      console.log(`Attempting to scroll to verse ${verseNumberInSurah}`);
+      
+      if (!verseNumberInSurah) {
+        console.warn('No verse number provided for scrolling');
+        return;
+      }
+      
+      // Ensure the verse is loaded by checking if we need to load more verses
+      this.ensureVerseIsLoaded(verseNumberInSurah).then(() => {
+        // Scroll after a short delay to ensure DOM is updated
+        setTimeout(() => {
+          try {
+            const verseElement = document.getElementById(`verse-${verseNumberInSurah}`);
+            
+            if (verseElement) {
+              console.log(`Found verse element #verse-${verseNumberInSurah}, scrolling to it`);
+              
+              // Scroll the verse into view
+              verseElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+              });
+              
+              // Add a highlighted class for better visibility
+              verseElement.classList.add('highlighted');
+              
+              // Add the animation class
+              verseElement.classList.add('verse-highlight-animation');
+              
+              // Remove animation class after animation completes
+              setTimeout(() => {
+                verseElement.classList.remove('verse-highlight-animation');
+                // Keep the highlighted class for easier reference
+                setTimeout(() => {
+                  verseElement.classList.remove('highlighted');
+                }, 5000); // Keep highlighted for 5 seconds
+              }, 2000);
+            } else {
+              console.warn(`Verse element #verse-${verseNumberInSurah} not found in DOM after loading`);
+              
+              // As a fallback, try to find the closest verse
+              const verses = document.querySelectorAll('[id^="verse-"]');
+              console.log(`Found ${verses.length} total verses in the DOM`);
+              
+              if (verses.length > 0) {
+                // Find the nearest verse number
+                let closestVerse = null;
+                let minDiff = Number.MAX_VALUE;
+                
+                verses.forEach(verse => {
+                  const currentVerseNum = parseInt(verse.id.replace('verse-', ''));
+                  const diff = Math.abs(currentVerseNum - verseNumberInSurah);
+                  
+                  if (diff < minDiff) {
+                    minDiff = diff;
+                    closestVerse = verse;
+                  }
+                });
+                
+                if (closestVerse) {
+                  console.log(`Scrolling to closest verse: ${closestVerse.id}`);
+                  closestVerse.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error scrolling to verse:', error);
+          }
+        }, 300); // Small delay to ensure DOM is updated
+      }).catch(error => {
+        console.error('Error ensuring verse is loaded:', error);
+      });
+    },
+    
+    // Ensure the verse is loaded by loading more verses if needed
+    async ensureVerseIsLoaded(verseNumberInSurah) {
+      if (!this.currentSurah || !this.currentSurah.ayahs) return;
+      
+      // Check if the verse is already loaded
+      const verseIsLoaded = this.displayedVerses.some(v => parseInt(v.numberInSurah) === parseInt(verseNumberInSurah));
+      
+      if (verseIsLoaded) {
+        console.log(`Verse ${verseNumberInSurah} is already loaded`);
+        return;
+      }
+      
+      console.log(`Verse ${verseNumberInSurah} is not yet loaded, loading all verses...`);
+      
+      // Load all remaining verses to ensure the verse is displayed
+      await this.loadAllRemainingVerses();
+      
+      // Double check if verse is now loaded
+      const verseNowLoaded = this.displayedVerses.some(v => parseInt(v.numberInSurah) === parseInt(verseNumberInSurah));
+      if (!verseNowLoaded) {
+        console.warn(`Verse ${verseNumberInSurah} could not be loaded`);
+      }
     }
   }
 }
@@ -672,7 +783,8 @@ export default {
 }
 
 .highlighted {
-  @apply bg-indigo-50;
+  @apply bg-indigo-100 border-l-4 border-indigo-500;
+  transition: background-color 0.5s ease;
 }
 
 .playing-ayah-audio {

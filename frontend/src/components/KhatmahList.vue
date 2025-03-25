@@ -17,16 +17,20 @@ const emit = defineEmits(['select-khatmah']);
 const searchQuery = ref('');
 const searchFocused = ref(false);
 const currentPage = ref(1);
-const pageSize = ref(9);
+const pageSize = ref(3);
+// Add state for local storage participations
+const myParticipations = ref([]);
 
 // Computed property for filtered khatmahs
 const filteredKhatmahs = computed(() => {
+  // This only filters the server-side paginated public khatmahs
+  // My Created Khatmahs and My Participations are separate sections and not affected by the search
   if (!searchQuery.value.trim()) {
-    return props.khatmahs;
+    return store.khatmahs;
   }
   
   const query = searchQuery.value.toLowerCase();
-  return props.khatmahs.filter(khatmah => {
+  return store.khatmahs.filter(khatmah => {
     // Search in khatmah name
     if (khatmah.name.toLowerCase().includes(query)) {
       return true;
@@ -102,6 +106,27 @@ const pageNumbers = computed(() => {
   return pages;
 });
 
+// Function to load participations from local storage
+function loadMyParticipations() {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const participationsJson = localStorage.getItem('quran_khatmah_participants');
+    if (participationsJson) {
+      const participationsObj = JSON.parse(participationsJson);
+      myParticipations.value = Object.values(participationsObj).map(p => ({
+        id: p.id,
+        name: p.name,
+        khatmahId: p.khatmahId,
+        khatmahName: p.khatmahName
+      }));
+    }
+  } catch (err) {
+    console.error('Error loading participations from local storage:', err);
+    myParticipations.value = [];
+  }
+}
+
 function selectKhatmah(khatmahId) {
   emit('select-khatmah', khatmahId);
 }
@@ -157,6 +182,7 @@ function handleKeyDown(event) {
 // Add event listeners on mount and remove on unmount
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown);
+  loadMyParticipations();
 });
 
 onUnmounted(() => {
@@ -199,7 +225,7 @@ onMounted(async () => {
           v-model="searchQuery"
           type="text"
           class="block w-full pl-10 pr-10 py-3 rounded-lg focus:outline-none"
-          :placeholder="t('khatmahList.search')"
+          :placeholder="t('khatmahList.searchPublic') || 'Search public khatmahs...'"
           @focus="focusSearch"
           @blur="blurSearch"
         />
@@ -216,6 +242,46 @@ onMounted(async () => {
         </div>
         <div v-else class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs text-gray-400">
           <span class="hidden sm:inline">Ctrl+K</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Participations Section -->
+    <div v-if="myParticipations.length > 0" class="mb-8">
+      <h3 class="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+        </svg>
+        {{ t('khatmahList.myParticipations') || 'My Participations' }}
+      </h3>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div 
+          v-for="participation in myParticipations" 
+          :key="participation.id"
+          class="bg-emerald-50 border border-emerald-100 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          @click="selectKhatmah(participation.khatmahId)"
+        >
+          <div class="p-4">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-semibold text-gray-800">{{ participation.khatmahName }}</h3>
+              <span class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">{{ t('khatmahList.participant') || 'Participant' }}</span>
+            </div>
+            
+            <div class="flex items-center text-sm text-gray-600 mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+              </svg>
+              {{ t('khatmahList.joinedAs') || 'Joined as' }}: {{ participation.name }}
+            </div>
+
+            <button 
+              @click.stop="selectKhatmah(participation.khatmahId)" 
+              class="mt-2 w-full text-xs px-2 py-1.5 rounded-md transition-colors bg-emerald-500 hover:bg-emerald-600 text-white"
+            >
+              {{ t('khatmahList.viewKhatmah') || 'View Khatmah' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -250,6 +316,29 @@ onMounted(async () => {
                 {{ t('khatmahList.private') }}
               </div>
             </div>
+            
+            <!-- Progress for My Created Khatmahs -->
+            <div class="mt-2 flex flex-wrap gap-2">
+              <div class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full flex items-center">
+                <!-- Juz icon (book) -->
+                <svg v-if="khatmah.khatmah_type === 'juz'" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+                </svg>
+                <!-- Surah icon (document) -->
+                <svg v-else-if="khatmah.khatmah_type === 'surah'" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+                </svg>
+                <span v-if="khatmah.khatmah_type === 'juz'">
+                  {{ khatmah.completed_juz_count || 0 }}/30 {{ t('khatmahList.completed') }}
+                </span>
+                <span v-else-if="khatmah.khatmah_type === 'surah'">
+                  {{ khatmah.completed_surah_count || 0 }}/114 {{ t('khatmahList.completed') }}
+                </span>
+                <span v-else>
+                  {{ khatmah.completed_juz_count || 0 }}/30 {{ t('khatmahList.completed') }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -259,10 +348,10 @@ onMounted(async () => {
     <div class="flex justify-between items-center mb-4">
       <div>
         <span class="text-sm text-gray-500">
-          {{ filteredKhatmahs.length }} 
-          {{ filteredKhatmahs.length === 1 
-            ? t('khatmahList.participants', 1) 
-            : t('khatmahList.participants', filteredKhatmahs.length) }}
+          {{ searchQuery ? filteredKhatmahs.length : store.pagination.count }} 
+          {{ (searchQuery ? filteredKhatmahs.length : store.pagination.count) === 1 
+            ? t('khatmahList.khatmah') 
+            : t('khatmahList.khatmahs') }}
           <span v-if="searchQuery"> for "{{ searchQuery }}"</span>
           <span v-if="!searchQuery"> (page {{ currentPage }} of {{ totalPages }})</span>
         </span>
@@ -298,8 +387,18 @@ onMounted(async () => {
       </button>
     </div>
     
+    <!-- Public Khatmahs Section Header -->
+    <div v-if="filteredKhatmahs.length > 0" class="mb-4 mt-8">
+      <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+        {{ t('khatmahList.publicKhatmahs') || 'Public Khatmahs' }}
+      </h3>
+    </div>
+    
     <!-- Khatmah List -->
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-if="filteredKhatmahs.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div 
         v-for="khatmah in filteredKhatmahs" 
         :key="khatmah.id"
@@ -319,15 +418,28 @@ onMounted(async () => {
               </svg>
               {{ khatmah.participant_count }} 
               {{ khatmah.participant_count === 1 
-                ? t('khatmahList.participants', 1) 
-                : t('khatmahList.participants', khatmah.participant_count) }}
+                ? t('khatmahList.participant') 
+                : t('khatmahList.participants') }}
             </div>
             
             <div class="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <!-- Juz icon (book) -->
+              <svg v-if="khatmah.khatmah_type === 'juz'" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
               </svg>
-              {{ khatmah.completed_juz_count }}/30 {{ t('khatmahList.completed') }}
+              <!-- Surah icon (document) -->
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd" />
+              </svg>
+              <span v-if="khatmah.khatmah_type === 'juz'">
+                {{ khatmah.completed_juz_count || 0 }}/30 {{ t('khatmahList.completed') }}
+              </span>
+              <span v-else-if="khatmah.khatmah_type === 'surah'">
+                {{ khatmah.completed_surah_count || 0 }}/114 {{ t('khatmahList.completed') }}
+              </span>
+              <span v-else>
+                {{ khatmah.completed_juz_count || 0 }}/30 {{ t('khatmahList.completed') }}
+              </span>
             </div>
             
             <div v-if="store.isKhatmahCreator(khatmah.id)" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full flex items-center">
