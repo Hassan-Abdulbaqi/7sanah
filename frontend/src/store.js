@@ -149,11 +149,21 @@ export const store = reactive({
     }
   },
 
-  async createKhatmah(khatmahData) {
+  async createKhatmah(formData) {
     this.loading = true;
     this.error = null;
     try {
-      const response = await axios.post(`${API_URL}/khatmahs/`, khatmahData);
+      const response = await axios.post(`${API_URL}/khatmahs/`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      // Immediately save the creator token if present
+      if (response.data.creator_token) {
+        this.creatorTokens[response.data.id] = response.data.creator_token;
+        saveCreatorTokensToStorage(this.creatorTokens);
+      }
       
       // Only add to the list if it's not private
       if (!response.data.is_private) {
@@ -161,22 +171,19 @@ export const store = reactive({
       }
       
       // Save to created khatmahs
-      this.myCreatedKhatmahs.push({
+      const khatmahData = {
         id: response.data.id,
         name: response.data.name,
         created_at: response.data.created_at,
         is_private: response.data.is_private,
         khatmah_type: response.data.khatmah_type,
         completed_juz_count: response.data.completed_juz_count || 0,
-        completed_surah_count: response.data.completed_surah_count || 0
-      });
-      saveCreatedKhatmahsToStorage(this.myCreatedKhatmahs);
+        completed_surah_count: response.data.completed_surah_count || 0,
+        image: response.data.image || null
+      };
       
-      // Save the creator token
-      if (response.data.creator_token) {
-        this.creatorTokens[response.data.id] = response.data.creator_token;
-        saveCreatorTokensToStorage(this.creatorTokens);
-      }
+      this.myCreatedKhatmahs.push(khatmahData);
+      saveCreatedKhatmahsToStorage(this.myCreatedKhatmahs);
       
       return response.data;
     } catch (error) {
@@ -261,7 +268,6 @@ export const store = reactive({
   },
 
   async fetchKhatmah(id) {
-    console.log(`store.fetchKhatmah called with id: ${id}`);
     this.loading = true;
     this.error = null;
     try {
@@ -271,26 +277,27 @@ export const store = reactive({
         return null;
       }
       
-      console.log(`Making API request to ${API_URL}/khatmahs/${id}/`);
-      
       // Prepare request config with params if we have a creator token
       const requestConfig = {};
-      if (this.creatorTokens[id]) {
+      const storedTokens = loadCreatorTokensFromStorage();
+      
+      // Check both store and localStorage for token
+      if (this.creatorTokens[id] || (storedTokens && storedTokens[id])) {
+        const token = this.creatorTokens[id] || storedTokens[id];
+        
         // Validate the creator token is a UUID
-        if (this.isValidUUID(this.creatorTokens[id])) {
-          requestConfig.params = {
-            creator_token: this.creatorTokens[id]
-          };
+        if (this.isValidUUID(token)) {
+          requestConfig.params = { creator_token: token };
+          // Ensure token is in store if it was only in localStorage
+          this.creatorTokens[id] = token;
         } else {
-          console.error('Invalid creator token format stored for khatmah:', id);
-          // Delete the invalid token
+          // Delete invalid token
           delete this.creatorTokens[id];
           saveCreatorTokensToStorage(this.creatorTokens);
         }
       }
       
       const response = await axios.get(`${API_URL}/khatmahs/${id}/`, requestConfig);
-      console.log('API response received:', response.status);
       this.currentKhatmah = response.data;
       
       // If the response includes a creator_token, save it
@@ -326,7 +333,7 @@ export const store = reactive({
       
       return response.data;
     } catch (error) {
-      console.error(`Error fetching khatmah ${id}:`, error);
+      console.error('Error fetching khatmah:', error);
       this.error = 'Failed to load khatmah details';
       return null;
     } finally {

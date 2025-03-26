@@ -1,35 +1,39 @@
 <script setup>
-import { ref, defineEmits } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { store } from '../store';
 
 const { t } = useI18n();
-const emit = defineEmits(['khatmah-created', 'cancel']);
 const khatmahName = ref('');
 const nameError = ref('');
 const isPrivate = ref(false);
 const requireName = ref(true);
 const hasEndDate = ref(false);
 const endDate = ref('');
-const imageUrl = ref('');
+const selectedImage = ref(null);
 const imagePreview = ref('');
 const khatmahType = ref('juz'); // Default to juz-based khatmah
 
-function handleImageUrlChange() {
-  // Only update preview if URL is valid
-  if (imageUrl.value && isValidUrl(imageUrl.value)) {
-    imagePreview.value = imageUrl.value;
+function handleImageChange(event) {
+  const file = event.target.files[0];
+  if (file) {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      alert(t('createKhatmah.imageSizeError'));
+      event.target.value = '';
+      return;
+    }
+    
+    if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+      alert(t('createKhatmah.imageTypeError'));
+      event.target.value = '';
+      return;
+    }
+    
+    selectedImage.value = file;
+    imagePreview.value = URL.createObjectURL(file);
   } else {
+    selectedImage.value = null;
     imagePreview.value = '';
-  }
-}
-
-function isValidUrl(string) {
-  try {
-    new URL(string);
-    return true;
-  } catch (_) {
-    return false;
   }
 }
 
@@ -42,18 +46,23 @@ async function createKhatmah() {
   
   nameError.value = '';
   
-  // Prepare data
-  const khatmahData = {
-    name: khatmahName.value,
-    is_private: isPrivate.value,
-    require_name: requireName.value,
-    end_date: hasEndDate.value ? endDate.value : null,
-    image_url: imageUrl.value || null,
-    khatmah_type: khatmahType.value
-  };
+  // Prepare form data for multipart/form-data
+  const formData = new FormData();
+  formData.append('name', khatmahName.value);
+  formData.append('is_private', isPrivate.value);
+  formData.append('require_name', requireName.value);
+  formData.append('khatmah_type', khatmahType.value);
+  
+  if (hasEndDate.value && endDate.value) {
+    formData.append('end_date', endDate.value);
+  }
+  
+  if (selectedImage.value) {
+    formData.append('image', selectedImage.value);
+  }
   
   // Create khatmah
-  const newKhatmah = await store.createKhatmah(khatmahData);
+  const newKhatmah = await store.createKhatmah(formData);
   
   if (newKhatmah) {
     // Reset form
@@ -62,7 +71,7 @@ async function createKhatmah() {
     requireName.value = true;
     hasEndDate.value = false;
     endDate.value = '';
-    imageUrl.value = '';
+    selectedImage.value = null;
     imagePreview.value = '';
     khatmahType.value = 'juz';
     
@@ -229,32 +238,48 @@ function cancel() {
             </div>
           </div>
           
-          <!-- Image URL Option -->
+          <!-- Image Upload -->
           <div class="mb-6">
-            <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-2">{{ t('createKhatmah.imageLabel') }}</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+            <label for="imageUpload" class="block text-sm font-medium text-gray-700 mb-2">{{ t('createKhatmah.imageLabel') }}</label>
+            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-emerald-500 transition-colors">
+              <div class="space-y-1 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
+                <div class="flex text-sm text-gray-600">
+                  <label for="imageUpload" class="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-emerald-500">
+                    <span>{{ t('createKhatmah.uploadImage') }}</span>
+                    <input 
+                      id="imageUpload" 
+                      type="file" 
+                      @change="handleImageChange" 
+                      accept="image/jpeg,image/png,image/gif"
+                      class="sr-only"
+                    />
+                  </label>
+                  <p class="pl-1">{{ t('createKhatmah.dragAndDrop') }}</p>
+                </div>
+                <p class="text-xs text-gray-500">
+                  {{ t('createKhatmah.imageHelp') }}
+                </p>
               </div>
-              <input
-                id="imageUrl"
-                v-model="imageUrl"
-                type="url"
-                @input="handleImageUrlChange"
-                class="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                :placeholder="t('createKhatmah.imagePlaceholder')"
-              />
             </div>
-            <p class="mt-1 text-xs text-gray-500">
-              {{ t('createKhatmah.imageHelp') }}
-            </p>
             
             <!-- Image Preview -->
-            <div v-if="imagePreview" class="mt-3 border rounded-lg overflow-hidden">
-              <img :src="imagePreview" alt="Khatmah image preview" class="w-full h-40 object-cover" />
-              <div class="bg-gray-50 px-3 py-2 text-xs text-gray-500">{{ t('createKhatmah.imagePreview') }}</div>
+            <div v-if="imagePreview" class="mt-3">
+              <div class="relative border rounded-lg overflow-hidden">
+                <img :src="imagePreview" alt="Khatmah image preview" class="w-full h-40 object-cover" />
+                <button 
+                  @click="selectedImage = null; imagePreview = ''" 
+                  class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  type="button"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+                <div class="bg-gray-50 px-3 py-2 text-xs text-gray-500">{{ t('createKhatmah.imagePreview') }}</div>
+              </div>
             </div>
           </div>
           

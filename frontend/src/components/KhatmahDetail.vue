@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, watch, defineProps, defineEmits, onUnmounted, watchEffect } from 'vue';
+import { ref, onMounted, watch, onUnmounted, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { store } from '../store';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import JuzReader from './JuzReader.vue'; // Add JuzReader import
 
 const { t } = useI18n();
 const router = useRouter();
@@ -49,6 +50,255 @@ const surahsError = ref(null);
 const searchQuery = ref('');
 const filteredSurahs = ref([]);
 const normalizedSurahNames = ref([]);
+
+// Add missing reactive properties
+const isReadingJuz = ref(false);
+const currentReadingJuz = ref(null);
+const currentAssignmentId = ref(null);
+
+// Enhanced profanity filter lists with common variations
+const englishProfanityList = [
+  'fuck', 'fuk', 'fck', 'f*ck', 'f**k', 'fucc', 'phuck', 'phuk',
+  'shit', 'sh*t', 'sh1t', 'shiit', 'shyt',
+  'ass', '@ss', 'a$$', 'azz',
+  'bitch', 'b*tch', 'b1tch', 'biatch', 'bytch',
+  'dick', 'd*ck', 'd1ck', 'dicc', 'dik',
+  'pussy', 'pu$$y', 'puss', 'p*ssy',
+  'cock', 'c*ck', 'coc', 'c0ck',
+  'whore', 'wh*re', 'h0e', 'hoe',
+  'bastard', 'b@stard', 'b*stard',
+  'cunt', 'kunt', 'c*nt',
+  'damn', 'd*mn', 'dammn',
+  'piss', 'p*ss', 'p1ss',
+  'slut', 'sl*t', '$lut',
+  'tits', 't*ts', 't1ts'
+];
+
+const arabicProfanityList = [
+  // Existing MSA profanity
+  'كس', 'ك س', 'كـس', 'كــس', 'كسس', 'كص', 'كز',
+  'طيز', 'طـيـز', 'طي ز', 'طيظ', 'تيز',
+  'زب', 'ز ب', 'زبب', 'زبر', 'ذب', 'زبي',
+  'شرموط', 'شرمو ط', 'شـرمـوط', 'شرموت',
+  'عرص', 'عـرص', 'ع ر ص', 'عرس',
+  'خول', 'خـول', 'خ و ل', 'خوول',
+  'منيك', 'منـيـك', 'م ن ي ك', 'منيوك',
+  'قحبة', 'قحـبة', 'ق ح ب ة', 'قحبه',
+  'عاهرة', 'عـاهـرة', 'ع ا ه ر ة',
+  'شرموطة', 'شرموطه', 'شـرمـوطـة',
+  'منيوك', 'منـيـوك', 'م ن ي و ك',
+  'متناك', 'متـنـاك', 'م ت ن ا ك',
+  'خنزير', 'خـنـزيـر', 'خ ن ز ي ر',
+  'كلب', 'كـلـب', 'ك ل ب',
+
+  // Iraqi dialect profanity and variations
+  'عير', 'ع ي ر', 'عـيـر', 'عيرر',
+  'خرة', 'خره', 'خ ر ه', 'خـرة',
+  'كواد', 'كـواد', 'ك و ا د', 'كوواد',
+  'منيوج', 'منيوك', 'م ن ي و ج', 'منـيـوج',
+  'عيوره', 'عيورة', 'ع ي و ر ه', 'عـيـوره',
+  'جحش', 'ج ح ش', 'جـحـش', 'جحشش',
+  'خايس', 'خ ا ي س', 'خـايـس', 'خايسس',
+  'دياث', 'د ي ا ث', 'ديـاث', 'دياثث',
+  'عرص', 'ع ر ص', 'عـرص', 'عرصص',
+  'كحبة', 'ك ح ب ة', 'كحـبـة', 'كحبه',
+  'مخنث', 'م خ ن ث', 'مـخـنـث', 'مخنثث',
+  'معرص', 'م ع ر ص', 'مـعـرص', 'معرصص',
+  'منيوك', 'م ن ي و ك', 'مـنـيـوك', 'منيوكك',
+  'ديوث', 'د ي و ث', 'ديـوث', 'ديوثث',
+  
+  // Iraqi slang variations
+  'كحاب', 'ك ح ا ب', 'كـحـاب',
+  'عواهر', 'ع و ا ه ر', 'عـواهـر',
+  'شراميط', 'ش ر ا م ي ط', 'شـرامـيـط',
+  'منايك', 'م ن ا ي ك', 'مـنـايـك',
+  'عيور', 'ع ي و ر', 'عـيـور',
+  'زنديق', 'ز ن د ي ق', 'زنـديـق',
+  'فاجر', 'ف ا ج ر', 'فـاجـر',
+  'منجوس', 'م ن ج و س', 'مـنـجـوس',
+  'نجس', 'ن ج س', 'نـجـس',
+  'وصخ', 'و ص خ', 'وصـخ',
+  'قواد', 'ق و ا د', 'قـواد',
+  'دنكة', 'د ن ك ة', 'دنـكـة',
+  'خنزيرة', 'خ ن ز ي ر ة', 'خنـزيـرة',
+  'جلب', 'ج ل ب', 'جـلـب',
+  
+  // Common Iraqi insults and their variations
+  'حيوان', 'ح ي و ا ن', 'حـيـوان',
+  'بهيمة', 'ب ه ي م ة', 'بهـيـمة',
+  'حمار', 'ح م ا ر', 'حـمـار',
+  'خايب', 'خ ا ي ب', 'خـايـب',
+  'سافل', 'س ا ف ل', 'سـافـل',
+  'واطي', 'و ا ط ي', 'واطـي',
+  'نذل', 'ن ذ ل', 'نـذل',
+  'دعبل', 'د ع ب ل', 'دعـبـل',
+  'مطي', 'م ط ي', 'مـطـي',
+  'بزون', 'ب ز و ن', 'بـزون',
+  'كلاوي', 'ك ل ا و ي', 'كـلاوي',
+  'مقيد', 'م ق ي د', 'مـقـيـد',
+  'مصخم', 'م ص خ م', 'مـصـخـم'
+];
+
+// Common character substitutions
+const charSubstitutions = {
+  'a': ['@', '4', 'α', 'а', 'λ', 'Д'],
+  'b': ['8', '6', 'ь', 'в'],
+  'e': ['3', '€', 'е', 'ε'],
+  'i': ['1', '!', '|', 'і', 'ι'],
+  'l': ['1', '|', 'і', 'ι'],
+  'o': ['0', 'θ', 'о', 'σ'],
+  's': ['5', '$', 'ѕ', 'š'],
+  't': ['7', '+', 'т'],
+  'u': ['υ', 'μ', 'у'],
+  'v': ['\\/', 'ν'],
+  'w': ['ω', 'ш', 'щ'],
+  'x': ['×', 'х'],
+  'y': ['¥', 'γ', 'у', 'ү'],
+  'z': ['2', 'ζ', 'з'],
+  // Add Arabic character substitutions common in Iraqi typing
+  'ك': ['گ', 'ݣ', 'ڭ', 'ک', 'ڪ', '؟', '&'],
+  'ج': ['چ', 'ج', 'ڃ', 'ڄ'],
+  'ع': ['ع', 'غ', 'ڠ'],
+  'ح': ['ح', '7', '₇', '७', '៧', 'ዕ'],
+  'ق': ['ڨ', 'ڧ', 'ف'],
+  'ط': ['ظ', 'ط', 'ض'],
+  'ص': ['ض', 'ص', 'س'],
+  'ة': ['ه', 'ت', '؟', '?', '6', '٦']
+};
+
+// Function to normalize text by removing common obfuscation techniques
+function normalizeText(text) {
+  if (!text) return '';
+  
+  // Convert to lowercase
+  let normalized = text.toLowerCase();
+  
+  // Remove all diacritics
+  normalized = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  // Enhanced special character handling
+  // Replace all special characters and symbols with empty string
+  normalized = normalized.replace(/[!@#$%^&*()_+\-=\[\]{};:'",.<>?~`؟]/g, '');
+  
+  // Remove common separators and special characters
+  normalized = normalized.replace(/[\s_\-.,*'"´`~!@#$%^&\+=\[\]{}()|\\]/g, '');
+  
+  // Replace common character substitutions
+  Object.entries(charSubstitutions).forEach(([char, substitutions]) => {
+    const pattern = new RegExp(`[${substitutions.join('')}]`, 'g');
+    normalized = normalized.replace(pattern, char);
+  });
+  
+  // Handle zero-width characters and other invisible characters
+  normalized = normalized.replace(/[\u200B-\u200D\uFEFF]/g, '');
+  
+  // Handle Arabic-specific normalizations
+  normalized = normalized
+    // Normalize different forms of Alef
+    .replace(/[أإآا]/g, 'ا')
+    // Normalize different forms of Yaa
+    .replace(/[ىي]/g, 'ي')
+    // Normalize different forms of Taa Marbouta
+    .replace(/[ة]/g, 'ه')
+    // Normalize different forms of Hamza
+    .replace(/[ؤئء]/g, 'ء')
+    // Iraqi-specific character normalizations
+    .replace(/[گڭک]/g, 'ك')
+    .replace(/[چڃڄ]/g, 'ج')
+    .replace(/[غڠ]/g, 'ع')
+    .replace(/[ڨڧ]/g, 'ق')
+    .replace(/[ظض]/g, 'ط')
+    .replace(/ض/g, 'ص');
+  
+  // Remove any remaining non-alphanumeric characters
+  normalized = normalized.replace(/[^\p{L}\p{N}]/gu, '');
+  
+  return normalized;
+}
+
+// Function to check if a string contains a profanity pattern
+function containsProfanity(text, profanityList) {
+  const normalizedText = normalizeText(text);
+  
+  // Check exact matches and common variations
+  return profanityList.some(word => {
+    const normalizedWord = normalizeText(word);
+    
+    // Check if the word exists as is
+    if (normalizedText.includes(normalizedWord)) return true;
+    
+    // Check for l33t speak variations (if not already caught by normalizeText)
+    const l33tPattern = word
+      .split('')
+      .map(char => {
+        const substitutions = charSubstitutions[char.toLowerCase()] || [char];
+        return `[${char}${substitutions.join('')}]`;
+      })
+      .join('[\\s_\\-.*!@#$%^&()+=\\[\\]{}|\\\\]*');
+    
+    const regex = new RegExp(l33tPattern, 'i');
+    return regex.test(text);
+  });
+}
+
+// Function to validate name
+function validateName(name) {
+  if (!name || !name.trim()) {
+    return { isValid: false, error: t('khatmahDetail.nameError') || 'Name is required' };
+  }
+
+  // Check English profanity with enhanced detection
+  if (containsProfanity(name, englishProfanityList)) {
+    return { 
+      isValid: false, 
+      error: t('khatmahDetail.inappropriateNameError') || 'Please use an appropriate name' 
+    };
+  }
+  
+  // Check Arabic profanity with enhanced detection
+  if (containsProfanity(name, arabicProfanityList)) {
+    return { 
+      isValid: false, 
+      error: t('khatmahDetail.inappropriateNameError') || 'Please use an appropriate name' 
+    };
+  }
+  
+  // Add additional validation rules
+  if (name.length < 2) {
+    return { 
+      isValid: false, 
+      error: t('khatmahDetail.nameTooShortError') || 'Name must be at least 2 characters long' 
+    };
+  }
+  
+  if (name.length > 50) {
+    return { 
+      isValid: false, 
+      error: t('khatmahDetail.nameTooLongError') || 'Name must not exceed 50 characters' 
+    };
+  }
+  
+  // Enhanced character validation
+  // Must contain at least one valid letter (Arabic or English)
+  const hasValidLetter = /[a-zA-Zء-ي]/.test(name);
+  if (!hasValidLetter) {
+    return { 
+      isValid: false, 
+      error: t('khatmahDetail.nameInvalidCharacters') || 'Name must contain at least some letters' 
+    };
+  }
+  
+  // Check for excessive special characters or numbers
+  const specialCharCount = (name.match(/[^a-zA-Zء-ي\s]/g) || []).length;
+  if (specialCharCount > name.length / 3) {
+    return {
+      isValid: false,
+      error: t('khatmahDetail.tooManySpecialChars') || 'Name contains too many special characters or numbers'
+    };
+  }
+
+  return { isValid: true, error: null };
+}
 
 // New function to safely get the base URL
 function getBaseUrl() {
@@ -100,9 +350,12 @@ async function fetchKhatmah() {
 
 async function joinKhatmah() {
   // Validate name if required
-  if (store.currentKhatmah.require_name && !participantName.value.trim()) {
-    nameError.value = t('khatmahDetail.nameError');
-    return;
+  if (store.currentKhatmah.require_name) {
+    const validation = validateName(participantName.value);
+    if (!validation.isValid) {
+      nameError.value = validation.error;
+      return;
+    }
   }
   
   nameError.value = '';
@@ -153,22 +406,16 @@ async function handleJuzClick(juzNumber) {
   if (isMyJuz(juzNumber)) {
     const assignment = getJuzAssignment(juzNumber);
     if (assignment) {
-      // Navigate to Juz reader
-      navigateToJuz(juzNumber);
+      // Set the reading state
+      isReadingJuz.value = true;
+      currentReadingJuz.value = juzNumber;
+      currentAssignmentId.value = assignment.id;
     }
   } else {
     // If not assigned, show confirmation dialog
     confirmingJuzNumber.value = juzNumber;
     showJuzConfirmation.value = true;
   }
-}
-
-// Add function to navigate to Juz
-function navigateToJuz(juzNumber) {
-  // Emit an event that can be handled by parent component to navigate
-  emit('navigate-to-juz', {
-    juz: juzNumber
-  });
 }
 
 // Function to confirm juz assignment
@@ -178,11 +425,24 @@ async function confirmJuzAssignment() {
     // Close the confirmation dialog
     showJuzConfirmation.value = false;
     
-    // Navigate to Juz view for reading after assignment
-    navigateToJuz(confirmingJuzNumber.value);
+    // Get the assignment after assigning
+    const assignment = getJuzAssignment(confirmingJuzNumber.value);
+    if (assignment) {
+      // Set the reading state
+      isReadingJuz.value = true;
+      currentReadingJuz.value = confirmingJuzNumber.value;
+      currentAssignmentId.value = assignment.id;
+    }
     
     confirmingJuzNumber.value = null;
   }
+}
+
+// Function to handle going back from Juz reader
+function handleBackFromJuz() {
+  isReadingJuz.value = false;
+  currentReadingJuz.value = null;
+  currentAssignmentId.value = null;
 }
 
 // Function to cancel juz assignment
@@ -197,8 +457,14 @@ function handleBackToKhatmah() {
 }
 
 // Function to handle marking a Juz as completed from the Juz reader
-function handleMarkCompleted() {
-  // No need to refresh khatmah data here as we're using navigation
+async function handleMarkCompleted() {
+  // Return to the Khatmah detail view
+  isReadingJuz.value = false;
+  currentReadingJuz.value = null;
+  currentAssignmentId.value = null;
+  
+  // Refresh the Khatmah data to show updated completion status
+  await fetchKhatmah();
 }
 
 async function toggleComplete(assignmentId) {
@@ -246,9 +512,19 @@ function getParticipantJuzCount(participantId) {
   return store.currentKhatmah.assignments.filter(a => a.participant === participantId).length;
 }
 
+function getParticipantSurahCount(participantId) {
+  if (!store.currentKhatmah) return 0;
+  return store.currentKhatmah.surah_assignments.filter(a => a.participant === participantId).length;
+}
+
 function getParticipantCompletedJuzCount(participantId) {
   if (!store.currentKhatmah) return 0;
   return store.currentKhatmah.assignments.filter(a => a.participant === participantId && a.completed).length;
+}
+
+function getParticipantCompletedSurahCount(participantId) {
+  if (!store.currentKhatmah) return 0;
+  return store.currentKhatmah.surah_assignments.filter(a => a.participant === participantId && a.completed).length;
 }
 
 function getJuzCardClass(juzNumber) {
@@ -635,7 +911,7 @@ function scrollToError() {
         :khatmah-id="khatmahId"
         :juz-number="currentReadingJuz" 
         :assignment-id="currentAssignmentId"
-        @back-to-khatmah="handleBackToKhatmah"
+        @back-to-khatmah="handleBackFromJuz"
         @mark-completed="handleMarkCompleted"
       />
     </div>
@@ -737,11 +1013,12 @@ function scrollToError() {
       <div v-else>
         <!-- Khatmah Image (if available) -->
         <div v-if="store.currentKhatmah.image_url" class="mb-6">
-          <div class="rounded-xl overflow-hidden shadow-sm border border-gray-100">
+          <div class="rounded-xl overflow-hidden shadow-sm border border-gray-100 flex justify-center bg-gray-50 mx-auto" style="width: 300px; height: 200px;">
             <img 
               :src="store.currentKhatmah.image_url" 
               :alt="store.currentKhatmah.name" 
-              class="w-full h-48 md:h-64 object-cover"
+              class="w-full h-full object-scale-down"
+              loading="lazy"
             />
           </div>
         </div>
@@ -1012,30 +1289,9 @@ function scrollToError() {
         <template v-else-if="store.currentKhatmah && store.currentKhatmah.khatmah_type === 'surah'">
           <h3 class="text-xl font-semibold mb-4 text-gray-800">{{ t('khatmahDetail.surahAssignments') }}</h3>
           
-          <!-- Loading state for Surahs -->
-          <div v-if="loadingSurahs" class="flex justify-center items-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
-          </div>
-          
-          <!-- Error state for Surahs -->
-          <div v-else-if="surahsError" class="bg-red-50 p-4 rounded-lg mb-6">
-            <p class="text-red-600 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-              </svg>
-              {{ surahsError }}
-            </p>
-            <button 
-              @click="fetchSurahs" 
-              class="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors text-sm"
-            >
-              {{ t('common.retry') || 'Retry' }}
-            </button>
-          </div>
-          
-          <div v-else>
-            <!-- Search input -->
-            <div class="mb-6">
+          <div class="surah-content-container relative border border-gray-200 rounded-xl overflow-hidden">
+            <!-- Search input - Fixed at top -->
+            <div class="sticky top-0 z-10 bg-white border-b border-gray-200 p-4">
               <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
                 <h4 class="text-sm font-medium text-gray-700 mb-2 flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1069,87 +1325,111 @@ function scrollToError() {
                 </div>
               </div>
             </div>
-            
-            <!-- No results message -->
-            <div v-if="filteredSurahs.length === 0 && searchQuery" class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <p class="text-gray-600 font-medium">{{ t('quran.noSurahResults') || 'No surahs found matching your search.' }}</p>
-              <button 
-                @click="clearSearch" 
-                class="mt-4 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors inline-flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+
+            <!-- Scrollable content area -->
+            <div class="surah-scrollable-content overflow-y-auto p-4">
+              <!-- Loading state for Surahs -->
+              <div v-if="loadingSurahs" class="flex justify-center items-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
+              </div>
+              
+              <!-- Error state for Surahs -->
+              <div v-else-if="surahsError" class="bg-red-50 p-4 rounded-lg mb-6">
+                <p class="text-red-600 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                  {{ surahsError }}
+                </p>
+                <button 
+                  @click="fetchSurahs" 
+                  class="mt-2 px-3 py-1 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors text-sm"
+                >
+                  {{ t('common.retry') || 'Retry' }}
+                </button>
+              </div>
+
+              <!-- No results message -->
+              <div v-else-if="filteredSurahs.length === 0 && searchQuery" class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                {{ t('quran.clearSearch') || 'Clear search' }}
-              </button>
-            </div>
-            
-            <!-- Surah Cards -->
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-10">
-              <div
-                v-for="surah in filteredSurahs"
-                :key="`surah-${surah.number}`"
-                :class="[
-                  'p-3 rounded-lg cursor-pointer transition-all relative overflow-hidden',
-                  getSurahCardClass(surah.number)
-                ]"
-                @click="handleSurahClick(surah.number)"
-              >
-                <!-- Surah number badge -->
-                <div class="absolute top-2 right-2 bg-gray-100 text-gray-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-medium">
-                  {{ surah.number }}
-                </div>
-                
-                <!-- Surah content -->
-                <div class="text-right mt-2 mb-1">
-                  <span class="text-lg font-arabic leading-tight block" :dir="'rtl'">{{ surah.name }}</span>
-                </div>
-                
-                <div class="text-sm">
-                  <span class="font-medium">{{ surah.englishName }}</span>
-                  <span class="text-xs text-gray-500 block">{{ surah.englishNameTranslation }}</span>
-                  <span class="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5 mt-1 inline-block">
-                    {{ surah.numberOfAyahs }} {{ t('khatmahDetail.ayahs') || 'Ayahs' }}
-                  </span>
-                  <span 
-                    class="text-xs ml-1 rounded-full px-2 py-0.5 mt-1 inline-block"
-                    :class="surah.revelationType === 'Meccan' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-800'"
-                  >
-                    {{ surah.revelationType }}
-                  </span>
-                </div>
-                
-                <!-- Assignment info -->
-                <div class="text-sm mt-3 border-t border-gray-100 pt-2">
-                  <template v-if="getSurahAssignment(surah.number)">
-                    <div class="text-xs font-semibold">
-                      <span>{{ t('khatmahDetail.assignedTo') || 'Assigned to' }}:</span> {{ getSurahAssignment(surah.number).participant_name }}
-                      <span v-if="isMySurahAssignment(surah.number)" class="text-xs text-rose-700 font-bold">({{ t('khatmahDetail.you') }})</span>
-                    </div>
-                    <div v-if="getSurahAssignment(surah.number).completed" class="text-emerald-700 text-xs mt-1 font-medium">
-                      {{ t('khatmahDetail.completed') }}
-                    </div>
-                    <div v-else-if="isMySurahAssignment(surah.number)" class="text-blue-600 text-xs mt-1 font-medium flex flex-col">
-                      <span>{{ t('khatmahDetail.clickToRead') }}</span>
-                      <button 
-                        class="mt-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded text-sm hover:bg-emerald-200 font-medium w-full"
-                        @click.stop="toggleSurahComplete(getSurahAssignment(surah.number).id)"
-                      >
-                        {{ t('khatmahDetail.markComplete') }}
-                      </button>
-                    </div>
-                    <div v-else class="text-amber-600 text-xs mt-1 font-medium juz-in-progress">
-                      {{ t('khatmahDetail.inProgress') }}
-                      <span class="pulse-dot ml-1"></span>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <div class="text-gray-500 text-xs">{{ t('khatmahDetail.notAssigned') }}</div>
-                    <div v-if="store.currentParticipant" class="text-blue-600 text-xs mt-1">{{ t('khatmahDetail.clickToSelect') }}</div>
-                  </template>
+                <p class="text-gray-600 font-medium">{{ t('quran.noSurahResults') || 'No surahs found matching your search.' }}</p>
+                <button 
+                  @click="clearSearch" 
+                  class="mt-4 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors inline-flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                  {{ t('quran.clearSearch') || 'Clear search' }}
+                </button>
+              </div>
+              
+              <!-- Surah Cards -->
+              <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-10">
+                <div
+                  v-for="surah in filteredSurahs"
+                  :key="`surah-${surah.number}`"
+                  :class="[
+                    'p-3 rounded-lg cursor-pointer transition-all relative overflow-hidden',
+                    getSurahCardClass(surah.number)
+                  ]"
+                  @click="handleSurahClick(surah.number)"
+                >
+                  <!-- Surah number badge -->
+                  <div class="absolute top-2 right-2 bg-gray-100 text-gray-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-medium">
+                    {{ surah.number }}
+                  </div>
+                  
+                  <!-- Surah content -->
+                  <div class="text-right mt-2 mb-1">
+                    <span class="text-lg font-arabic leading-tight block" :dir="'rtl'">{{ surah.name }}</span>
+                  </div>
+                  
+                  <div class="text-sm">
+                    <span class="font-medium">{{ surah.englishName }}</span>
+                    <span class="text-xs text-gray-500 block">{{ surah.englishNameTranslation }}</span>
+                    <span class="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5 mt-1 inline-block">
+                      {{ surah.numberOfAyahs }} {{ t('khatmahDetail.ayahs') || 'Ayahs' }}
+                    </span>
+                    <span 
+                      class="text-xs ml-1 rounded-full px-2 py-0.5 mt-1 inline-block"
+                      :class="surah.revelationType === 'Meccan' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-800'"
+                    >
+                      {{ surah.revelationType }}
+                    </span>
+                  </div>
+                  
+                  <!-- Assignment info -->
+                  <div class="text-sm mt-3 border-t border-gray-100 pt-2">
+                    <template v-if="getSurahAssignment(surah.number)">
+                      <div class="text-xs font-semibold">
+                        <span>{{ t('khatmahDetail.assignedTo') || 'Assigned to' }}:</span> {{ getSurahAssignment(surah.number).participant_name }}
+                        <span v-if="isMySurahAssignment(surah.number)" class="text-xs text-rose-700 font-bold">({{ t('khatmahDetail.you') }})</span>
+                      </div>
+                      <div v-if="getSurahAssignment(surah.number).completed" class="text-emerald-700 text-xs mt-1 font-medium">
+                        {{ t('khatmahDetail.completed') }}
+                      </div>
+                      <div v-else-if="isMySurahAssignment(surah.number)" class="text-blue-600 text-xs mt-1 font-medium flex flex-col">
+                        <span>{{ t('khatmahDetail.clickToRead') }}</span>
+                        <button 
+                          class="mt-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded text-sm hover:bg-emerald-200 font-medium w-full"
+                          @click.stop="toggleSurahComplete(getSurahAssignment(surah.number).id)"
+                        >
+                          {{ t('khatmahDetail.markComplete') }}
+                        </button>
+                      </div>
+                      <div v-else class="text-amber-600 text-xs mt-1 font-medium juz-in-progress">
+                        {{ t('khatmahDetail.inProgress') }}
+                        <span class="pulse-dot ml-1"></span>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div class="text-gray-500 text-xs">{{ t('khatmahDetail.notAssigned') }}</div>
+                      <div v-if="store.currentParticipant" class="text-blue-600 text-xs mt-1">{{ t('khatmahDetail.clickToSelect') }}</div>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1194,7 +1474,12 @@ function scrollToError() {
                       {{ t('khatmahDetail.joined') }}: {{ new Date(participant.created_at).toLocaleDateString() }}
                     </div>
                     <div class="text-sm bg-gray-100 text-gray-800 px-2 py-1 rounded-md">
-                      {{ getParticipantJuzCount(participant.id) }} {{ t('khatmahDetail.juz') }}
+                      <template v-if="store.currentKhatmah.khatmah_type === 'juz'">
+                        {{ getParticipantJuzCount(participant.id) }} {{ getParticipantJuzCount(participant.id) >= 3 ? t('khatmahDetail.juzPlural') : t('khatmahDetail.juz') }}
+                      </template>
+                      <template v-else>
+                        {{ getParticipantSurahCount(participant.id) }} {{ getParticipantSurahCount(participant.id) >= 3 ? t('khatmahDetail.surahPlural') : t('khatmahDetail.surah') }}
+                      </template>
                     </div>
                   </div>
                 </div>
@@ -1434,5 +1719,37 @@ function scrollToError() {
   font-family: 'Traditional Arabic', 'Scheherazade New', 'Amiri', 'Noto Naskh Arabic', serif;
   font-size: 1.25rem;
   font-weight: 400;
+}
+
+/* Add these new styles at the top of your style section */
+.surah-content-container {
+  height: calc(100vh - 400px);
+  min-height: 500px;
+  max-height: 800px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2rem;
+  background: white;
+}
+
+.surah-scrollable-content {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.surah-scrollable-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.surah-scrollable-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.surah-scrollable-content::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
 }
 </style> 

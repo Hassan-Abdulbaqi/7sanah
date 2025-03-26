@@ -13,6 +13,7 @@ import requests
 from django.shortcuts import render
 import math
 import uuid
+from rest_framework.parsers import MultiPartParser, FormParser
 
 def home(request):
     return JsonResponse({"message": "Welcome to Quran Khatmah API!"})
@@ -230,16 +231,24 @@ class KhatmahViewSet(viewsets.ModelViewSet):
     - The token is only returned when requesting a khatmah with a valid creator_token
     - The creator_token provides permanent ownership rights, even across different devices
     
-    Alternatively, participant_id can be used for ownership verification, but it's less secure
-    as it requires keeping track of which participant created the khatmah.
+    File Upload:
+    - Images can be uploaded using multipart/form-data
+    - Supported formats: jpg, jpeg, png, gif
+    - Maximum file size: 5MB
     """
     queryset = Khatmah.objects.all()
     pagination_class = KhatmahPagination
+    parser_classes = (MultiPartParser, FormParser)
     
     def get_serializer_class(self):
         if self.action == 'list':
             return KhatmahListSerializer
         return KhatmahSerializer
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
     
     def validate_uuid(self, uuid_string):
         """Helper method to validate UUID format"""
@@ -276,7 +285,25 @@ class KhatmahViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # Remove it from the request data before creating the instance
+        # Validate image file if provided
+        image_file = request.FILES.get('image')
+        if image_file:
+            # Check file size (5MB limit)
+            if image_file.size > 5 * 1024 * 1024:
+                return Response(
+                    {'error': 'Image file size must be less than 5MB.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check file type
+            valid_types = ['image/jpeg', 'image/png', 'image/gif']
+            if not any(image_file.content_type.startswith(t) for t in valid_types):
+                return Response(
+                    {'error': 'Invalid image format. Supported formats: jpg, jpeg, png, gif'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Remove creator_token from the request data before creating the instance
         mutable_data = request.data.copy()
         if 'creator_token' in mutable_data:
             del mutable_data['creator_token']
@@ -302,7 +329,7 @@ class KhatmahViewSet(viewsets.ModelViewSet):
         
         # If name is not required and not provided, use "Anonymous Reader"
         if not khatmah.require_name and (not name or not name.strip()):
-            name = "Anonymous Reader"
+            name = "قارء مجهول"
         # If name is required but not provided, return error
         elif khatmah.require_name and (not name or not name.strip()):
             return Response({'error': 'Name is required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -332,7 +359,25 @@ class KhatmahViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # Remove it from the request data before updating
+        # Validate image file if provided
+        image_file = request.FILES.get('image')
+        if image_file:
+            # Check file size (5MB limit)
+            if image_file.size > 5 * 1024 * 1024:
+                return Response(
+                    {'error': 'Image file size must be less than 5MB.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Check file type
+            valid_types = ['image/jpeg', 'image/png', 'image/gif']
+            if not any(image_file.content_type.startswith(t) for t in valid_types):
+                return Response(
+                    {'error': 'Invalid image format. Supported formats: jpg, jpeg, png, gif'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Remove creator_token from the request data before updating
         mutable_data = request.data.copy()
         if 'creator_token' in mutable_data:
             del mutable_data['creator_token']

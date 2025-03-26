@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, defineProps, defineEmits, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { store } from '../store';
 
@@ -402,13 +402,41 @@ onMounted(async () => {
       <div 
         v-for="khatmah in filteredKhatmahs" 
         :key="khatmah.id"
-        class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+        class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer flex flex-col"
         @click="selectKhatmah(khatmah.id)"
       >
-        <div v-if="khatmah.image_url" class="h-32 overflow-hidden">
-          <img :src="khatmah.image_url" :alt="khatmah.name" class="w-full h-full object-cover" />
+        <div class="h-48 overflow-hidden bg-gradient-to-br from-emerald-100 to-emerald-50">
+          <img 
+            v-if="khatmah.image_url" 
+            :src="khatmah.image_url" 
+            :alt="khatmah.name" 
+            class="w-full h-full object-contain object-center" 
+            loading="lazy"
+          />
+          <div 
+            v-else 
+            class="w-full h-full flex items-center justify-center"
+          >
+            <div class="text-center">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                class="h-16 w-16 mx-auto text-emerald-500" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                  stroke-width="1.5" 
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+              <div class="mt-2 text-emerald-600 font-medium">{{ t('khatmahList.quranKhatmah') || 'Quran Khatmah' }}</div>
+            </div>
+          </div>
         </div>
-        <div class="p-4">
+        <div class="p-6 flex-1 flex flex-col">
           <h3 class="font-semibold text-gray-800 mb-2">{{ khatmah.name }}</h3>
           
           <div class="flex flex-wrap gap-2 mb-2">

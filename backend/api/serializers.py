@@ -33,13 +33,15 @@ class KhatmahSerializer(serializers.ModelSerializer):
     creator_id = serializers.UUIDField(source='creator.id', read_only=True, allow_null=True)
     completed_juz_count = serializers.SerializerMethodField()
     completed_surah_count = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+    creator_token = serializers.SerializerMethodField()
     
     class Meta:
         model = Khatmah
-        fields = ['id', 'name', 'created_at', 'is_private', 'require_name', 'end_date', 'image_url', 
+        fields = ['id', 'name', 'created_at', 'is_private', 'require_name', 'end_date', 'image', 'image_url',
                  'khatmah_type', 'participants', 'assignments', 'surah_assignments', 'creator_id',
-                 'completed_juz_count', 'completed_surah_count']
-        read_only_fields = ['id', 'created_at', 'creator_id']
+                 'completed_juz_count', 'completed_surah_count', 'creator_token']
+        read_only_fields = ['id', 'created_at', 'creator_id', 'creator_token']
     
     def get_completed_juz_count(self, obj):
         return obj.assignments.filter(completed=True).count()
@@ -47,25 +49,27 @@ class KhatmahSerializer(serializers.ModelSerializer):
     def get_completed_surah_count(self, obj):
         return obj.surah_assignments.filter(completed=True).count()
     
-    def to_representation(self, instance):
-        ret = super().to_representation(instance)
-        # Include creator_token in response when:
-        # 1. It's a POST response (creating a khatmah)
-        # 2. The request context contains a matching creator_token in the query params or data
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return obj.image_url
+    
+    def get_creator_token(self, obj):
         request = self.context.get('request')
-        
-        if request:
-            # For POST/PUT responses, check against saved token
-            if (request.method in ['POST', 'PUT'] and 
-                getattr(request, 'creator_token_matched', False)):
-                ret['creator_token'] = str(instance.creator_token)
-            # For GET requests, check for token in query params
-            elif (request.method == 'GET' and 
-                  request.query_params.get('creator_token') and 
-                  str(request.query_params.get('creator_token')) == str(instance.creator_token)):
-                ret['creator_token'] = str(instance.creator_token)
-        
-        return ret
+        if not request:
+            return None
+            
+        if request.method == 'POST':
+            return str(obj.creator_token)
+            
+        creator_token = request.query_params.get('creator_token') or request.data.get('creator_token')
+        if creator_token and str(creator_token) == str(obj.creator_token):
+            return str(obj.creator_token)
+            
+        return None
 
 class KhatmahListSerializer(serializers.ModelSerializer):
     participant_count = serializers.SerializerMethodField()
@@ -73,10 +77,11 @@ class KhatmahListSerializer(serializers.ModelSerializer):
     participants = serializers.SerializerMethodField()
     completed_juz_count = serializers.SerializerMethodField()
     completed_surah_count = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Khatmah
-        fields = ['id', 'name', 'created_at', 'is_private', 'require_name', 'end_date', 'image_url', 
+        fields = ['id', 'name', 'created_at', 'is_private', 'require_name', 'end_date', 'image', 'image_url',
                  'khatmah_type', 'participant_count', 'completed_count', 'participants',
                  'completed_juz_count', 'completed_surah_count']
     
@@ -94,6 +99,14 @@ class KhatmahListSerializer(serializers.ModelSerializer):
     
     def get_completed_surah_count(self, obj):
         return obj.surah_assignments.filter(completed=True).count()
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return obj.image_url  # Return the legacy image_url if no uploaded image
         
     def get_participants(self, obj):
         return [{'id': p.id, 'name': p.name} for p in obj.participants.all()]

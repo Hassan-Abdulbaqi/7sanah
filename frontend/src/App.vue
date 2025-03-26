@@ -184,6 +184,11 @@
         <div v-else-if="currentPage === 'quran-book'" class="full-width-container" :key="'quran-book'">
           <QuranBook />
         </div>
+
+        <!-- Prayer Times Page -->
+        <div v-else-if="currentPage === 'prayer-times'" class="page-container" :key="'prayer-times'">
+          <PrayerTimes />
+        </div>
       </transition>
     </main>
 
@@ -197,7 +202,7 @@
 </template>
 
 <script>
-import { BookOutline, CalendarOutline, CompassOutline, HomeOutline, CalculatorOutline } from '@vicons/ionicons5'
+import { BookOutline, CalendarOutline, CompassOutline, HomeOutline, CalculatorOutline, TimeOutline } from '@vicons/ionicons5'
 import KhatmahList from './components/KhatmahList.vue'
 import KhatmahDetail from './components/KhatmahDetail.vue'
 import CreateKhatmah from './components/CreateKhatmah.vue'
@@ -214,6 +219,7 @@ import LanguageSwitcher from './components/LanguageSwitcher.vue'
 import Notification from './components/Notification.vue'
 import TasbeehIcon from './components/icons/TasbeehIcon.vue'
 import QuranIcon from './components/icons/QuranIcon.vue'
+import PrayerTimes from './components/PrayerTimes.vue'
 import { store } from './store'
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -240,8 +246,10 @@ export default {
     CompassOutline,
     HomeOutline,
     CalculatorOutline,
+    TimeOutline,
     TasbeehIcon,
-    QuranIcon
+    QuranIcon,
+    PrayerTimes
   },
   data() {
     return {
@@ -259,6 +267,7 @@ export default {
         { id: 'khatmah', name: this.$t('nav.khatmah'), icon: BookOutline },
         { id: 'calendar', name: this.$t('nav.calendar'), icon: CalendarOutline },
         { id: 'qibla', name: this.$t('nav.qibla'), icon: CompassOutline },
+        { id: 'prayer-times', name: this.$t('nav.prayerTimes'), icon: TimeOutline },
         { id: 'tasbeeh', name: this.$t('nav.tasbeeh'), icon: TasbeehIcon },
         { id: 'quran', name: this.$t('nav.quran'), icon: QuranIcon }
       ]
@@ -282,6 +291,12 @@ export default {
           name: this.$t('features.qibla.title'),
           description: this.$t('features.qibla.description'),
           icon: CompassOutline
+        },
+        {
+          id: 'prayer-times',
+          name: this.$t('features.prayerTimes.title'),
+          description: this.$t('features.prayerTimes.description'),
+          icon: TimeOutline
         },
         { 
           id: 'age-calculator',
@@ -369,6 +384,9 @@ export default {
           break
         case 'qibla':
           this.currentPage = 'qibla'
+          break
+        case 'prayer-times':
+          this.currentPage = 'prayer-times'
           break
         case 'age-calculator':
           this.currentPage = 'age-calculator'

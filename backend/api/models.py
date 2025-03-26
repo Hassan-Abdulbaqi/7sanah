@@ -1,5 +1,6 @@
 from django.db import models
 import uuid
+from django.core.validators import FileExtensionValidator
 
 # Create your models here.
 
@@ -17,7 +18,13 @@ class Khatmah(models.Model):
     is_private = models.BooleanField(default=False)
     require_name = models.BooleanField(default=True)
     end_date = models.DateField(null=True, blank=True)
-    image_url = models.URLField(max_length=1000, null=True, blank=True)
+    image = models.ImageField(
+        upload_to='khatmah_images/%Y/%m/',
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(['jpg', 'jpeg', 'png', 'gif'])]
+    )
+    image_url = models.URLField(max_length=1000, null=True, blank=True)  # Keeping for backward compatibility
     khatmah_type = models.CharField(max_length=10, choices=KHATMAH_TYPES, default=JUZ_TYPE)
     creator = models.ForeignKey('Participant', on_delete=models.SET_NULL, null=True, blank=True, related_name='created_khatmahs')
     creator_token = models.UUIDField(default=uuid.uuid4, editable=False, null=True, blank=True)

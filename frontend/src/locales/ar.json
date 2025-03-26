@@ -7,49 +7,41 @@
   },
   "nav": {
     "home": "الرئيسية",
-    "khatmah": "الختمات",
-    "calendar": "التقويم الهجري",
-    "qibla": "بوصلة القبلة",
-    "tasbeeh": "التسبيح",
-    "quran": "القرآن الكريم"
+    "khatmah": "ختمة",
+    "calendar": "التقويم",
+    "qibla": "القبلة",
+    "prayerTimes": "مواقيت الصلاة",
+    "tasbeeh": "تسبيح",
+    "quran": "القرآن"
   },
   "features": {
     "khatmah": {
-      "title": "ختمات القرآن",
-      "description": "شارك في رحلات قراءة القرآن التعاونية مع الآخرين"
+      "title": "ختمة",
+      "description": "تنظيم وتتبع تقدمك في قراءة القرآن"
     },
     "calendar": {
       "title": "التقويم الهجري",
-      "description": "التقويم الهجري حسب السيد السيساتني"
+      "description": "عرض التواريخ والمناسبات الإسلامية"
     },
     "qibla": {
-      "title": "بوصلة القبلة",
-      "description": "اعثر على اتجاه القبلة من أي مكان في العالم"
+      "title": "اتجاه القبلة",
+      "description": "تحديد اتجاه القبلة من موقعك"
     },
-    "quran": {
-      "title": "قارئ القرآن",
-      "description": "اقرأ واستمع إلى القرآن الكريم مع التلاوة الصوتية"
+    "prayerTimes": {
+      "title": "مواقيت الصلاة",
+      "description": "احصل على أوقات الصلاة الدقيقة لموقعك"
     },
     "ageCalculator": {
       "title": "حاسبة العمر",
-      "description": "احسب عمرك بالتقويمين الهجري والميلادي"
+      "description": "احسب عمرك بالتقويم الهجري"
     },
     "tasbeeh": {
-      "title": "عداد التسبيح",
-      "description": "أداء الذكر مع عداد رقمي للأذكار الإسلامية الشائعة",
-      "selectTasbeeh": "اختر التسبيح",
-      "target": "الهدف",
-      "remaining": "المتبقي",
-      "increment": "عد",
-      "reset": "إعادة ضبط",
-      "vibration": "تفعيل الاهتزاز",
-      "currentPhrase": "العبارة الحالية",
-      "acceptanceMessage": "تقبل الله منكم",
-      "freeMode": {
-        "description": "عد الذكر بدون حدود",
-        "cycles": "الدورات المكتملة",
-        "current": "الدورة الحالية"
-      }
+      "title": "المسبحة الرقمية",
+      "description": "تتبع الذكر بعداد رقمي"
+    },
+    "quran": {
+      "title": "قارئ القرآن",
+      "description": "اقرأ واستمع إلى القرآن الكريم"
     }
   },
   "navigation": {
@@ -98,6 +90,7 @@
     "joinedAs": "انضممت كـ",
     "clickUnassigned": "انقر على أي جزء غير مخصص أدناه لتحديده",
     "clickAssigned": "انقر على الجزء المخصص لك لقراءته",
+    "clickToRead": "انقر للقراءة",
     "juzAssignments": "تخصيصات الأجزاء",
     "notAssigned": "غير مخصص",
     "clickToSelect": "انقر للتحديد",
@@ -108,7 +101,11 @@
     "participants": "المشاركون ({count})",
     "joined": "انضم",
     "juz": "جزء",
+    "surah": "سورة",
+    "juzPlural": "أجزاء",
+    "surahPlural": "سور",
     "juzNumber": "جزء {number}",
+    "surahNumber": "سورة {number}",
     "you": "أنت",
     "creator": "المنشئ",
     "joinFirst": "الرجاء الانضمام إلى الختمة أولاً",
@@ -131,7 +128,10 @@
     "shareButton": "مشاركة",
     "close": "إغلاق",
     "assignedTo": "معين لـ",
-    "manualCopyPrompt": "انسخ هذا الرابط يدويًا:"
+    "backToList": "العودة إلى القائمة",
+    "manualCopyPrompt": "انسخ هذا الرابط يدويًا:",
+    "confirmJuzSelection": "تأكيد اختيار الجزء",
+    "confirmJuzSelectionText": "هل أنت متأكد من اختيار الجزء {number}؟"
   },
   "share": {
     "title": "مشاركة الختمة",
@@ -227,7 +227,13 @@
     "selectCity": "اختر المدينة",
     "selectFromPresets": "اختر من المدن المحددة مسبقًا",
     "noData": "لا توجد بيانات متاحة",
-    "loading": "جاري تحميل أوقات الصلاة..."
+    "loading": "جاري تحميل أوقات الصلاة...",
+    "searchCity": "ابحث عن مدينة...",
+    "useCurrentLocation": "استخدم الموقع الحالي",
+    "gettingLocation": "جاري تحديد الموقع...",
+    "remainingTime": "الوقت المتبقي",
+    "locationError": "تعذر الحصول على موقعك",
+    "fetchError": "خطأ في جلب أوقات الصلاة"
   },
   "hijriCalendar": {
     "title": "التقويم الهجري",
@@ -285,7 +291,8 @@
     "save": "حفظ",
     "cancel": "إلغاء",
     "retry": "إعادة المحاولة",
-    "loading": "جاري التحميل..."
+    "loading": "جاري التحميل...",
+    "confirm": "تأكيد"
   },
   "ageCalculator": {
     "title": "حاسبة العمر",

@@ -38,7 +38,7 @@ class KhatmahAdmin(admin.ModelAdmin):
             'fields': ('id', 'name', 'created_at')
         }),
         ('Settings', {
-            'fields': ('is_private', 'require_name', 'end_date', 'image_url')
+            'fields': ('is_private', 'require_name', 'end_date', 'image', 'image_url', 'khatmah_type')
         }),
     )
     

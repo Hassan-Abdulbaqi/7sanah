@@ -12,7 +12,7 @@ function isDirectKhatmahAccess(path) {
 // If this is a direct khatmah access, log it clearly
 if (typeof window !== 'undefined' && isDirectKhatmahAccess(window.location.pathname)) {
   console.log(
-    '%c👋 Welcome! You\'re accessing a shared Khatmah URL',
+    '%c why the hell are you here?',
     'background: #10b981; color: white; padding: 6px 12px; border-radius: 4px; font-size: 14px; font-weight: bold;'
   );
   console.log(
@@ -60,6 +60,12 @@ const router = createRouter({
       name: 'qibla',
       component: App,
       meta: { mode: 'qibla', transitionName: 'fade' }
+    },
+    {
+      path: '/prayer-times',
+      name: 'prayer-times',
+      component: App,
+      meta: { mode: 'prayer-times', transitionName: 'fade' }
     },
     {
       path: '/age-calculator',

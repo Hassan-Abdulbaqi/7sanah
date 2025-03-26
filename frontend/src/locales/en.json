@@ -7,49 +7,41 @@
   },
   "nav": {
     "home": "Home",
-    "khatmah": "Khatmahs",
-    "calendar": "Prayer Times",
-    "qibla": "Qibla Compass",
+    "khatmah": "Khatmah",
+    "calendar": "Calendar",
+    "qibla": "Qibla",
+    "prayerTimes": "Prayer Times",
     "tasbeeh": "Tasbeeh",
     "quran": "Quran"
   },
   "features": {
     "khatmah": {
-      "title": "Quran Khatmahs",
-      "description": "Participate in collaborative Quran reading journeys with others."
+      "title": "Khatmah",
+      "description": "Organize and track your Quran reading progress"
     },
     "calendar": {
-      "title": "Prayer Times",
-      "description": "Get accurate prayer times based on your location."
+      "title": "Hijri Calendar",
+      "description": "View Islamic calendar dates and events"
     },
     "qibla": {
-      "title": "Qibla Compass",
-      "description": "Find the direction of Qibla from anywhere in the world."
+      "title": "Qibla Direction",
+      "description": "Find the direction of the Qibla from your location"
     },
-    "quran": {
-      "title": "Quran Reader",
-      "description": "Read and listen to the Holy Quran with audio recitation."
+    "prayerTimes": {
+      "title": "Prayer Times",
+      "description": "Get accurate prayer times for your location"
     },
     "ageCalculator": {
       "title": "Age Calculator",
-      "description": "Calculate your age in both Gregorian and Hijri calendars."
+      "description": "Calculate your age in Hijri calendar"
     },
     "tasbeeh": {
-      "title": "Tasbeeh Counter",
-      "description": "Perform dhikr with a digital counter for common Islamic remembrances.",
-      "selectTasbeeh": "Select Tasbeeh",
-      "target": "Target",
-      "remaining": "Remaining",
-      "increment": "Count",
-      "reset": "Reset",
-      "vibration": "Enable vibration feedback",
-      "currentPhrase": "Current Phrase",
-      "acceptanceMessage": "May Allah accept it from you",
-      "freeMode": {
-        "description": "Custom dhikr counting without limits",
-        "cycles": "Completed Cycles",
-        "current": "Current Cycle"
-      }
+      "title": "Digital Tasbeeh",
+      "description": "Keep track of your dhikr with digital counter"
+    },
+    "quran": {
+      "title": "Quran Reader",
+      "description": "Read and listen to the Holy Quran"
     }
   },
   "navigation": {
@@ -94,6 +86,7 @@
     "joinedAs": "You joined as",
     "clickUnassigned": "Click on any unassigned juz below to select it",
     "clickAssigned": "Click on your assigned juz to read it",
+    "clickToRead": "Click to read",
     "juzAssignments": "Juz Assignments",
     "surahAssignments": "Surah Assignments",
     "notAssigned": "Not assigned",
@@ -107,6 +100,8 @@
     "joined": "Joined",
     "juz": "Juz",
     "surah": "Surah",
+    "juzPlural": "Ajzaa",
+    "surahPlural": "Suwar",
     "juzNumber": "Juz {number}",
     "surahNumber": "Surah {number}",
     "you": "You",
@@ -131,7 +126,11 @@
     "copied": "Copied!",
     "shareButton": "Share",
     "close": "Close",
-    "manualCopyPrompt": "Copy this link manually:"
+    "manualCopyPrompt": "Copy this link manually:",
+    "assignedTo": "Assigned to",
+    "backToList": "Back to List",
+    "confirmJuzSelection": "Confirm Juz Selection",
+    "confirmJuzSelectionText": "Are you sure you want to select Juz {number}?"
   },
   "share": {
     "title": "Share Khatmah",
@@ -217,14 +216,19 @@
   },
   "prayerTimes": {
     "title": "Prayer Times",
+    "searchCity": "Search for a city...",
+    "useCurrentLocation": "Use Current Location",
+    "gettingLocation": "Getting Location...",
     "fajr": "Fajr",
     "sunrise": "Sunrise",
     "dhuhr": "Dhuhr",
     "asr": "Asr",
     "maghrib": "Maghrib",
     "isha": "Isha",
-    "sunset": "Sunset",
     "nextPrayer": "Next Prayer",
+    "remainingTime": "Remaining Time",
+    "locationError": "Could not get your location",
+    "fetchError": "Error fetching prayer times",
     "in": "in",
     "locationSettings": "Location Settings",
     "latitude": "Latitude",
@@ -325,7 +329,8 @@
     "save": "Save",
     "cancel": "Cancel",
     "retry": "Retry",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "confirm": "Confirm"
   },
   "ageCalculator": {
     "title": "Age Calculator",
