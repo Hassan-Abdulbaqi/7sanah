@@ -15,6 +15,7 @@
         <h2 class="section-title">{{ $t('about.contact.title') || 'Contact' }}</h2>
         <p class="section-text" :class="{ 'arabic-font': $i18n.locale === 'ar' }">{{ $t('about.contact.description') || 'For suggestions, feedback, or questions, please reach out to us at:' }}</p>
         <p class="contact-email">contact@7sanah.com</p>
+        <p class="contact">حسن عبد الباقي خلف</p>
       </div>
       
       <div class="about-section">

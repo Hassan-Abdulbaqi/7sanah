@@ -754,6 +754,7 @@ export default {
   transition: right 0.3s ease;
   z-index: 50;
   overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 .mobile-menu-container.open {
@@ -793,6 +794,7 @@ export default {
   width: 100%;
   display: flex;
   justify-content: center;
+  position: relative;
 }
 
 /* Mobile menu close button */

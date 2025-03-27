@@ -416,7 +416,8 @@
     "positionUnavailable": "The location information is not available.",
     "timeout": "The attempt to obtain location has timed out.",
     "locationNote": "Location needs to be enabled for the qibla to appear",
-    "qibla": "QIBLA"
+    "qibla": "QIBLA",
+    "calculatingQibla": "Calculating Qibla direction..."
   },
   "common": {
     "save": "Save",

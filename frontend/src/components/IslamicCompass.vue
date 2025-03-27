@@ -10,6 +10,12 @@
           <div class="target-arrow-head"></div>
         </div>
         
+        <!-- Loading spinner for Qibla -->
+        <div class="qibla-loading" v-if="isQiblaLoading">
+          <div class="spinner"></div>
+          <div class="loading-text">{{ $t('compass.calculatingQibla') }}</div>
+        </div>
+        
         <!-- Qibla direction marker on compass (moves with compass) -->
         <div class="qibla-marker" ref="qiblaMarker">
           <div class="qibla-icon">🕋</div>
@@ -103,7 +109,8 @@ export default {
       location: '',
       altitude: '',
       sunrise: '',
-      sunset: ''
+      sunset: '',
+      isQiblaLoading: false
     }
   },
   // Add i18n translations
@@ -134,7 +141,8 @@ export default {
         permissionDenied: 'User denied the request for Geolocation.',
         positionUnavailable: 'The location information is not available.',
         timeout: 'The attempt to obtain location has timed out.',
-        locationNote: 'Location needs to be enabled for the qibla to appear'
+        locationNote: 'Location needs to be enabled for the qibla to appear',
+        calculatingQibla: 'Calculating Qibla direction...'
       },
       ar: {
         qibla: 'قِبْلَة',
@@ -370,6 +378,10 @@ export default {
       // Ensure the toggle has the right color when enabled
       if (this.classList.contains("toggle-on")) {
         this.style.backgroundColor = "#4CAF50";
+        
+        // Show loading state
+        self.isQiblaLoading = true;
+        
         navigator.geolocation.getCurrentPosition(
           function(position) {
             showPosition(position);
@@ -377,12 +389,17 @@ export default {
             // Start the compass
             startCompass();
             
-            // Make the Qibla marker visible
+            // Make the Qibla marker visible and hide loading after position is set
             if (qiblaMarker) {
-              qiblaMarker.style.opacity = '1';
+              // Small delay to ensure smooth transition
+              setTimeout(() => {
+                self.isQiblaLoading = false;
+                qiblaMarker.style.opacity = '1';
+              }, 500);
             }
           },
           function(error) {
+            self.isQiblaLoading = false;
             showError(error);
           }
         );
@@ -392,6 +409,7 @@ export default {
         if (qiblaMarker) {
           qiblaMarker.style.opacity = '0';
         }
+        self.isQiblaLoading = false;
       }
     });
 
@@ -650,6 +668,44 @@ export default {
   max-width: 500px;
   margin: 0 auto;
   padding: 10px;
+}
+
+/* Add loading spinner styles */
+.qibla-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 40;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(76, 175, 80, 0.1);
+  border-left-color: #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  margin-top: 10px;
+  color: #4CAF50;
+  font-size: 14px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .toggle-container {

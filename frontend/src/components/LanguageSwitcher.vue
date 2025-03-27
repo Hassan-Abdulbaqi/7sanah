@@ -120,6 +120,11 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* Language specific font families */
+[lang="ar"] {
+  --font-family-sans: var(--font-family-arabic);
+}
+
 .language-dropdown-container {
   position: relative;
   display: inline-flex;
@@ -143,12 +148,31 @@ onUnmounted(() => {
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
+  .mobile-language .language-dropdown-container {
+    width: 100%;
+    padding: 0 0.5rem;
+  }
+  
   .mobile-language .dropdown-menu {
     position: absolute;
-    right: 0;
-    left: auto;
+    right: 50%;
+    transform: translateX(50%);
+    width: calc(100% - 2rem);
+    min-width: 250px;
+    max-width: 300px;
+  }
+  
+  /* Adjust button to be full width in mobile menu */
+  .mobile-language button {
     width: 100%;
-    max-width: 200px;
+    justify-content: center;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Show language name on mobile too */
+  .mobile-language .hidden.md\:inline {
+    display: inline;
   }
 }
 </style> 

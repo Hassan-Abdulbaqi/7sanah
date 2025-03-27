@@ -148,7 +148,7 @@
 
     <!-- Source information -->
     <div class="calendar-source-info">
-      <p class="source-text">حسب رأي السيد علي السيستاني اطال الله عمره</p>
+      <p class="source-text">حسب مواقيت الأهلة لعام 1446 هـ للسيد علي السيستاني اطال الله عمره</p>
       <a href="https://www.sistani.org/arabic/archive/26889/" target="_blank" class="source-link">المصدر</a>
     </div>
   </div>
