@@ -177,6 +177,21 @@
     "contact": "Contact",
     "rights": "All rights reserved."
   },
+  "about": {
+    "title": "About 7sanah",
+    "dedication": {
+      "title": "Dedication",
+      "text": "This work is dedicated to the memory of the late Hajja Sabiha Thajeel (Umm Abdul-Baqi), my grandmother who taught me patience and faith, and was an example of giving and dedication. Her prayers were always with me in every step of my life. May her soul rest in peace.",
+      "reciteFatiha": "Recite Al-Fatiha for her blessed soul"
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "For suggestions, feedback, or questions, please reach out to us at:"
+    },
+    "version": {
+      "title": "Version"
+    }
+  },
   "language": {
     "en": "English",
     "ar": "العربية",

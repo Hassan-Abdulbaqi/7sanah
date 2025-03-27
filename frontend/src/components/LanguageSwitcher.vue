@@ -11,8 +11,8 @@ const buttonRef = ref(null);
 const languages = [
   { code: 'en', name: 'English', flag: '🇬🇧', dir: 'ltr', langCode: 'EN' },
   { code: 'ar', name: 'العربية', flag: '🇸🇦', dir: 'ltr', langCode: 'AR' },
-  { code: 'ku', name: 'کوردی', flag: '🇮🇶', dir: 'rtl', langCode: 'KU' },
-  { code: 'fa', name: 'فارسی', flag: '🇮🇷', dir: 'rtl', langCode: 'FA' }
+  { code: 'ku', name: 'کوردی', flag: '🇮🇶', dir: 'ltr', langCode: 'KU' },
+  { code: 'fa', name: 'فارسی', flag: '🇮🇷', dir: 'ltr', langCode: 'FA' }
 ];
 
 // Current language

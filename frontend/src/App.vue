@@ -2,7 +2,7 @@
   <div class="app-container">
     <header class="app-header">
       <div class="logo" @click="navigateTo('home')">
-        <span class="logo-text">7sanah</span>
+        <img src="./assets/7sanah_logo.png" alt="7sanah" class="logo-img" />
       </div>
       
       <!-- Mobile menu toggle button - only visible on mobile -->
@@ -189,11 +189,22 @@
         <div v-else-if="currentPage === 'prayer-times'" class="page-container" :key="'prayer-times'">
           <PrayerTimes />
         </div>
+
+        <!-- About Page -->
+        <div v-else-if="currentPage === 'about'" class="page-container" :key="'about'">
+          <About />
+        </div>
       </transition>
     </main>
 
     <footer class="app-footer">
-      <p>&copy; {{ new Date().getFullYear() }} 7sanah. {{ $t('app.rights_reserved') }}</p>
+      <div class="footer-content">
+        <div class="footer-links">
+          <span class="footer-link" @click="navigateTo('about')">{{ $t('footer.about') || 'About' }}</span>
+          <span class="footer-divider">|</span>
+          <span class="footer-link" @click="navigateTo('about')">{{ $t('footer.contact') || 'Contact' }}</span>
+        </div>
+      </div>
     </footer>
     
     <!-- Add the notification component -->
@@ -220,6 +231,7 @@ import Notification from './components/Notification.vue'
 import TasbeehIcon from './components/icons/TasbeehIcon.vue'
 import QuranIcon from './components/icons/QuranIcon.vue'
 import PrayerTimes from './components/PrayerTimes.vue'
+import About from './components/About.vue'
 import { store } from './store'
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -249,7 +261,8 @@ export default {
     TimeOutline,
     TasbeehIcon,
     QuranIcon,
-    PrayerTimes
+    PrayerTimes,
+    About
   },
   data() {
     return {
@@ -389,6 +402,9 @@ export default {
           break
         case 'quran-search':
           this.currentPage = 'quran-search'
+          break
+        case 'about':
+          this.currentPage = 'about'
           break
       }
     },
@@ -645,11 +661,10 @@ export default {
   margin-right: 1.5rem;
 }
 
-.logo-text {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--primary-color);
-  margin-left: 0.5rem;
+.logo-img {
+  height: 2.5rem;
+  width: auto;
+  display: block;
 }
 
 /* Mobile menu toggle */
@@ -930,9 +945,44 @@ export default {
 
 .app-footer {
   background-color: var(--card-bg);
-  text-align: center;
-  padding: 1.5rem;
+  padding: 1rem;
   margin-top: 2rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.footer-link:hover {
+  color: var(--primary-color);
+}
+
+.footer-divider {
+  color: var(--border-color);
+}
+
+.copyright {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 /* Page Transitions */

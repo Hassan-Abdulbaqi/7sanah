@@ -96,6 +96,12 @@ const router = createRouter({
       component: App,
       meta: { mode: 'quran-search', transitionName: 'fade' }
     },
+    {
+      path: '/about',
+      name: 'about',
+      component: App,
+      meta: { mode: 'about', transitionName: 'fade' }
+    },
     // Wildcard route for 404
     {
       path: '/:pathMatch(.*)*',

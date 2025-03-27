@@ -94,25 +94,17 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-# Use PostgreSQL in production and SQLite in development
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# Use PostgreSQL for both development and production
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'quran_khatmah'),
+        'USER': os.environ.get('DB_USER', 'super'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'Sh3ewit-4454.postgres.pythonanywhere-services.com'),
+        'PORT': os.environ.get('DB_PORT', '14454'),
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', 'quran_khatmah'),
-            'USER': os.environ.get('DB_USER', 'super'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-            'HOST': os.environ.get('DB_HOST', 'Sh3ewit-4454.postgres.pythonanywhere-services.com'),
-            'PORT': os.environ.get('DB_PORT', '14454'),
-        }
-    }
+}
 
 
 # Password validation
@@ -193,7 +185,7 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# CSRF Trusted Origins - needed for admin interface
+
 CSRF_TRUSTED_ORIGINS = [
     'https://api.7sanah.com',
     'https://www.7sanah.com',
