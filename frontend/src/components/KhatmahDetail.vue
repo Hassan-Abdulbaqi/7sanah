@@ -763,7 +763,7 @@ async function fetchSurahs() {
   surahsError.value = null;
   
   try {
-    const response = await axios.get('http://api.alquran.cloud/v1/surah');
+    const response = await axios.get('https://api.alquran.cloud/v1/surah');
     
     if (response.data && response.data.code === 200 && response.data.data) {
       surahs.value = response.data.data;

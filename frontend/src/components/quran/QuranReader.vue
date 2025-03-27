@@ -267,7 +267,7 @@ export default {
       }
       
       // Fetch surahs
-      const surahsResponse = await fetch('http://api.alquran.cloud/v1/surah')
+      const surahsResponse = await fetch('https://api.alquran.cloud/v1/surah')
       const surahsData = await surahsResponse.json()
       
       if (surahsData.code === 200) {
@@ -339,7 +339,7 @@ export default {
         this.loadingReciters = true
         
         // Use the specified API endpoint to get all editions
-        const response = await fetch('http://api.alquran.cloud/v1/edition')
+        const response = await fetch('https://api.alquran.cloud/v1/edition')
         const data = await response.json()
         
         if (data.code === 200) {
@@ -443,7 +443,7 @@ export default {
         console.log(`Loading surah ${this.selectedSurah} with highlighting for verse ${this.highlightedAyah || 'none'}`)
         
         // Fetch the surah data from the API
-        const response = await fetch(`http://api.alquran.cloud/v1/surah/${this.selectedSurah}/quran-uthmani`)
+        const response = await fetch(`https://api.alquran.cloud/v1/surah/${this.selectedSurah}/quran-uthmani`)
         const data = await response.json()
         
         if (data.code === 200) {

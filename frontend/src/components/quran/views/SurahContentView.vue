@@ -517,7 +517,7 @@ export default {
         }
         
         // Then load the actual translations in the background
-        const response = await fetch(`http://api.alquran.cloud/v1/surah/${this.currentSurah.number}/${this.selectedTranslation}`)
+        const response = await fetch(`https://api.alquran.cloud/v1/surah/${this.currentSurah.number}/${this.selectedTranslation}`)
         const data = await response.json()
         
         if (data.code === 200) {

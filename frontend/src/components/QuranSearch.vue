@@ -162,7 +162,7 @@ export default {
   methods: {
     async loadSurahs() {
       try {
-        const response = await fetch('http://api.alquran.cloud/v1/surah');
+        const response = await fetch('https://api.alquran.cloud/v1/surah');
         const data = await response.json();
         if (data.code === 200 && data.data) {
           this.surahs = data.data;
@@ -175,7 +175,7 @@ export default {
     async loadTranslations() {
       try {
         // Only get text format translations, no tafsir
-        const response = await fetch('http://api.alquran.cloud/v1/edition?format=text&type=translation');
+        const response = await fetch('https://api.alquran.cloud/v1/edition?format=text&type=translation');
         const data = await response.json();
         
         if (data.code === 200 && data.data) {

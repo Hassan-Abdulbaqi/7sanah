@@ -74,7 +74,7 @@ def get_juz_text(request, juz_number):
     
     try:
         # Fetch Arabic text from the Quran API
-        api_url = f"http://api.alquran.cloud/v1/juz/{juz_number}/quran-uthmani"
+        api_url = f"https://api.alquran.cloud/v1/juz/{juz_number}/quran-uthmani"
         
         # Add proper headers to the request
         headers = {
@@ -153,7 +153,7 @@ def get_surah_text(request, surah_number):
     
     try:
         # Fetch Arabic text from the Quran API
-        api_url = f"http://api.alquran.cloud/v1/surah/{surah_number}/quran-uthmani"
+        api_url = f"https://api.alquran.cloud/v1/surah/{surah_number}/quran-uthmani"
         
         # Add proper headers to the request
         headers = {

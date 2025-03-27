@@ -459,7 +459,7 @@ export default {
       try {
         
         
-        let endpoint = `http://api.alquran.cloud/v1/page/${this.currentPage}`;
+        let endpoint = `https://api.alquran.cloud/v1/page/${this.currentPage}`;
         
         if (this.selectedTextType === 'quran') {
           endpoint += '/quran-uthmani';
@@ -467,10 +467,10 @@ export default {
           endpoint += '/quran-simple';
         } else if (this.selectedTextType === 'quran-and-translation') {
           // We'll need to make two requests for this mode
-          const quranResponse = await fetch(`http://api.alquran.cloud/v1/page/${this.currentPage}/quran-uthmani`);
+          const quranResponse = await fetch(`https://api.alquran.cloud/v1/page/${this.currentPage}/quran-uthmani`);
           const quranData = await quranResponse.json();
           
-          const translationResponse = await fetch(`http://api.alquran.cloud/v1/page/${this.currentPage}/${this.selectedTranslation}`);
+          const translationResponse = await fetch(`https://api.alquran.cloud/v1/page/${this.currentPage}/${this.selectedTranslation}`);
           const translationData = await translationResponse.json();
           
           if (quranData.code === 200 && translationData.code === 200) {
@@ -604,7 +604,7 @@ export default {
       }
       
       try {
-        const response = await fetch(`http://api.alquran.cloud/v1/ayah/${ayahNumber}/${reciter}`);
+        const response = await fetch(`https://api.alquran.cloud/v1/ayah/${ayahNumber}/${reciter}`);
         const data = await response.json();
         
         if (data.code === 200 && data.data && data.data.audio) {
@@ -881,7 +881,7 @@ export default {
         
         
         // Make the API call to get all editions
-        const response = await fetch('http://api.alquran.cloud/v1/edition/format/audio');
+        const response = await fetch('https://api.alquran.cloud/v1/edition/format/audio');
         const data = await response.json();
         
         if (data.code === 200) {
@@ -911,7 +911,7 @@ export default {
         
         
         // Use the specified API endpoint to get all editions
-        const response = await fetch('http://api.alquran.cloud/v1/edition/type/translation');
+        const response = await fetch('https://api.alquran.cloud/v1/edition/type/translation');
         const data = await response.json();
         
         if (data.code === 200) {
@@ -959,8 +959,8 @@ export default {
         // Prepare ayah audio URLs
         for (const ayah of this.page.ayahs) {
           try {
-            // Format: http://api.alquran.cloud/v1/ayah/{ayah_number}/{edition}
-            const audioUrl = `http://api.alquran.cloud/v1/ayah/${ayah.number}/${this.selectedReciter}`;
+            // Format: https://api.alquran.cloud/v1/ayah/{ayah_number}/{edition}
+            const audioUrl = `https://api.alquran.cloud/v1/ayah/${ayah.number}/${this.selectedReciter}`;
            
             
             const response = await fetch(audioUrl);
