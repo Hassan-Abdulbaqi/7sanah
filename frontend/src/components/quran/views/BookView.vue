@@ -26,7 +26,6 @@
           <select id="textTypeSelect" v-model="selectedTextType" class="select-input" @change="loadPage">
             <option value="quran">{{ $t('quran.bookViewPage.quran') }}</option>
             <option value="quran-simple">{{ $t('quran.bookViewPage.quranSimple') }}</option>
-            <option value="translation">{{ $t('quran.bookViewPage.translation') }}</option>
             <option value="quran-and-translation">{{ $t('quran.bookViewPage.quranAndTranslation') }}</option>
           </select>
         </div>
@@ -133,21 +132,23 @@
       <!-- Translation Text -->
       <div v-if="showTranslation" class="mt-8 translation-container">
         <div v-for="ayah in page.ayahs" :key="`translation-${ayah.number}`" class="ayah translation-text" :class="{ 'playing-ayah-audio': currentAudioAyah === ayah.number }">
-            <div class="ayah-header">
+          <div class="ayah-header">
             <span>{{ ayah.surah.name }} {{ ayah.numberInSurah }}</span>
-              <button 
+            <button 
               v-if="audioAvailable && ayah.audio" 
               @click="playAyahAudio(ayah.number)" 
-                class="ayah-audio-button-translation"
+              class="ayah-audio-button-translation"
               :class="{ 'active': currentAudioAyah === ayah.number }"
               :disabled="isLoadingAudio"
             >
-              {{ $t('quran.bookViewPage.playButton') }}
-              </button>
-            </div>
-          <div class="ayah-text">{{ cleanAyahText(ayah.translation, ayah.surah.number, ayah.numberInSurah) }}</div>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+              </svg>
+            </button>
           </div>
+          <div class="ayah-text">{{ cleanAyahText(ayah.translation, ayah.surah.number, ayah.numberInSurah) }}</div>
         </div>
+      </div>
         
       <!-- Page Number -->
         <div class="page-number">
@@ -315,13 +316,11 @@ export default {
     },
     
     showTranslation() {
-      return this.selectedTextType === 'translation' || 
-             this.selectedTextType === 'quran-and-translation';
+      return this.selectedTextType === 'quran-and-translation';
     },
     
     showTranslationSelect() {
-      return this.selectedTextType === 'translation' || 
-             this.selectedTextType === 'quran-and-translation';
+      return this.selectedTextType === 'quran-and-translation';
     },
     
     isArabicEdition() {
@@ -361,7 +360,7 @@ export default {
     }
   },
   created() {
-    console.log('BookView component created');
+    
     // Load user preferences from localStorage
     this.loadUserPreferences();
     
@@ -370,7 +369,7 @@ export default {
     this.fetchReciters();
   },
   mounted() {
-    console.log('BookView mounted - loading first page');
+    
     // Load the first page on component mount
     this.loadPage();
   },
@@ -458,7 +457,7 @@ export default {
       this.error = null;
       
       try {
-        console.log(`Loading page ${this.currentPage} with text type ${this.selectedTextType}`);
+        
         
         let endpoint = `http://api.alquran.cloud/v1/page/${this.currentPage}`;
         
@@ -466,8 +465,6 @@ export default {
           endpoint += '/quran-uthmani';
         } else if (this.selectedTextType === 'quran-simple') {
           endpoint += '/quran-simple';
-        } else if (this.selectedTextType === 'translation') {
-          endpoint += `/${this.selectedTranslation}`;
         } else if (this.selectedTextType === 'quran-and-translation') {
           // We'll need to make two requests for this mode
           const quranResponse = await fetch(`http://api.alquran.cloud/v1/page/${this.currentPage}/quran-uthmani`);
@@ -695,7 +692,7 @@ export default {
         this.playCurrentInPlaylist();
       } else {
         // End of playlist
-        console.log('Playlist finished, stopping audio');
+        
         this.stopAnyPlayingAudio();
       }
     },
@@ -881,7 +878,7 @@ export default {
     
     async fetchReciters() {
       try {
-        console.log('Fetching reciters...');
+        
         
         // Make the API call to get all editions
         const response = await fetch('http://api.alquran.cloud/v1/edition/format/audio');
@@ -896,7 +893,7 @@ export default {
             language: reciter.language
           }));
           
-          console.log(`Loaded ${this.reciters.length} reciters`);
+          
           
           // Set a default reciter if none selected
           if (!this.selectedReciter && this.reciters.length > 0) {
@@ -911,7 +908,7 @@ export default {
     async fetchEditions() {
       try {
         this.loadingTranslations = true;
-        console.log('Fetching editions...');
+        
         
         // Use the specified API endpoint to get all editions
         const response = await fetch('http://api.alquran.cloud/v1/edition/type/translation');
@@ -925,7 +922,7 @@ export default {
             language: translation.language
           }));
           
-          console.log(`Loaded ${this.translations.length} translations`);
+          
           
           // Set a default translation if none selected
           if (!this.selectedTranslation && this.translations.length > 0) {
@@ -956,7 +953,7 @@ export default {
         return;
       }
       
-      console.log(`Loading audio for page ${this.currentPage} with reciter ${this.selectedReciter}`);
+      
       
       try {
         // Prepare ayah audio URLs
@@ -964,7 +961,7 @@ export default {
           try {
             // Format: http://api.alquran.cloud/v1/ayah/{ayah_number}/{edition}
             const audioUrl = `http://api.alquran.cloud/v1/ayah/${ayah.number}/${this.selectedReciter}`;
-            console.log(`Fetching audio for ayah ${ayah.number} from: ${audioUrl}`);
+           
             
             const response = await fetch(audioUrl);
             const data = await response.json();
@@ -973,7 +970,7 @@ export default {
               // Attach audio URL to the ayah
               ayah.audio = data.data.audio;
               this.audioPlaylist.push(data.data.audio);
-              console.log(`Added audio for ayah ${ayah.number}: ${data.data.audio}`);
+              
             } else {
               console.warn(`No audio found for ayah ${ayah.number}:`, data);
             }
@@ -983,7 +980,7 @@ export default {
         }
         
         this.pageAudiosReady = this.audioPlaylist.length > 0;
-        console.log(`Audio playlist ready with ${this.audioPlaylist.length} tracks`);
+        
       } catch (error) {
         console.error('Error preparing page audio:', error);
       }
@@ -1936,5 +1933,44 @@ export default {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* Add styles for the ayah-audio-button-translation at the bottom of the style section */
+.ayah-audio-button-translation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: rgba(138, 103, 42, 0.1);
+  color: #8a672a;
+  border-radius: 50%;
+  border: 1px solid rgba(138, 103, 42, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 0.5rem;
+}
+
+.ayah-audio-button-translation:hover {
+  background-color: rgba(138, 103, 42, 0.2);
+  transform: scale(1.05);
+}
+
+.ayah-audio-button-translation.active {
+  background-color: rgba(138, 103, 42, 0.8);
+  color: white;
+}
+
+.ayah-audio-button-translation:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ayah-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #8a672a;
 }
 </style> 

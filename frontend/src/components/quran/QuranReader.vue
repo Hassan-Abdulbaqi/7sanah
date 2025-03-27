@@ -1186,7 +1186,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="postcss">
 .quran-reader {
   @apply max-w-6xl mx-auto p-4;
 }

@@ -7,8 +7,15 @@
           type="text" 
           :placeholder="$t('prayerTimes.searchCity')"
           @input="searchCities"
+          @click="showAllCities"
+          @focus="showAllCities"
         />
-        <div v-if="searchResults.length > 0" class="search-results">
+        <div class="dropdown-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div v-if="showDropdown" class="search-results">
           <div 
             v-for="city in searchResults" 
             :key="city.name"
@@ -20,12 +27,18 @@
           </div>
         </div>
       </div>
-      <div class="current-location">
+      <div class="location-actions">
         <button @click="getCurrentLocation" class="location-btn" :disabled="isLoadingLocation">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
           </svg>
           {{ isLoadingLocation ? $t('prayerTimes.gettingLocation') : $t('prayerTimes.useCurrentLocation') }}
+        </button>
+        <button @click="showMapSelector = true" class="map-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+            <path fill-rule="evenodd" d="M12 1.586l-4 4v12.828l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.414V5.586L3.707 3.293zM17.707 5.293L14 1.586v12.828l2.293 2.293A1 1 0 0018 16V6a1 1 0 00-.293-.707z" clip-rule="evenodd" />
+          </svg>
+          {{ $t('prayerTimes.selectFromMap') }}
         </button>
       </div>
     </div>
@@ -33,13 +46,18 @@
     <!-- Loading State -->
     <div v-if="isLoadingLocation" class="loading-state">
       <div class="loading-spinner"></div>
-      <p>جاري تحديد موقعك...</p>
+      <p>{{ $t('prayerTimes.loadingLocation') }}</p>
+    </div>
+
+    <!-- Prayer Times Loading State -->
+    <div v-else-if="isLoadingPrayerTimes" class="loading-state">
+      <div class="loading-spinner"></div>
+      <p>{{ $t('prayerTimes.loading') }}</p>
     </div>
 
     <!-- Location Error State -->
     <div v-else-if="locationError" class="error-state">
-      <p>لم نتمكن من تحديد موقعك</p>
-      <p>الرجاء اختيار مدينتك من القائمة أعلاه</p>
+      <p>{{ $t('prayerTimes.locationError') }}</p>
     </div>
 
     <!-- Prayer Times Display -->
@@ -51,17 +69,19 @@
           </svg>
           <span class="location-name">{{ currentLocationName }}</span>
         </div>
-        <div class="gregorian-date">{{ currentDate }}</div>
+        <div class="gregorian-date">
+          <div class="english-date">{{ $t('prayerTimes.date.gregorian') }}: {{ currentDate.english }}</div>
+          <div class="arabic-date">{{ $t('prayerTimes.date.hijri') }}: {{ currentDate.arabic }}</div>
+        </div>
       </div>
 
-      <!-- Next Prayer Section - Moved to top for prominence -->
+      <!-- Next Prayer Section -->
       <div class="next-prayer-section" v-if="nextPrayer">
         <div class="next-prayer-header">
           {{ $t('prayerTimes.nextPrayer') }}
         </div>
         <div class="next-prayer-name">
-          <span class="arabic-prayer-name">{{ nextPrayer.arabicName }}</span>
-          <span class="english-prayer-name">{{ $t(`prayerTimes.${nextPrayer.name}`) }}</span>
+          <span class="arabic-prayer-name">{{ $t(`prayerTimes.prayers.${nextPrayer.name}`) }}</span>
         </div>
         <div class="countdown-timer">{{ nextPrayer.countdown }}</div>
       </div>
@@ -70,38 +90,51 @@
       <div class="main-prayers">
         <div class="prayer-item" :class="{ 'next-prayer': isNextPrayer('fajr') }">
           <div class="prayer-name">
-            <span class="arabic-name">الفجر</span>
+            <span class="arabic-name">{{ $t('prayerTimes.prayers.fajr') }}</span>
           </div>
           <div class="prayer-time">{{ prayerTimes?.fajir || '--:--' }}</div>
         </div>
 
         <div class="sun-card sunrise">
           <div class="sun-info">
-            <span class="sun-label">الشروق</span>
+            <span class="sun-label">{{ $t('prayerTimes.prayers.sunrise') }}</span>
             <span class="sun-time">{{ prayerTimes?.sunrise || '--:--' }}</span>
           </div>
         </div>
 
         <div class="prayer-item" :class="{ 'next-prayer': isNextPrayer('dhuhr') }">
           <div class="prayer-name">
-            <span class="arabic-name">الظهر</span>
+            <span class="arabic-name">{{ $t('prayerTimes.prayers.dhuhr') }}</span>
           </div>
           <div class="prayer-time">{{ prayerTimes?.doher || '--:--' }}</div>
         </div>
 
         <div class="sun-card sunset">
           <div class="sun-info">
-            <span class="sun-label">الغروب</span>
+            <span class="sun-label">{{ $t('prayerTimes.prayers.sunset') }}</span>
             <span class="sun-time">{{ prayerTimes?.sunset || '--:--' }}</span>
           </div>
         </div>
 
         <div class="prayer-item" :class="{ 'next-prayer': isNextPrayer('maghrib') }">
           <div class="prayer-name">
-            <span class="arabic-name">المغرب</span>
+            <span class="arabic-name">{{ $t('prayerTimes.prayers.maghrib') }}</span>
           </div>
           <div class="prayer-time">{{ prayerTimes?.maghrib || '--:--' }}</div>
         </div>
+      </div>
+    </div>
+
+    <!-- Map Selector Modal -->
+    <div v-if="showMapSelector" class="map-modal">
+      <div class="map-modal-content">
+        <button class="close-btn" @click="showMapSelector = false">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+        <h3>{{ $t('prayerTimes.mapSelector.title') }}</h3>
+        <MapSelector @location-selected="handleLocationSelected" />
       </div>
     </div>
   </div>
@@ -109,6 +142,7 @@
 
 <script>
 import { ref, onMounted, computed, onUnmounted } from 'vue'
+import MapSelector from './MapSelector.vue'
 
 // Iraqi governorates with their coordinates
 const iraqiCities = [
@@ -135,29 +169,53 @@ const iraqiCities = [
 
 export default {
   name: 'PrayerTimes',
+  components: {
+    MapSelector
+  },
   setup() {
     const prayerTimes = ref(null)
-    const currentLocation = ref(null) // Changed to null initially
+    const currentLocation = ref(null)
     const searchQuery = ref('')
     const searchResults = ref([])
     const nextPrayer = ref(null)
     const currentLocationName = ref('')
-    const isLoadingLocation = ref(true) // Changed to true initially
-    const locationError = ref(false) // New ref for tracking location errors
+    const isLoadingLocation = ref(true)
+    const locationError = ref(false)
+    const showDropdown = ref(false)
+    const showMapSelector = ref(false)
+    const isLoadingPrayerTimes = ref(false)
     
     const currentDate = computed(() => {
-      return new Date().toLocaleDateString('en-US', {
+      // Create date formatters for both languages
+      const englishFormatter = new Intl.DateTimeFormat('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
       })
+
+      const arabicFormatter = new Intl.DateTimeFormat('ar', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+
+      const now = new Date()
+      const englishDate = englishFormatter.format(now)
+      const arabicDate = arabicFormatter.format(now)
+
+      return {
+        english: englishDate,
+        arabic: arabicDate
+      }
     })
 
     const fetchPrayerTimes = async () => {
       if (!currentLocation.value) return // Don't fetch if no location
 
       try {
+        isLoadingPrayerTimes.value = true // Set loading state to true before fetching
         const response = await fetch(
           `https://hq.alkafeel.net/Api/init/init.php?v=jsonPrayerTimes&timezone=${currentLocation.value.timezone}&long=${currentLocation.value.longitude}&lati=${currentLocation.value.latitude}`
         )
@@ -167,6 +225,8 @@ export default {
       } catch (error) {
         console.error('Error fetching prayer times:', error)
         prayerTimes.value = null
+      } finally {
+        isLoadingPrayerTimes.value = false // Set loading state to false after fetching
       }
     }
 
@@ -247,6 +307,12 @@ export default {
         return city.name.toLowerCase().includes(query) || 
                city.arabicName.includes(query)
       })
+      showDropdown.value = true
+    }
+
+    const showAllCities = () => {
+      searchResults.value = [...iraqiCities]
+      showDropdown.value = true
     }
 
     const selectCity = (city) => {
@@ -263,6 +329,7 @@ export default {
       currentLocationName.value = `${city.name} (${city.arabicName})`
       searchQuery.value = city.name
       searchResults.value = []
+      showDropdown.value = false
       
       // Fetch prayer times for selected city
       fetchPrayerTimes()
@@ -272,18 +339,22 @@ export default {
       if (!prayerTimes.value) return
 
       const now = new Date()
-      // Only include Fajr, Dhuhr, and Maghrib with updated Arabic names
+      
+      // Define prayer times with their AM/PM rules
       const prayers = [
-        { name: 'fajr', time: prayerTimes.value.fajir, arabicName: 'الفجر' },
-        { name: 'dhuhr', time: prayerTimes.value.doher, arabicName: 'الظهر' },
-        { name: 'maghrib', time: prayerTimes.value.maghrib, arabicName: 'المغرب' }
+        { name: 'fajr', time: prayerTimes.value.fajir, isAM: true }, // Fajr is always AM
+        { name: 'dhuhr', time: prayerTimes.value.doher, isAM: false }, // Dhuhr is always PM
+        { name: 'maghrib', time: prayerTimes.value.maghrib, isAM: false } // Maghrib is always PM
       ]
 
-      // Convert prayer times to Date objects
+      // Convert prayer times to Date objects with proper AM/PM handling
       const prayerDates = prayers.map(prayer => {
-        const [hours, minutes] = prayer.time.split(':').map(Number)
+        const [hours, minutes] = prayer.time.trim().split(':').map(Number)
         const date = new Date()
-        date.setHours(hours, minutes, 0)
+        
+        // Convert to 24-hour format if PM
+        const adjustedHours = prayer.isAM ? hours : (hours === 12 ? 12 : hours + 12)
+        date.setHours(adjustedHours, minutes, 0)
         
         // If prayer time has passed for today, set it for tomorrow
         if (date < now) {
@@ -305,7 +376,6 @@ export default {
         const timeDiff = next.date - now
         nextPrayer.value = {
           name: next.name,
-          arabicName: next.arabicName,
           countdown: formatCountdown(timeDiff),
           date: next.date
         }
@@ -354,6 +424,45 @@ export default {
       return nextPrayer.value?.name === prayerName
     }
 
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      const searchBox = document.querySelector('.search-box')
+      if (searchBox && !searchBox.contains(event.target)) {
+        showDropdown.value = false
+      }
+    }
+
+    onMounted(() => {
+      // Try to get current location on initial load
+      getCurrentLocation()
+      
+      // Add event listener for clicking outside dropdown
+      document.addEventListener('click', handleClickOutside)
+    })
+
+    onUnmounted(() => {
+      // Remove event listener
+      document.removeEventListener('click', handleClickOutside)
+    })
+
+    const handleLocationSelected = (location) => {
+      // Reset error and loading states
+      locationError.value = false
+      isLoadingLocation.value = false
+      
+      // Set the location
+      currentLocation.value = {
+        latitude: location.lat,
+        longitude: location.lng,
+        timezone: new Date().getTimezoneOffset() / -60
+      }
+      currentLocationName.value = location.name
+      showMapSelector.value = false
+      
+      // Fetch prayer times for selected location
+      fetchPrayerTimes()
+    }
+
     return {
       prayerTimes,
       currentDate,
@@ -363,10 +472,15 @@ export default {
       currentLocationName,
       isLoadingLocation,
       locationError,
+      showDropdown,
       getCurrentLocation,
       searchCities,
       selectCity,
-      isNextPrayer
+      showAllCities,
+      isNextPrayer,
+      showMapSelector,
+      handleLocationSelected,
+      isLoadingPrayerTimes
     }
   }
 }
@@ -391,11 +505,22 @@ export default {
 .search-box input {
   width: 100%;
   padding: 0.75rem 1rem;
+  padding-right: 2.5rem;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 1rem;
   background-color: var(--input-bg);
   transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dropdown-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
 }
 
 .search-box input:focus {
@@ -416,6 +541,7 @@ export default {
   z-index: 10;
   max-height: 200px;
   overflow-y: auto;
+  margin-top: 4px;
 }
 
 .city-item {
@@ -441,7 +567,14 @@ export default {
   color: var(--text-secondary);
 }
 
-.location-btn {
+.location-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.location-btn,
+.map-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -453,15 +586,20 @@ export default {
   cursor: pointer;
   transition: background-color 0.2s ease;
   font-size: 0.875rem;
+  flex: 1;
 }
 
-.location-btn:hover {
+.location-btn:hover,
+.map-btn:hover {
   background-color: var(--primary-hover);
 }
 
-.location-btn svg {
-  width: 1.25rem;
-  height: 1.25rem;
+.map-btn {
+  background-color: var(--secondary-color, #4a5568);
+}
+
+.map-btn:hover {
+  background-color: var(--secondary-hover, #2d3748);
 }
 
 .prayer-card {
@@ -499,9 +637,22 @@ export default {
 }
 
 .gregorian-date {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.english-date {
   font-size: 1.25rem;
   color: var(--text-color);
-  margin-bottom: 0.5rem;
+}
+
+.arabic-date {
+  font-family: var(--arabic-font);
+  font-size: 1.25rem;
+  color: var(--text-color);
+  direction: rtl;
 }
 
 /* Next Prayer Section Styles */
@@ -512,6 +663,40 @@ export default {
   color: white;
   text-align: center;
   box-shadow: 0 4px 15px rgba(var(--primary-color-rgb), 0.3);
+  position: relative;
+  animation: breathing 4s infinite ease-in-out;
+  overflow: visible;
+}
+
+.next-prayer-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  background: inherit;
+  z-index: -1;
+  animation: pulse-shadow 4s infinite ease-in-out;
+  filter: blur(10px);
+  opacity: 0.7;
+  transform-origin: center;
+}
+
+.next-prayer-section::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  opacity: 0.8;
+  animation: pulse-border 4s infinite ease-in-out;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .next-prayer-header {
@@ -534,12 +719,6 @@ export default {
   font-family: var(--arabic-font);
   font-size: 2rem;
   color: white;
-  margin: 0;
-}
-
-.next-prayer-name .english-prayer-name {
-  font-size: 1.25rem;
-  opacity: 0.9;
 }
 
 .countdown-timer {
@@ -549,9 +728,12 @@ export default {
   color: white;
   letter-spacing: 2px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Main Prayers Grid */
+/* Main Prayer Times Grid */
 .main-prayers {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -573,6 +755,40 @@ export default {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   transform: translateY(-4px);
   box-shadow: 0 4px 15px rgba(var(--primary-color-rgb), 0.2);
+  animation: breathing 4s infinite ease-in-out;
+  position: relative;
+  overflow: visible;
+}
+
+.prayer-item.next-prayer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 12px;
+  background: inherit;
+  z-index: -1;
+  animation: pulse-shadow 4s infinite ease-in-out;
+  filter: blur(10px);
+  opacity: 0.7;
+  transform-origin: center;
+}
+
+.prayer-item.next-prayer::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border-radius: 15px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  opacity: 0.8;
+  animation: pulse-border 4s infinite ease-in-out;
+  z-index: 1;
+  pointer-events: none;
 }
 
 /* Custom gradients for each prayer */
@@ -669,6 +885,11 @@ export default {
   .prayer-name .arabic-name {
     font-size: 1.5rem;
   }
+  
+  .countdown-timer {
+    font-size: 2.5rem;
+    letter-spacing: 1px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -683,6 +904,26 @@ export default {
 
   .prayer-name .arabic-name {
     font-size: 1.25rem;
+  }
+  
+  .countdown-timer {
+    font-size: 2rem;
+    letter-spacing: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .countdown-timer {
+    font-size: 1.5rem;
+    word-break: break-word;
+  }
+  
+  .next-prayer-section {
+    padding: 1.25rem 1rem;
+  }
+  
+  .next-prayer-name .arabic-prayer-name {
+    font-size: 1.75rem;
   }
 }
 
@@ -721,4 +962,72 @@ export default {
     transform: rotate(360deg);
   }
 }
-</style> 
+
+@keyframes breathing {
+  0%, 100% {
+    transform: translateY(-4px) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.03);
+  }
+}
+
+@keyframes pulse-shadow {
+  0%, 100% {
+    transform: scale(0.95);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.7;
+  }
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.map-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.map-modal-content {
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  padding: 1rem;
+  width: 100%;
+  max-width: 800px;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--text-color);
+  z-index: 1;
+}
+
+.close-btn:hover {
+  color: var(--text-secondary);
+}
+</style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="age-calculator-container">
+  <div class="age-calculator-container rtl-content">
     <h2 class="calculator-title">{{ $t('ageCalculator.title') }}</h2>
     <p class="calculator-description">{{ $t('ageCalculator.description') }}</p>
     
@@ -647,18 +647,29 @@ const calculateAge = async () => {
 .age-calculator-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 1.5rem;
-  background-color: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  background-color: var(--background-secondary);
+  border-radius: 15px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.rtl-content {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: bidi-override;
+}
+
+.rtl-content * {
+  direction: rtl;
 }
 
 .calculator-title {
-  font-size: 1.8rem;
-  font-weight: bold;
+  font-size: 2rem;
   color: var(--primary-color);
-  text-align: center;
   margin-bottom: 1rem;
+  font-weight: 700;
 }
 
 .calculator-description {
@@ -688,21 +699,19 @@ const calculateAge = async () => {
 
 .input-toggle {
   display: flex;
-  margin-bottom: 0.5rem;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+  gap: 0.5rem;
 }
 
 .toggle-btn {
   flex: 1;
-  padding: 0.6rem;
+  padding: 0.5rem;
+  background-color: var(--background-tertiary);
   border: none;
-  background-color: var(--input-bg);
-  color: var(--text-secondary);
+  border-radius: 5px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
+  transition: all 0.2s ease;
+  color: var(--text-color);
 }
 
 .toggle-btn.active {
@@ -960,6 +969,8 @@ const calculateAge = async () => {
 
 .result-row {
   display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
   margin-bottom: 0.7rem;
   line-height: 1.5;
   transition: all 0.2s ease;
@@ -971,7 +982,7 @@ const calculateAge = async () => {
 .result-row:hover {
   background-color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-  transform: translateX(5px);
+  transform: translateX(-5px);
 }
 
 .result-row:last-child {
@@ -979,16 +990,17 @@ const calculateAge = async () => {
 }
 
 .result-label {
-  flex: 1;
+  flex: 0 0 auto;
+  margin-left: 1rem;
   font-weight: 600;
   color: var(--text-secondary);
-  min-width: 140px;
 }
 
 .result-value {
-  flex: 2;
+  flex: 1;
   color: var(--text-color);
   font-weight: 500;
+  unicode-bidi: plaintext;
 }
 
 @media (max-width: 640px) {
@@ -1018,4 +1030,4 @@ const calculateAge = async () => {
     transform: rotate(360deg);
   }
 }
-</style> 
+</style>

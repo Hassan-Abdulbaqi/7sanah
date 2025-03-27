@@ -132,10 +132,15 @@ export default {
             en: 'Tasbeeh Al-Zahra',
             ar: 'تسبيح الزهراء'
           },
-          phrase: 'سبحان الله (33) الحمد لله (33) الله أكبر (34)',
-          translation: 'SubhanAllah (33) Alhamdulillah (33) Allahu Akbar (34)',
+          phrase: 'الله أكبر (34) سبحان الله (33) الحمد لله (33)',
+          translation: 'Allahu Akbar (34) SubhanAllah (33) Alhamdulillah (33)',
           count: 100,
           parts: [
+            {
+              arabic: 'الله أكبر',
+              translation: 'Allah is Greater',
+              count: 34
+            },
             {
               arabic: 'سبحان الله',
               translation: 'Glory be to Allah',
@@ -145,11 +150,6 @@ export default {
               arabic: 'الحمد لله',
               translation: 'Praise be to Allah',
               count: 33
-            },
-            {
-              arabic: 'الله أكبر',
-              translation: 'Allah is Greater',
-              count: 34
             }
           ]
         },
@@ -547,7 +547,7 @@ export default {
 }
 
 .increment-btn:hover:not(:disabled) {
-  background-color: var(--primary-dark);
+  background-color: #0d8b62;
   transform: translateY(-2px);
 }
 
@@ -588,4 +588,4 @@ export default {
     font-size: 2.5rem;
   }
 }
-</style> 
+</style>

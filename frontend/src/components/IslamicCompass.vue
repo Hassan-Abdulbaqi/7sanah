@@ -3,7 +3,6 @@
     <div class="compass-container">
       <div class="compass">
         <div class="compass-circle"></div>
-        <div class="compass-arrow"></div>
         
         <!-- Target marker (fixed at top) -->
         <div class="target-marker">
@@ -695,25 +694,153 @@ export default {
   transform-origin: center;
   transition: transform 0.3s ease;
 }
-.compass-arrow {
+.target-marker {
   position: absolute;
-  width: 50%;
-  height: 4px;
-  background: linear-gradient(to right, transparent, #4CAF50 40%, #4CAF50 60%, transparent);
-  transform-origin: center left;
+  top: 2%;
   left: 50%;
-  top: calc(50% - 2px);
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-.compass-arrow::before {
-  content: '';
-  position: absolute;
+.target-arrow-line {
+  width: 2px;
+  height: 20px;
+  background-color: #00c853;
+  animation: pulse-arrow 1.5s infinite alternate;
+}
+.target-arrow-head {
   width: 0;
   height: 0;
-  right: 0;
-  top: -6px;
-  border-left: 10px solid #4CAF50;
-  border-top: 7px solid transparent;
-  border-bottom: 7px solid transparent;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 10px solid #00c853;
+  margin-top: -1px;
+  animation: pulse-arrow 1.5s infinite alternate;
+}
+@keyframes pulse-arrow {
+  from {
+    transform: translateY(0);
+    filter: drop-shadow(0 0 3px white);
+  }
+  to {
+    transform: translateY(5px);
+    filter: drop-shadow(0 0 5px white);
+  }
+}
+.target-arrow-line.aligned,
+.target-arrow-head.aligned {
+  animation: pulse-arrow-aligned 1s infinite alternate;
+}
+@keyframes pulse-arrow-aligned {
+  from {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 0 5px #00c853);
+  }
+  to {
+    transform: translateY(5px) scale(1.2);
+    filter: drop-shadow(0 0 15px #00c853);
+  }
+}
+.qibla-marker {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 25;
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transition: transform 0.3s ease;
+}
+.qibla-icon {
+  font-size: 22px;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  margin-bottom: 5px;
+  filter: drop-shadow(0 0 5px white);
+}
+.qibla-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #4CAF50;
+  background-color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  white-space: nowrap;
+}
+.toggle.toggle-on ~ .compass-container .qibla-marker,
+.compass-container .qibla-marker.active {
+  opacity: 1;
+}
+.check-icon {
+  display: inline-block;
+  color: white;
+  font-weight: bold;
+  background-color: #00c853;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+}
+.center-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background-color: #4CAF50;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+}
+
+/* Enhanced media queries */
+@media (max-width: 480px) {
+  .compass-container {
+    width: 280px;
+    height: 280px;
+    margin: 15px auto;
+  }
+  
+  .deg {
+    margin: 15px 0;
+    font-size: 20px;
+  }
+  
+  .info-box {
+    padding: 12px;
+    margin-top: 15px;
+  }
+  
+  .button {
+    padding: 12px 10px;
+    min-height: 44px; /* Minimum touch target size */
+  }
+  
+  .locations-info {
+    font-size: 14px;
+  }
+  
+  .toggle {
+    min-height: 30px; /* Ensure toggle is touch-friendly */
+  }
+}
+
+.location-note {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  padding: 0 15px;
+  font-style: italic;
 }
 .controls {
   margin-top: 20px;
@@ -878,152 +1005,4 @@ export default {
 .lang.active {
   display: block;
 }
-.target-marker {
-  position: absolute;
-  top: 2%;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.target-arrow-line {
-  width: 2px;
-  height: 20px;
-  background-color: #00c853;
-  animation: pulse-arrow 1.5s infinite alternate;
-}
-.target-arrow-head {
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 10px solid #00c853;
-  margin-top: -1px;
-  animation: pulse-arrow 1.5s infinite alternate;
-}
-@keyframes pulse-arrow {
-  from {
-    transform: translateY(0);
-    filter: drop-shadow(0 0 3px white);
-  }
-  to {
-    transform: translateY(5px);
-    filter: drop-shadow(0 0 5px white);
-  }
-}
-.target-arrow-line.aligned,
-.target-arrow-head.aligned {
-  animation: pulse-arrow-aligned 1s infinite alternate;
-}
-@keyframes pulse-arrow-aligned {
-  from {
-    transform: translateY(0) scale(1);
-    filter: drop-shadow(0 0 5px #00c853);
-  }
-  to {
-    transform: translateY(5px) scale(1.2);
-    filter: drop-shadow(0 0 15px #00c853);
-  }
-}
-.qibla-marker {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  z-index: 25;
-  pointer-events: none;
-  top: 50%;
-  left: 50%;
-  transition: transform 0.3s ease;
-}
-.qibla-icon {
-  font-size: 22px;
-  text-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
-  margin-bottom: 5px;
-  filter: drop-shadow(0 0 5px white);
-}
-.qibla-label {
-  font-size: 12px;
-  font-weight: bold;
-  color: #4CAF50;
-  background-color: white;
-  padding: 2px 6px;
-  border-radius: 10px;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-  text-align: center;
-  white-space: nowrap;
-}
-.toggle.toggle-on ~ .compass-container .qibla-marker,
-.compass-container .qibla-marker.active {
-  opacity: 1;
-}
-.check-icon {
-  display: inline-block;
-  color: white;
-  font-weight: bold;
-  background-color: #00c853;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  line-height: 20px;
-  text-align: center;
-}
-.center-dot {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background-color: #4CAF50;
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 20;
-}
-
-/* Enhanced media queries */
-@media (max-width: 480px) {
-  .compass-container {
-    width: 280px;
-    height: 280px;
-    margin: 15px auto;
-  }
-  
-  .deg {
-    margin: 15px 0;
-    font-size: 20px;
-  }
-  
-  .info-box {
-    padding: 12px;
-    margin-top: 15px;
-  }
-  
-  .button {
-    padding: 12px 10px;
-    min-height: 44px; /* Minimum touch target size */
-  }
-  
-  .locations-info {
-    font-size: 14px;
-  }
-  
-  .toggle {
-    min-height: 30px; /* Ensure toggle is touch-friendly */
-  }
-}
-
-.location-note {
-  text-align: center;
-  color: #666;
-  font-size: 14px;
-  margin-top: 5px;
-  margin-bottom: 15px;
-  padding: 0 15px;
-  font-style: italic;
-}
-</style> 
+</style>

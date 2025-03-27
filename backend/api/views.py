@@ -13,7 +13,7 @@ import requests
 from django.shortcuts import render
 import math
 import uuid
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 
 def home(request):
     return JsonResponse({"message": "Welcome to Quran Khatmah API!"})
@@ -238,7 +238,7 @@ class KhatmahViewSet(viewsets.ModelViewSet):
     """
     queryset = Khatmah.objects.all()
     pagination_class = KhatmahPagination
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -469,6 +469,79 @@ class KhatmahViewSet(viewsets.ModelViewSet):
                 pass
         
         return super().retrieve(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'])
+    def remove_participant(self, request, pk=None):
+        """
+        Remove a participant from a khatmah.
+        This will also remove all their assignments and progress.
+        Only the khatmah creator can remove participants.
+        """
+        khatmah = self.get_object()
+        participant_id = request.data.get('participant_id')
+        creator_token = request.data.get('creator_token')
+
+        # Validate participant_id
+        if not participant_id:
+            return Response(
+                {'error': 'Participant ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Verify it's a valid UUID format
+            uuid_obj = uuid.UUID(str(participant_id))
+        except (ValueError, TypeError, AttributeError):
+            return Response(
+                {'error': 'Invalid participant ID format. Must be a valid UUID.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verify authorization
+        is_authorized = False
+        if creator_token:
+            try:
+                uuid_obj = uuid.UUID(str(creator_token))
+                is_authorized = str(khatmah.creator_token) == str(creator_token)
+            except (ValueError, TypeError, AttributeError):
+                return Response(
+                    {'error': 'Invalid creator_token format. Must be a valid UUID.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif request.data.get('requester_participant_id'):
+            # Alternative auth method using participant ID
+            requester_id = request.data.get('requester_participant_id')
+            is_authorized = khatmah.creator and str(khatmah.creator.id) == str(requester_id)
+
+        if not is_authorized:
+            return Response(
+                {'error': 'You are not authorized to remove participants from this khatmah'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Check if participant exists and is not the creator
+        try:
+            participant = Participant.objects.get(id=participant_id, khatmah=khatmah)
+            
+            # Don't allow removing the creator
+            if khatmah.creator and participant.id == khatmah.creator.id:
+                return Response(
+                    {'error': 'Cannot remove the khatmah creator'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Delete the participant (this will cascade delete their assignments due to FK)
+            participant.delete()
+            
+            # Refresh khatmah data
+            serializer = self.get_serializer(khatmah)
+            return Response(serializer.data)
+            
+        except Participant.DoesNotExist:
+            return Response(
+                {'error': 'Participant not found in this khatmah'},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
 class ParticipantViewSet(viewsets.ModelViewSet):
     queryset = Participant.objects.all()

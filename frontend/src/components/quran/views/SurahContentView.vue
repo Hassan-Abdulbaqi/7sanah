@@ -20,7 +20,7 @@
             <select v-model="selectedTranslation" @change="onTranslationChange" class="select-input" :disabled="loadingTranslations">
               <option v-if="loadingTranslations" value="">{{ $t('quran.loading') }}</option>
               <optgroup v-for="(translations, lang) in groupedTranslations" :key="lang" :label="getLanguageName(lang)">
-                <option v-for="translation in translations" :key="translation.identifier" :value="translation.identifier">
+                <option v-for="translation in translations" :key="translation.identifier" :value="translation.identifier" :dir="translation.direction">
                   {{ translation.name }}
                 </option>
               </optgroup>
@@ -293,7 +293,47 @@ export default {
     },
     
     getLanguageName(langCode) {
-      this.$emit('get-language-name', langCode)
+      const languageNames = {
+        'ar': 'Arabic (العربية)',
+        'az': 'Azerbaijani (Azərbaycan)',
+        'bn': 'Bengali (বাংলা)',
+        'cs': 'Czech (Čeština)',
+        'de': 'German (Deutsch)',
+        'dv': 'Divehi (ދިވެހި)',
+        'en': 'English',
+        'es': 'Spanish (Español)',
+        'fa': 'Persian (فارسی)',
+        'fr': 'French (Français)',
+        'ha': 'Hausa',
+        'hi': 'Hindi (हिन्दी)',
+        'id': 'Indonesian (Bahasa Indonesia)',
+        'it': 'Italian (Italiano)',
+        'ja': 'Japanese (日本語)',
+        'ko': 'Korean (한국어)',
+        'ku': 'Kurdish (کوردی)',
+        'ml': 'Malayalam (മലയാളം)',
+        'nl': 'Dutch (Nederlands)',
+        'no': 'Norwegian (Norsk)',
+        'pl': 'Polish (Polski)',
+        'pt': 'Portuguese (Português)',
+        'ro': 'Romanian (Română)',
+        'ru': 'Russian (Русский)',
+        'sd': 'Sindhi (سنڌي)',
+        'so': 'Somali (Soomaali)',
+        'sq': 'Albanian (Shqip)',
+        'sv': 'Swedish (Svenska)',
+        'sw': 'Swahili (Kiswahili)',
+        'ta': 'Tamil (தமிழ்)',
+        'tg': 'Tajik (Тоҷикӣ)',
+        'th': 'Thai (ไทย)',
+        'tr': 'Turkish (Türkçe)',
+        'tt': 'Tatar (Татар)',
+        'ug': 'Uyghur (ئۇيغۇر)',
+        'ur': 'Urdu (اردو)',
+        'uz': 'Uzbek (O\'zbek)',
+        'zh': 'Chinese (中文)'
+      };
+      return languageNames[langCode] || langCode;
     },
     
     onTranslationChange() {
@@ -469,7 +509,7 @@ export default {
         // Create a temporary loading message for each verse
         if (this.currentSurah && this.currentSurah.ayahs) {
           this.currentSurah.ayahs.forEach(ayah => {
-            tempTranslations[ayah.numberInSurah] = loadingMessage;
+            tempTranslations[ayah.number] = loadingMessage;
           });
           
           // Set these temporary translations first so the UI isn't empty
@@ -484,7 +524,7 @@ export default {
           // Create a mapping of verse number to translation
           const translations = {}
           data.data.ayahs.forEach(ayah => {
-            translations[ayah.numberInSurah] = ayah.text
+            translations[ayah.number] = ayah.text
           })
           
           // Update the translations gradually to avoid UI freezes with large suras

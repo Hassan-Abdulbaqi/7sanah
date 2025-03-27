@@ -353,7 +353,16 @@ export const store = reactive({
         requestData.creator_token = this.creatorTokens[khatmahId];
       }
       
-      const response = await axios.post(`${API_URL}/khatmahs/${khatmahId}/join/`, requestData);
+      const response = await axios.post(
+        `${API_URL}/khatmahs/${khatmahId}/join/`, 
+        requestData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
       this.currentParticipant = response.data;
       
       // Save to local storage
@@ -371,7 +380,11 @@ export const store = reactive({
       return response.data;
     } catch (error) {
       console.error('Error joining khatmah:', error);
-      this.error = 'Failed to join khatmah';
+      if (error.response?.data?.error) {
+        this.error = error.response.data.error;
+      } else {
+        this.error = 'Failed to join khatmah';
+      }
       return null;
     } finally {
       this.loading = false;
@@ -631,5 +644,59 @@ export const store = reactive({
     // Regular expression for validating UUID
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     return typeof uuid === 'string' && uuidRegex.test(uuid);
+  },
+
+  async removeParticipant(khatmahId, participantId) {
+    this.loading = true;
+    this.error = null;
+    try {
+      // Validate UUIDs
+      if (!this.isValidUUID(khatmahId) || !this.isValidUUID(participantId)) {
+        this.error = 'Invalid khatmah or participant ID format';
+        return null;
+      }
+
+      // Prepare request data with authentication
+      const requestData = {
+        participant_id: participantId
+      };
+
+      // Add authentication - prefer creator token if available
+      if (this.creatorTokens[khatmahId]) {
+        requestData.creator_token = this.creatorTokens[khatmahId];
+      } else if (this.currentParticipant) {
+        requestData.requester_participant_id = this.currentParticipant.id;
+      } else {
+        this.error = 'You are not authorized to remove participants';
+        return null;
+      }
+
+      const response = await axios.post(
+        `${API_URL}/khatmahs/${khatmahId}/remove_participant/`,
+        requestData
+      );
+
+      // If the removed participant was in local storage, remove them
+      if (this.myParticipations[khatmahId] && 
+          this.myParticipations[khatmahId].id === participantId) {
+        delete this.myParticipations[khatmahId];
+        saveParticipantsToStorage(this.myParticipations);
+      }
+
+      // Update current khatmah data
+      this.currentKhatmah = response.data;
+
+      return response.data;
+    } catch (error) {
+      console.error('Error removing participant:', error);
+      if (error.response?.data?.error) {
+        this.error = error.response.data.error;
+      } else {
+        this.error = 'Failed to remove participant';
+      }
+      return null;
+    } finally {
+      this.loading = false;
+    }
   }
 }); 

@@ -6,32 +6,25 @@ import router from './router'
 import messages from './locales'
 import { clickOutside } from './directives/clickOutside'
 
-// Log initial URL and route for debugging
-console.log('------------------------')
-console.log('Application starting...')
-console.log('Initial URL:', window.location.href)
-console.log('Initial pathname:', window.location.pathname)
-console.log('------------------------')
-
-// Get the browser language or use English as fallback
+// Get the browser language or use Arabic as fallback
 const getBrowserLanguage = () => {
   const browserLang = navigator.language.split('-')[0]
-  return ['en', 'ar', 'ku', 'fa'].includes(browserLang) ? browserLang : 'en'
+  return ['en', 'ar', 'ku', 'fa'].includes(browserLang) ? browserLang : 'ar'
 }
 
-// Get the stored language from localStorage or use browser language
+// Get the stored language from localStorage or use Arabic
 const getStoredLanguage = () => {
   const storedLang = localStorage.getItem('language')
   return storedLang && ['en', 'ar', 'ku', 'fa'].includes(storedLang) 
     ? storedLang 
-    : getBrowserLanguage()
+    : 'ar'
 }
 
 // Create i18n instance
 const i18n = createI18n({
   legacy: false, // Use Composition API
   locale: getStoredLanguage(),
-  fallbackLocale: 'en',
+  fallbackLocale: 'ar',
   messages,
   pluralizationRules: {
     /**
@@ -83,9 +76,6 @@ app.config.globalProperties.$notification = {
 // Use plugins
 app.use(i18n)
 app.use(router)
-
-// Log the current route for debugging
-console.log('Current route:', window.location.pathname)
 
 // After all plugins are added, mount the app
 app.mount('#app')

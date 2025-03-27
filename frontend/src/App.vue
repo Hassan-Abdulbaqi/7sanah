@@ -320,21 +320,12 @@ export default {
     }
   },
   created() {
-    console.log('App created - checking route:', this.$route.path)
-    
     // Initialize store with data migrations
     store.init()
     
     this.initializeFromRoute(this.$route)
   },
   mounted() {
-    console.log('App mounted - current state:', {
-      page: this.currentPage,
-      khatmahView: this.khatmahView,
-      khatmahId: this.selectedKhatmahId,
-      route: this.$route.path
-    })
-    
     // Connect notification component to global notification service
     if (this.$refs.notification) {
       this.$notification.info = this.$refs.notification.info
@@ -347,18 +338,14 @@ export default {
   watch: {
     // Watch for route changes
     $route(to, from) {
-      console.log(`Route changed from ${from.path} to ${to.path}`)
       this.initializeFromRoute(to)
     }
   },
   methods: {
     // Initialize state based on the current route
     async initializeFromRoute(route) {
-      console.log('Initializing from route:', route.path, 'Meta:', route.meta)
-      
       // For direct khatmah detail access
       if (route.name === 'khatmah-detail') {
-        console.log('Processing khatmah detail route with ID:', route.params.id)
         this.currentPage = 'khatmah'
         this.khatmahView = 'detail'
         this.selectedKhatmahId = route.params.id
@@ -408,8 +395,6 @@ export default {
     
     // Navigation methods
     navigateTo(pageId) {
-      console.log('Navigating to page:', pageId)
-      
       // Update URL using named routes
       if (pageId === 'home') {
         this.$router.push({ name: 'home' })
@@ -419,8 +404,6 @@ export default {
     },
     
     selectKhatmah(khatmahId) {
-      console.log('Selecting khatmah:', khatmahId)
-      
       // Update URL using named route
       this.$router.push({ 
         name: 'khatmah-detail', 
@@ -429,27 +412,19 @@ export default {
     },
     
     async loadKhatmahDetail(khatmahId) {
-      console.log('Loading khatmah detail with ID:', khatmahId)
-      
       if (!khatmahId) {
-        console.error('Cannot load khatmah detail: No ID provided')
         return
       }
       
       try {
-        console.log('Fetching khatmah data from API')
         await this.store.fetchKhatmah(khatmahId)
         
         if (!this.store.currentKhatmah) {
-          console.error(`Failed to load khatmah with ID: ${khatmahId}`)
           this.khatmahView = 'list'
           this.selectedKhatmahId = null
           return
         }
-        
-        console.log('Khatmah data loaded successfully:', this.store.currentKhatmah.name)
       } catch (error) {
-        console.error(`Error loading khatmah: ${error}`)
         this.khatmahView = 'list'
         this.selectedKhatmahId = null
       }
@@ -461,8 +436,6 @@ export default {
     },
     
     onKhatmahCreated(khatmah) {
-      console.log('Khatmah created:', khatmah.id)
-      
       // Navigate to the detail view
       this.$router.push({ 
         name: 'khatmah-detail', 
@@ -475,33 +448,22 @@ export default {
     },
     
     navigateToVerse(verse) {
-      console.log('Navigating to verse:', verse)
-      
       try {
-        // Validate the verse data
         if (!verse || typeof verse !== 'object' || !verse.surah || !verse.verse) {
-          console.error('Invalid verse data for navigation:', verse)
           this.$notification?.error?.(this.$t('quran.invalidVerseData'))
           return
         }
         
-        // First, ensure that we're on the Quran page
         if (this.currentPage !== 'quran') {
-          // Set current page to Quran Reader
           this.navigateTo('quran')
           
-          // We'll use localStorage to pass the verse information, but we also need
-          // to give the component time to mount before attempting to navigate
           setTimeout(() => {
             this.passVerseToQuranReader(verse)
-          }, 300) // Short delay to allow the page transition
+          }, 300)
         } else {
-          // We're already on the Quran page, pass the data directly
           this.passVerseToQuranReader(verse)
         }
       } catch (error) {
-        console.error('Error during navigation to verse:', error)
-        // If using notification system
         if (this.$notification) {
           this.$notification.error(this.$t('quran.navigationError') || 'Navigation error. Please try again.')
         }
@@ -510,15 +472,13 @@ export default {
     
     passVerseToQuranReader(verse) {
       try {
-        // Pass the verse information to the Quran Reader component via localStorage
         localStorage.setItem('quranNavigationTarget', JSON.stringify({
           surah: verse.surah,
           verse: verse.verse,
           edition: verse.edition || null,
-          timestamp: new Date().getTime() // Add timestamp to ensure freshness
+          timestamp: new Date().getTime()
         }))
         
-        // Dispatch a custom event to notify QuranReader that navigation data is available
         window.dispatchEvent(new CustomEvent('quran-navigation', {
           detail: {
             surah: parseInt(verse.surah),
@@ -526,15 +486,7 @@ export default {
             edition: verse.edition || null
           }
         }))
-        
-        console.log('Verse navigation data passed to QuranReader component', {
-          surah: parseInt(verse.surah),
-          verse: parseInt(verse.verse)
-        })
       } catch (storageError) {
-        console.error('Error storing verse navigation data:', storageError)
-        // Try an alternative approach if localStorage fails
-        // The QuranReader can potentially check URL parameters as fallback
         this.$router.push({ 
           name: 'quran', 
           query: { surah: verse.surah, verse: verse.verse }
@@ -542,90 +494,70 @@ export default {
       }
     },
     
-    // Handle navigation to a specific surah from KhatmahDetail
     navigateToSurah(surahData) {
-      console.log('Navigating to surah:', surahData);
-      
       try {
-        // Validate the surah data
         if (!surahData || typeof surahData !== 'object' || !surahData.surah) {
-          console.error('Invalid surah data for navigation:', surahData);
-          this.$notification?.error?.(this.$t('quran.invalidSurahData') || 'Invalid surah data');
-          return;
+          this.$notification?.error?.(this.$t('quran.invalidSurahData') || 'Invalid surah data')
+          return
         }
         
-        // First, ensure that we're on the Quran page
         if (this.currentPage !== 'quran') {
-          // Set current page to Quran Reader
-          this.navigateTo('quran');
+          this.navigateTo('quran')
           
-          // Use setTimeout to allow the Quran component to mount
           setTimeout(() => {
-            this.passSurahToQuranReader(surahData);
-          }, 300); // Short delay to allow the page transition
+            this.passSurahToQuranReader(surahData)
+          }, 300)
         } else {
-          // We're already on the Quran page, pass the data directly
-          this.passSurahToQuranReader(surahData);
+          this.passSurahToQuranReader(surahData)
         }
       } catch (error) {
-        console.error('Error during navigation to surah:', error);
-        // If using notification system
         if (this.$notification) {
-          this.$notification.error(this.$t('quran.navigationError') || 'Navigation error. Please try again.');
+          this.$notification.error(this.$t('quran.navigationError') || 'Navigation error. Please try again.')
         }
       }
     },
     
     passSurahToQuranReader(surahData) {
       try {
-        // Pass the surah information to the Quran Reader component via localStorage
         localStorage.setItem('quranNavigationTarget', JSON.stringify({
           surah: surahData.surah,
-          verse: null, // Explicitly set to null to indicate no specific verse
-          timestamp: new Date().getTime() // Add timestamp to ensure freshness
-        }));
+          verse: null,
+          timestamp: new Date().getTime()
+        }))
         
-        // Dispatch a custom event to notify QuranReader that navigation data is available
         window.dispatchEvent(new CustomEvent('quran-navigation', {
           detail: {
             surah: parseInt(surahData.surah),
-            verse: null // Explicitly set to null to indicate no specific verse
+            verse: null
           }
-        }));
-        
-        console.log('Surah navigation data passed to QuranReader component', {
-          surah: parseInt(surahData.surah),
-          verse: null // Logging the null to be clear about intent
-        });
+        }))
       } catch (storageError) {
-        console.error('Error storing surah navigation data:', storageError);
-        // Try an alternative approach if localStorage fails
         this.$router.push({ 
           name: 'quran', 
           query: { surah: surahData.surah }
-        });
+        })
       }
     },
     
     toggleMobileMenu() {
-      this.mobileMenuOpen = !this.mobileMenuOpen;
+      this.mobileMenuOpen = !this.mobileMenuOpen
       
       // Prevent body scrolling when menu is open
       if (this.mobileMenuOpen) {
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden'
       } else {
-        document.body.style.overflow = '';
+        document.body.style.overflow = ''
       }
     },
     
     closeMobileMenu() {
-      this.mobileMenuOpen = false;
-      document.body.style.overflow = '';
+      this.mobileMenuOpen = false
+      document.body.style.overflow = ''
     },
     
     navigateAndCloseMenu(pageId) {
-      this.navigateTo(pageId);
-      this.closeMobileMenu();
+      this.navigateTo(pageId)
+      this.closeMobileMenu()
     }
   }
 }

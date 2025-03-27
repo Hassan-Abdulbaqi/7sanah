@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 
 // Log for debugging
-console.log('🔄 Router module initializing...')
 
 // Helper function for detecting shared URLs
 function isDirectKhatmahAccess(path) {
@@ -127,9 +126,6 @@ const router = createRouter({
 
 // Log every navigation for debugging
 router.beforeEach((to, from, next) => {
-  console.log(`🧭 Route navigation: ${from.path} -> ${to.path}`)
-  console.log('📄 Route meta:', to.meta)
-  
   // Allow transitions to play out
   document.body.classList.add('page-transitioning')
   
@@ -149,7 +145,5 @@ router.onError((error) => {
   console.error('🛑 Router error:', error)
   document.body.classList.remove('page-transitioning')
 })
-
-console.log('✅ Router module initialized')
 
 export default router 

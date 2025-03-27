@@ -901,6 +901,35 @@ function scrollToError() {
     }
   }, 100);
 }
+
+// Add to existing imports
+const showRemoveParticipantConfirm = ref(false);
+const participantToRemove = ref(null);
+
+// Add new function to handle participant removal
+async function handleRemoveParticipant(participant) {
+  participantToRemove.value = participant;
+  showRemoveParticipantConfirm.value = true;
+}
+
+async function confirmRemoveParticipant() {
+  if (!participantToRemove.value) return;
+  
+  const result = await store.removeParticipant(
+    props.khatmahId,
+    participantToRemove.value.id
+  );
+  
+  if (result) {
+    showRemoveParticipantConfirm.value = false;
+    participantToRemove.value = null;
+  }
+}
+
+function cancelRemoveParticipant() {
+  showRemoveParticipantConfirm.value = false;
+  participantToRemove.value = null;
+}
 </script>
 
 <template>
@@ -1467,10 +1496,16 @@ function scrollToError() {
                       >
                         {{ t('khatmahDetail.you') }}
                       </span>
+                      <span 
+                        v-if="store.currentKhatmah.creator && participant.id === store.currentKhatmah.creator.id"
+                        class="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full"
+                      >
+                        {{ t('khatmahDetail.creator') }}
+                      </span>
                     </div>
                   </div>
-                  <div class="flex items-center">
-                    <div class="text-sm text-gray-500 mr-4">
+                  <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-500">
                       {{ t('khatmahDetail.joined') }}: {{ new Date(participant.created_at).toLocaleDateString() }}
                     </div>
                     <div class="text-sm bg-gray-100 text-gray-800 px-2 py-1 rounded-md">
@@ -1481,6 +1516,18 @@ function scrollToError() {
                         {{ getParticipantSurahCount(participant.id) }} {{ getParticipantSurahCount(participant.id) >= 3 ? t('khatmahDetail.surahPlural') : t('khatmahDetail.surah') }}
                       </template>
                     </div>
+                    <!-- Add remove button for creator -->
+                    <button
+                      v-if="store.isKhatmahCreator(props.khatmahId) && 
+                            (!store.currentKhatmah.creator || participant.id !== store.currentKhatmah.creator.id)"
+                      @click="handleRemoveParticipant(participant)"
+                      class="text-red-600 hover:text-red-700 focus:outline-none"
+                      :title="t('khatmahDetail.removeParticipant')"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </li>
@@ -1602,6 +1649,31 @@ function scrollToError() {
       >
         {{ t('khatmahDetail.backToList') || 'Back to List' }}
       </button>
+    </div>
+
+    <!-- Add Remove Participant Confirmation Modal -->
+    <div v-if="showRemoveParticipantConfirm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full m-4">
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">{{ t('khatmahDetail.confirmRemoveParticipant') || 'Remove Participant' }}</h3>
+        <p class="mb-6 text-gray-600">
+          {{ t('khatmahDetail.confirmRemoveParticipantText', { name: participantToRemove?.name }) || 
+             `Are you sure you want to remove ${participantToRemove?.name}? This will remove all their assignments and progress.` }}
+        </p>
+        <div class="flex justify-end gap-3">
+          <button 
+            @click="cancelRemoveParticipant" 
+            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            {{ t('common.cancel') || 'Cancel' }}
+          </button>
+          <button 
+            @click="confirmRemoveParticipant" 
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          >
+            {{ t('common.remove') || 'Remove' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

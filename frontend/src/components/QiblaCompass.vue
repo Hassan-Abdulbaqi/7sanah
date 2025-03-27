@@ -8,9 +8,7 @@
       <div class="compass">
         <div class="compass-background"></div>
         <div class="compass-arrow" ref="compassArrow">
-          <div class="arrow"></div>
           <div class="kaaba-icon">🕋</div>
-          <div class="qibla-beam"></div>
         </div>
         <div class="qibla-indicator">QIBLA</div>
         
@@ -33,7 +31,7 @@
           <li>Enable the compass by clicking the button below</li>
           <li>Hold your device flat with the screen facing up</li>
           <li>The <strong>🕋 Kaaba icon</strong> shows the Qibla direction from your location</li>
-          <li>Rotate yourself until the arrow points <strong>upward (⬆️)</strong></li>
+          <li>Rotate yourself until the Kaaba icon points <strong>upward (⬆️)</strong></li>
           <li>You are now facing the Qibla direction!</li>
         </ol>
       </div>
@@ -162,7 +160,7 @@ export default {
       calculationMethod: 'MuslimWorldLeague',
       
       // Debug and simulation
-      debugMode: true, // Set to false in production
+      debugMode: false, // Set to false in production
       isSimulating: false,
       simulationInterval: null,
       orientationInterval: null
@@ -647,7 +645,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="49" fill="white" stroke="%23333" stroke-width="0.5"/><text x="50" y="15" text-anchor="middle" fill="%23333" font-size="6">N</text><text x="85" y="50" text-anchor="middle" fill="%23333" font-size="6">E</text><text x="50" y="85" text-anchor="middle" fill="%23333" font-size="6">S</text><text x="15" y="50" text-anchor="middle" fill="%23333" font-size="6">W</text></svg>') center center no-repeat;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="49" fill="white" stroke="%23333" stroke-width="0.5"/><text x="50" y="15" text-anchor="middle" fill="%23333" font-size="6">N</text><text x="85" y="50" text-anchor="middle" fill="%23333" font-size="6">E</text><text x="50" y="85" text-anchor="middle" fill="%23333" font-size="6">S</text><text x="15" y="50" text-anchor="middle" fill="%23333" font-size="6">W</text><circle cx="50" cy="50" r="2" fill="%23333"/></svg>') center center no-repeat;
   background-size: contain;
 }
 
@@ -662,23 +660,7 @@ export default {
   z-index: 5;
 }
 
-.arrow {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 8px;
-  height: 45%;
-  transform: translateX(-50%);
-  background: linear-gradient(to bottom, #ff5722, transparent);
-  z-index: 5;
-  border-radius: 4px;
-  box-shadow: 0 0 5px rgba(255, 87, 34, 0.5);
-}
-
-/* Hide the triangle at the top of the arrow since we have the Kaaba icon */
-.arrow::before {
-  display: none;
-}
+/* Remove the arrow styles */
 
 .kaaba-icon {
   position: absolute;
@@ -931,19 +913,6 @@ select {
   0% { opacity: 0.6; }
   50% { opacity: 1; }
   100% { opacity: 0.6; }
-}
-
-/* Add a beam of light effect from center to Kaaba */
-.qibla-beam {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 20px;
-  height: 50%;
-  transform: translateX(-50%);
-  background: linear-gradient(to bottom, rgba(255, 87, 34, 0.3), transparent);
-  z-index: 4;
-  border-radius: 10px;
 }
 
 /* Add styles for the usage instructions */

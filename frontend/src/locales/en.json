@@ -37,7 +37,20 @@
     },
     "tasbeeh": {
       "title": "Digital Tasbeeh",
-      "description": "Keep track of your dhikr with digital counter"
+      "description": "Keep track of your dhikr with digital counter",
+      "selectTasbeeh": "Select Tasbeeh",
+      "freeMode": {
+        "description": "Free mode allows you to count without any limit",
+        "cycles": "Cycles",
+        "current": "Current"
+      },
+      "currentPhrase": "Current Phrase",
+      "target": "Target",
+      "remaining": "Remaining",
+      "increment": "Count",
+      "reset": "Reset",
+      "vibration": "Enable Vibration",
+      "acceptanceMessage": "May Allah accept it"
     },
     "quran": {
       "title": "Quran Reader",
@@ -52,6 +65,7 @@
     "title": "Khatmahs",
     "management": "Khatmah Management",
     "search": "Search khatmahs by name or participant...",
+    "searchPublic": "Search public khatmahs...",
     "clearSearch": "Clear search",
     "myCreatedKhatmahs": "My Created Khatmahs",
     "myParticipations": "My Participations",
@@ -67,7 +81,10 @@
     "noKhatmahs": "No khatmahs found",
     "noKhatmahsMatch": "No khatmahs match your search for",
     "noKhatmahsAvailable": "There are no khatmahs available yet",
-    "createNew": "Create New Khatmah"
+    "createNew": "Create New Khatmah",
+    "khatmahs": "Khatmahs",
+    "publicKhatmahs": "Public Khatmahs",
+    "quranKhatmah": "Quran Khatmah has no image"
   },
   "khatmahDetail": {
     "title": "Khatmah Details",
@@ -130,11 +147,15 @@
     "assignedTo": "Assigned to",
     "backToList": "Back to List",
     "confirmJuzSelection": "Confirm Juz Selection",
-    "confirmJuzSelectionText": "Are you sure you want to select Juz {number}?"
+    "confirmJuzSelectionText": "Are you sure you want to select Juz {number}?",
+    "ayahs": "Ayahs",
+    "removeParticipant": "Remove Participant",
+    "confirmSurahSelection": "Confirm Surah Selection",
+    "confirmSurahSelectionText": "Are you sure you want to select Surah {number}?"
   },
   "share": {
     "title": "Share Khatmah",
-    "description": "Share this Khatmah with others to invite them to join the Quran reading journey.",
+    "description": "Share this Khatmah with others to invite them to join the Quran reading.",
     "khatmahLink": "Khatmah Link",
     "copy": "Copy",
     "copied": "Copied!",
@@ -164,7 +185,7 @@
   },
   "createKhatmah": {
     "title": "Create New Khatmah",
-    "subtitle": "Start a new Quran reading journey",
+    "subtitle": "Start a new Quran reading khatmah",
     "nameLabel": "Khatmah Name",
     "namePlaceholder": "Enter a name for your khatmah",
     "nameHelp": "Choose a meaningful name for your khatmah",
@@ -190,10 +211,13 @@
     "cancel": "Cancel",
     "create": "Create Khatmah",
     "whatIsKhatmahTitle": "What is a Khatmah?",
-    "whatIsKhatmahText": "A Khatmah is a complete reading of the Quran. Traditional Khatmahs divide the Quran into 30 equal parts (Juz), while Surah-based Khatmahs divide it into its 114 chapters (Surahs)."
+    "whatIsKhatmahText": "A Khatmah is a complete reading of the Quran. Traditional Khatmahs divide the Quran into 30 equal parts (Juz), while Surah-based Khatmahs divide it into its 114 chapters (Surahs).",
+    "uploadImage": "Upload Image",
+    "dragAndDrop": "Drag and drop an image here or click to select"
   },
   "editKhatmah": {
     "title": "Edit Khatmah",
+    "subtitle": "Modify your Quran reading khatmah",
     "nameLabel": "Khatmah Name",
     "namePlaceholder": "Enter a name for your khatmah",
     "nameHelp": "Choose a meaningful name for your khatmah",
@@ -212,23 +236,21 @@
     "saveButton": "Save Changes",
     "cancelButton": "Cancel",
     "succcess": "Khatmah updated successfully",
-    "error": "Failed to update khatmah"
+    "error": "Failed to update khatmah",
+    "uploadImage": "Upload Image",
+    "dragAndDrop": "Drag and drop an image here or click to select",
+    "deleteButton": "Delete Khatmah"
   },
   "prayerTimes": {
     "title": "Prayer Times",
-    "searchCity": "Search for a city...",
-    "useCurrentLocation": "Use Current Location",
-    "gettingLocation": "Getting Location...",
     "fajr": "Fajr",
     "sunrise": "Sunrise",
     "dhuhr": "Dhuhr",
     "asr": "Asr",
+    "sunset": "Sunset",
     "maghrib": "Maghrib",
     "isha": "Isha",
     "nextPrayer": "Next Prayer",
-    "remainingTime": "Remaining Time",
-    "locationError": "Could not get your location",
-    "fetchError": "Error fetching prayer times",
     "in": "in",
     "locationSettings": "Location Settings",
     "latitude": "Latitude",
@@ -240,9 +262,42 @@
     "detectLocation": "Detect My Location",
     "cityPresets": "City Presets",
     "selectCountry": "Select Country",
-    "selectCity": "Select City",
-    "noData": "No prayer times data available",
-    "loading": "Loading prayer times..."
+    "selectCity": "Select a city from the list above",
+    "selectFromPresets": "Select from presets",
+    "noData": "No data available",
+    "loading": "Loading prayer times...",
+    "searchCity": "Search for a city...",
+    "useCurrentLocation": "Use Current Location",
+    "gettingLocation": "Getting location...",
+    "remainingTime": "Remaining Time",
+    "locationError": "Could not get your location. Make sure you have granted location access.",
+    "fetchError": "Error fetching prayer times",
+    "selectFromMap": "Select from Map",
+    "selectedLocation": "Selected Location",
+    "useThisLocation": "Use This Location",
+    "mapError": "Error loading map. Please try again.",
+    "loadingLocation": "Getting your location...",
+    "prayers": {
+      "fajr": "Fajr",
+      "sunrise": "Sunrise",
+      "dhuhr": "Dhuhr",
+      "sunset": "Sunset",
+      "maghrib": "Maghrib"
+    },
+    "currentLocation": "Current Location",
+    "coordinates": {
+      "latitude": "Latitude",
+      "longitude": "Longitude"
+    },
+    "date": {
+      "gregorian": "Gregorian Date",
+      "hijri": "Hijri Date"
+    },
+    "mapSelector": {
+      "title": "Select Location from Map",
+      "close": "Close",
+      "confirm": "Confirm Location"
+    }
   },
   "hijriCalendar": {
     "title": "Hijri Calendar",
@@ -251,7 +306,30 @@
     "events": "Events",
     "astronomicalEvents": "Astronomical Events",
     "noEvents": "No events for this day",
-    "hijriYear": "H"
+    "hijriYear": "H",
+    "weekdays": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "gregorianMonths": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    }
   },
   "qibla": {
     "title": "Qibla Finder",
@@ -401,6 +479,8 @@
     "surahList": "Surah List",
     "loading": "Loading...",
     "error": "Error loading data",
+    "searchSurahCaption": "Search Surahs",
+    "searchSurah": "Search surah by name or number...",
     "selectSurah": "Select a Surah",
     "listenToSurah": "Listen to Surah",
     "listenToPage": "Listen to Page",
@@ -460,6 +540,8 @@
     "verses": "verses",
     "loadingMore": "Loading more verses...",
     "loadMore": "Load More Results",
+    "loadMoreVerses": "Load More Verses",
+    "loadAllVerses": "Load All Verses",
     "english": "English",
     "french": "French",
     "indonesian": "Indonesian",
@@ -490,4 +572,4 @@
     "showSurahList": "Show Surah List",
     "hideSurahList": "Hide Surah List"
   }
-} 
+}

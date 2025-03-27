@@ -186,7 +186,15 @@ const navigationDirection = ref('slide-right');
 const showSpinner = ref(false);
 
 // Arabic weekdays
-const weekdays = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const weekdays = [
+  t('hijriCalendar.weekdays.sunday'),
+  t('hijriCalendar.weekdays.monday'),
+  t('hijriCalendar.weekdays.tuesday'),
+  t('hijriCalendar.weekdays.wednesday'),
+  t('hijriCalendar.weekdays.thursday'),
+  t('hijriCalendar.weekdays.friday'),
+  t('hijriCalendar.weekdays.saturday')
+];
 
 // Screen width state for responsive title formatting
 const windowWidth = ref(window.innerWidth);
@@ -283,7 +291,7 @@ const fetchCalendarData = async (monthNumber = null, year = null) => {
       url += `?gregorian_date=${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     }
     
-    console.log(`Fetching calendar data from: ${url}`);
+    
     const response = await axios.get(url, {
       headers: {
         'Accept': 'application/json',
@@ -295,23 +303,20 @@ const fetchCalendarData = async (monthNumber = null, year = null) => {
       throw new Error('Invalid response from API');
     }
     
-    console.log('API Response:', response.data);
+    
     
     // Set the data from the API response
     currentMonth.value = response.data.month;
     calendarData.value = response.data;
     
-    // Check if the returned month is not from year 1446
-    if (currentMonth.value && currentMonth.value.year !== 1446) {
-      console.log(`Month is from year ${currentMonth.value.year}, which is fine for the current month.`);
-    }
+    
     
     // Fetch available months for navigation if we haven't already
     if (availableMonths.value.length === 0) {
       await fetchAvailableMonths();
     }
     
-    console.log('Calendar data fetched successfully');
+    
     error.value = null;
   } catch (err) {
     console.error('Error fetching calendar data:', err);
@@ -321,7 +326,7 @@ const fetchCalendarData = async (monthNumber = null, year = null) => {
       // Check if we were looking for Dhul-Hijjah
       if (monthNumber === 12 && year) {
         error.value = `Month ${monthNumber} (Dhul-Hijjah) ${year} not found. You may need to run the populate_dhul_hijjah script.`;
-        console.warn(`Month ${monthNumber} (Dhul-Hijjah) ${year} not found. Consider running the populate_dhul_hijjah script.`);
+        
       } else {
         error.value = err.response.data.error || `Month not found: ${monthNumber || 'current month'}`;
       }
@@ -331,11 +336,8 @@ const fetchCalendarData = async (monthNumber = null, year = null) => {
     
     // Log more detailed error information
     if (err.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
       console.error('Error response data:', err.response.data);
-      console.error('Error response status:', err.response.status);
-      console.error('Error response headers:', err.response.headers);
+      
     } else if (err.request) {
       // The request was made but no response was received
       console.error('No response received:', err.request);
@@ -353,7 +355,7 @@ const fetchCalendarData = async (monthNumber = null, year = null) => {
 
 const fetchAvailableMonths = async () => {
   try {
-    console.log('Fetching available Hijri months');
+    
     
     // Function to fetch a page of months
     const fetchMonthsPage = async (url) => {
@@ -364,7 +366,7 @@ const fetchAvailableMonths = async () => {
         }
       });
       
-      console.log(`Fetched months from ${url}:`, response.data);
+      
       
       if (response.data && Array.isArray(response.data.results)) {
         // Process the months from this page
@@ -394,7 +396,7 @@ const fetchAvailableMonths = async () => {
       allMonths = [...allMonths, ...months];
       
       if (nextPage) {
-        console.log(`Found next page: ${nextPage}`);
+        
         currentUrl = nextPage;
       } else {
         hasMorePages = false;
@@ -427,17 +429,13 @@ const fetchAvailableMonths = async () => {
     const month11 = year1446Months.find(month => month.number === 11);
     const month12 = year1446Months.find(month => month.number === 12);
     
-    console.log('Month 11 (Dhul-Qadah) available:', month11 ? 'Yes' : 'No');
-    console.log('Month 12 (Dhul-Hijjah) available:', month12 ? 'Yes' : 'No');
+    
     
     // Log all available months with their numbers
-    console.log('Available months for year 1446:');
-    year1446Months.forEach(month => {
-      console.log(`${month.name_en} (${month.number})`);
-    });
     
-    console.log(`Found ${availableMonths.value.length} available months, sorted in correct Hijri order`);
-    console.log('Sorted months:', availableMonths.value.map(m => `${m.name_en} (${m.number}) ${m.year}`).join(', '));
+    
+    
+    
   } catch (err) {
     console.error('Error fetching available months:', err);
     
@@ -481,10 +479,20 @@ const formatGregorianDate = (dateStr) => {
     const date = new Date(dateStr);
     const day = date.getDate();
     
-    // Get month name in Arabic
+    // Get month name from translations
     const monthNames = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+      t('hijriCalendar.gregorianMonths.january'),
+      t('hijriCalendar.gregorianMonths.february'),
+      t('hijriCalendar.gregorianMonths.march'),
+      t('hijriCalendar.gregorianMonths.april'),
+      t('hijriCalendar.gregorianMonths.may'),
+      t('hijriCalendar.gregorianMonths.june'),
+      t('hijriCalendar.gregorianMonths.july'),
+      t('hijriCalendar.gregorianMonths.august'),
+      t('hijriCalendar.gregorianMonths.september'),
+      t('hijriCalendar.gregorianMonths.october'),
+      t('hijriCalendar.gregorianMonths.november'),
+      t('hijriCalendar.gregorianMonths.december')
     ];
     const month = monthNames[date.getMonth()];
     
@@ -546,7 +554,6 @@ const previousMonth = () => {
     const currentMonthNumber = currentMonth.value.number;
     const currentYear = currentMonth.value.year;
     
-    console.log(`Current month: ${currentMonth.value.name_en} (${currentMonthNumber}) ${currentYear}`);
     
     // Calculate previous month number
     let prevMonthNumber = currentMonthNumber - 1;
@@ -558,7 +565,6 @@ const previousMonth = () => {
       // Keep the same year since we're only supporting 1446
     }
     
-    console.log(`Navigating to previous month: ${prevMonthNumber} ${prevYear}`);
     
     // Check if the previous month exists in our available months
     const prevMonthExists = availableMonths.value.some(
@@ -584,12 +590,12 @@ const previousMonth = () => {
       if (currentIndex > 0) {
         // Get the previous month in the sorted list
         const prevAvailableMonth = sortedMonths[currentIndex - 1];
-        console.log(`Previous available month: ${prevAvailableMonth.name_en} (${prevAvailableMonth.number}) ${prevAvailableMonth.year}`);
+
         fetchCalendarData(prevAvailableMonth.number, prevAvailableMonth.year);
       } else if (sortedMonths.length > 0) {
         // Loop back to the last month
         const lastMonth = sortedMonths[sortedMonths.length - 1];
-        console.log(`Looping back to last month: ${lastMonth.name_en} (${lastMonth.number}) ${lastMonth.year}`);
+        
         fetchCalendarData(lastMonth.number, lastMonth.year);
       } else {
         error.value = 'No months available for navigation';
@@ -615,7 +621,6 @@ const nextMonth = () => {
     const currentMonthNumber = currentMonth.value.number;
     const currentYear = currentMonth.value.year;
     
-    console.log(`Current month: ${currentMonth.value.name_en} (${currentMonthNumber}) ${currentYear}`);
     
     // Calculate next month number
     let nextMonthNumber = currentMonthNumber + 1;
@@ -627,7 +632,6 @@ const nextMonth = () => {
       // Keep the same year since we're only supporting 1446
     }
     
-    console.log(`Navigating to next month: ${nextMonthNumber} ${nextYear}`);
     
     // Check if the next month exists in our available months
     const nextMonthExists = availableMonths.value.some(
@@ -653,12 +657,12 @@ const nextMonth = () => {
       if (currentIndex !== -1 && currentIndex < sortedMonths.length - 1) {
         // Get the next month in the sorted list
         const nextAvailableMonth = sortedMonths[currentIndex + 1];
-        console.log(`Next available month: ${nextAvailableMonth.name_en} (${nextAvailableMonth.number}) ${nextAvailableMonth.year}`);
+
         fetchCalendarData(nextAvailableMonth.number, nextAvailableMonth.year);
       } else if (sortedMonths.length > 0) {
         // Loop back to the first month
         const firstMonth = sortedMonths[0];
-        console.log(`Looping back to first month: ${firstMonth.name_en} (${firstMonth.number}) ${firstMonth.year}`);
+        
         fetchCalendarData(firstMonth.number, firstMonth.year);
       } else {
         error.value = 'No months available for navigation';
@@ -681,7 +685,7 @@ onMounted(async () => {
     
     // Try to get the current Hijri month from the API
     try {
-      console.log('Fetching current Hijri month');
+      
       const response = await axios.get(`${API_BASE_URL}/hijri-months/current/`, {
         headers: {
           'Accept': 'application/json',
@@ -691,7 +695,6 @@ onMounted(async () => {
       
       if (response.data && response.status === 200) {
         const currentMonth = response.data;
-        console.log('Current Hijri month:', currentMonth);
         
         // Initialize with the current month
         await fetchCalendarData(currentMonth.number, currentMonth.year);
@@ -708,10 +711,9 @@ onMounted(async () => {
     if (year1446Months.length > 0) {
       // Start with Muharram (month 1) or the first available month
       const targetMonth = year1446Months.find(m => m.number === 1) || year1446Months[0];
-      console.log(`Initializing calendar with month from 1446: ${targetMonth.name_en} (${targetMonth.number})`);
       await fetchCalendarData(targetMonth.number, 1446);
     } else {
-      // If no 1446 months found, just try to get whatever the API returns
+      
       console.warn('No months found for year 1446, fetching current month');
       await fetchCalendarData();
     }
