@@ -1,34 +1,33 @@
 <template>
-  <div class="quran-search">
+  <div class="quran-search" dir="rtl">
     <h1 class="text-2xl font-bold text-center mb-6">{{ $t('quran.search') }}</h1>
     
     <!-- Search Bar for Quran Text -->
     <div class="search-bar-container mb-4">
       <h3 class="font-medium mb-2">{{ $t('quran.searchQuran') }}</h3>
       <div class="search-input-group">
-        <input 
-          type="text" 
-          v-model="searchKeyword" 
-          :placeholder="$t('quran.searchPlaceholder')" 
-          class="search-input"
-          :dir="inputDirection"
-          @keyup.enter="performSearch"
-        />
-        <div class="search-options-row">
+        <div class="search-row">
+          <input 
+            type="text" 
+            v-model="searchKeyword" 
+            :placeholder="$t('quran.searchPlaceholder')" 
+            class="search-input"
+            @keyup.enter="performSearch"
+          />
           <button 
             @click="performSearch" 
             class="search-button"
             :disabled="searchLoading || !searchKeyword"
           >
-            <span v-if="searchLoading">
-              <svg class="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <span v-if="searchLoading" class="rtl-flex">
+              <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
               {{ $t('quran.searching') }}
             </span>
-            <span v-else>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+            <span v-else class="rtl-flex">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
               </svg>
               {{ $t('quran.search') }}
@@ -55,8 +54,7 @@
           <!-- Display search results using the words array for accurate highlighting -->
           <p 
             class="search-result-text" 
-            :dir="getTextDirection(match.text)"
-            :lang="isArabicText(match.text) ? 'ar' : match.edition?.language || 'en'"
+            lang="ar"
           >
             <template v-if="match.words && match.words.length > 0 && match.words.some(w => w.text && typeof w.text === 'string')">
               <!-- Add verse number if present at the end -->
@@ -528,7 +526,8 @@ export default {
     
     // Get the appropriate direction for text display
     getTextDirection(text) {
-      return this.isArabicText(text) ? 'rtl' : 'ltr';
+      // Always return RTL since the whole page is RTL
+      return 'rtl';
     },
 
     formatQuranText(text, verse_key) {
@@ -657,7 +656,7 @@ export default {
   computed: {
     // Compute the text direction for the search input based on the current keyword
     inputDirection() {
-      return this.isArabicText(this.searchKeyword) ? 'rtl' : 'ltr';
+      return 'rtl';
     }
   }
 };
@@ -668,6 +667,18 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .quran-search {
+    padding: 15px 10px;
+  }
+  
+  h1.text-2xl {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
 }
 
 .search-bar-container {
@@ -677,11 +688,19 @@ export default {
 .search-input-group {
   display: flex;
   flex-direction: column;
+  width: 100%;
+}
+
+.search-row {
+  display: flex;
+  flex-direction: row-reverse;
   gap: 10px;
+  width: 100%;
+  align-items: center;
 }
 
 .search-input {
-  width: 100%;
+  flex: 1;
   padding: 0.75rem;
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
@@ -689,23 +708,13 @@ export default {
   color: var(--text-color);
   font-size: 1rem;
   transition: border-color 0.2s ease;
+  height: 48px; /* Consistent height with button */
+  text-align: right;
 }
 
 .search-input:focus {
   border-color: var(--primary-color);
   outline: none;
-}
-
-/* Add RTL support for the input field */
-[dir="rtl"] .search-input {
-  text-align: right;
-}
-
-.search-options-row {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  align-items: center;
 }
 
 .search-button {
@@ -719,7 +728,30 @@ export default {
   font-size: 0.875rem;
   transition: background-color 0.2s ease;
   min-width: 120px;
-  width: 100%;
+  width: 120px; /* Fixed width to prevent shifting */
+  height: 48px; /* Consistent height with input */
+  flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+/* Ensure content is aligned correctly */
+.search-button span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rtl-flex {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: center;
+  gap: 4px; /* Add consistent gap */
+}
+
+/* Button icon spacing */
+.search-button svg {
+  margin-right: 0;
+  margin-left: 0.25rem;
 }
 
 .search-button:hover {
@@ -740,6 +772,14 @@ export default {
   border: 1px solid var(--border-color);
 }
 
+@media (max-width: 768px) {
+  .search-results {
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+    margin-bottom: 1rem;
+  }
+}
+
 .search-results-container {
   display: flex;
   flex-direction: column;
@@ -747,6 +787,14 @@ export default {
   max-height: 500px;
   overflow-y: auto;
   padding-right: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .search-results-container {
+    max-height: 400px;
+    padding-right: 0.25rem;
+    gap: 0.5rem;
+  }
 }
 
 .search-result-item {
@@ -760,21 +808,50 @@ export default {
   border: 1px solid var(--border-color);
 }
 
+@media (max-width: 768px) {
+  .search-result-item {
+    padding: 0.65rem;
+    border-radius: 0.4rem;
+  }
+}
+
 .search-result-item:hover {
   background-color: var(--hover-color);
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
+@media (max-width: 768px) {
+  .search-result-item:hover, .search-result-item:active {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+}
+
 .search-result-header {
   display: flex;
+  flex-direction: row-reverse;
   align-items: center;
   margin-bottom: 5px;
 }
 
+@media (max-width: 768px) {
+  .search-result-header {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  
+  .search-result-header .surah-name {
+    font-size: 0.95rem;
+    margin-left: 0;
+  }
+}
+
 .search-result-header .surah-name {
   font-weight: 500;
-  margin-right: 10px;
+  margin-left: 10px;
+  margin-right: 0;
   color: var(--primary-color);
 }
 
@@ -791,11 +868,19 @@ export default {
   word-break: break-word;
   max-height: 150px;
   overflow-y: auto;
-  direction: auto; /* Automatically adjust direction based on content */
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .search-result-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-height: 120px;
+  }
 }
 
 /* RTL-specific styles for Arabic text */
-.search-result-text[dir="rtl"] {
+.search-result-text {
   text-align: right;
   font-size: 1.2rem; /* Larger for Arabic text */
   line-height: 2;
@@ -805,6 +890,14 @@ export default {
   word-spacing: 0.15em;
 }
 
+@media (max-width: 768px) {
+  .search-result-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    padding: 8px 3px;
+  }
+}
+
 .loading-spinner {
   display: flex;
   flex-direction: column;
@@ -812,6 +905,14 @@ export default {
   justify-content: center;
   padding: 2rem;
   color: var(--text-secondary);
+  width: 100%;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .loading-spinner {
+    padding: 1.5rem;
+  }
 }
 
 .error-message {
@@ -825,6 +926,12 @@ export default {
   background-color: var(--card-bg);
   border-radius: 0.5rem;
   border: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .no-results {
+    padding: 1.5rem;
+  }
 }
 
 .highlight-match {
@@ -849,20 +956,25 @@ export default {
 }
 
 /* For Arabic text in word-by-word display */
-[dir="rtl"] .search-result-text span {
+.search-result-text span {
   margin-left: 4px;
   margin-right: 0;
-}
-
-[dir="ltr"] .search-result-text span {
-  margin-right: 4px;
-  margin-left: 0;
 }
 
 /* Last word in sequence doesn't need a margin */
 .search-result-text span:last-child {
   margin-right: 0;
   margin-left: 0;
+}
+
+.verse-number-inline {
+  font-size: 0.8em;
+  color: var(--text-secondary);
+  vertical-align: super;
+  margin-right: 0;
+  margin-left: 0.5em;
+  font-weight: normal;
+  opacity: 0.8;
 }
 
 .load-more-button {
@@ -876,6 +988,22 @@ export default {
   font-size: 0.875rem;
   transition: all 0.2s ease;
   border: 1px solid var(--border-color);
+}
+
+.load-more-button svg {
+  margin-left: 0.25rem;
+  margin-right: 0;
+}
+
+@media (max-width: 768px) {
+  .load-more-button {
+    padding: 0.85rem 1.5rem;
+    font-size: 0.95rem;
+    width: 100%;
+    max-width: 250px;
+    /* Increase tap target size for mobile */
+    min-height: 48px;
+  }
 }
 
 .load-more-button:hover {
@@ -892,7 +1020,16 @@ export default {
 /* Media query for smaller screens */
 @media (max-width: 640px) {
   .search-button {
-    width: 100%;
+    width: auto; /* Let it be natural width on small screens */
+    min-width: 100px; /* Slightly smaller min-width on mobile */
+  }
+  
+  .quran-search {
+    padding: 10px;
+  }
+  
+  h1.text-2xl {
+    font-size: 1.25rem;
   }
 }
 
@@ -919,12 +1056,39 @@ export default {
   width: 0.02em;
 }
 
-.verse-number-inline {
-  font-size: 0.8em;
-  color: var(--text-secondary);
-  vertical-align: super;
-  margin-right: 0.5em;
-  font-weight: normal;
-  opacity: 0.8;
+/* Add touch-friendly scrolling for mobile */
+@media (max-width: 768px) {
+  .search-results-container, .search-result-text {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  /* Improve scrollbar appearance on mobile */
+  .search-results-container::-webkit-scrollbar,
+  .search-result-text::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .search-results-container::-webkit-scrollbar-thumb,
+  .search-result-text::-webkit-scrollbar-thumb {
+    background-color: rgba(var(--primary-color-rgb), 0.3);
+    border-radius: 4px;
+  }
 }
-</style> 
+
+/* Media query for very small screens only */
+@media (max-width: 400px) {
+  .search-row {
+    flex-direction: column;
+  }
+  
+  .search-button {
+    width: 100%;
+    margin-top: 8px;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+}
+</style>

@@ -1,9 +1,10 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, defineEmits } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { store } from '../store';
 
 const { t } = useI18n();
+const emit = defineEmits(['khatmah-created', 'cancel']);
 const khatmahName = ref('');
 const nameError = ref('');
 const isPrivate = ref(false);

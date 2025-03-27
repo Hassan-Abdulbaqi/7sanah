@@ -566,6 +566,10 @@
     "persian": "Persian",
     "iraqiArabic": "Iraqi Arabic Script",
     "verseLoadingFailed": "Could not find the requested verse. Please try again.",
+    "revelationType": {
+      "Meccan": "Meccan",
+      "Medinan": "Medinan"
+    },
     "bookViewPage": {
       "page": "Page",
       "displayType": "Display Type",

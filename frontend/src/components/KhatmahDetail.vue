@@ -805,12 +805,12 @@ function normalizeArabicText(text) {
   // Normalize Arabic letters that may appear in different forms
   normalized = normalized
     // Normalize alifs
-    .replace(/[\u0622\u0623\u0625\u0671\u0672\u0673\u0675]/g, '\u0627')
-    // Normalize yaa and alif maqsura
+    .replace(/[أإآا]/g, 'ا')
+    // Normalize different forms of Yaa
     .replace(/\u0649/g, '\u064A')
     // Normalize taa marbouta to haa
     .replace(/\u0629/g, '\u0647')
-    // Normalize various forms of hamza
+    // Normalize different forms of Hamza
     .replace(/[\u0624\u0626]/g, '\u0621');
   
   return normalized;
@@ -1000,7 +1000,7 @@ function cancelRemoveParticipant() {
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
               </svg>
-              {{ t('khatmahDetail.joinedAs') }}: {{ participation.name }}
+              {{ t('khatmahDetail.joinedAs') || 'Joined as' }}: {{ participation.name }}
             </div>
             
             <div class="mt-3 flex justify-between">
@@ -1013,17 +1013,6 @@ function cancelRemoveParticipant() {
                   <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
                 </svg>
                 {{ t('khatmahDetail.view') || 'View' }}
-              </button>
-              
-              <button
-                v-if="props.khatmahId !== participation.khatmahId"
-                @click.stop="selectKhatmah(participation.khatmahId)"
-                class="flex items-center px-2 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors text-xs"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                </svg>
-                {{ t('khatmahDetail.switch') || 'Switch' }}
               </button>
             </div>
           </div>
@@ -1246,7 +1235,7 @@ function cancelRemoveParticipant() {
         <div v-else class="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
           <div class="flex items-center mb-4">
             <div class="bg-emerald-100 rounded-full p-2 mr-3">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
               </svg>
             </div>
@@ -1294,7 +1283,7 @@ function cancelRemoveParticipant() {
                   <div v-else-if="isMyJuz(juz)" class="text-blue-600 text-xs mt-1 font-medium flex flex-col">
                     <span>{{ t('khatmahDetail.clickToRead') }}</span>
                     <button 
-                      class="mt-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded text-sm hover:bg-emerald-200 font-medium w-full"
+                      class="mt-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded text-sm hover:bg-emerald-200 font-medium w-full"
                       @click.stop="toggleComplete(getJuzAssignment(juz).id)"
                     >
                       {{ t('khatmahDetail.markComplete') }}
@@ -1337,7 +1326,7 @@ function cancelRemoveParticipant() {
                   <input 
                     type="text" 
                     v-model="searchQuery" 
-                    class="w-full pl-10 pr-10 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base sm:text-sm" 
+                    class="w-full pl-10 pr-10 py-3 sm:py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base sm:text-sm" 
                     :placeholder="t('quran.searchSurah') || 'Search surah by name or number...'"
                     @input="filterSurahs"
                   />
@@ -1420,13 +1409,13 @@ function cancelRemoveParticipant() {
                     <span class="font-medium">{{ surah.englishName }}</span>
                     <span class="text-xs text-gray-500 block">{{ surah.englishNameTranslation }}</span>
                     <span class="text-xs bg-gray-100 text-gray-700 rounded-full px-2 py-0.5 mt-1 inline-block">
-                      {{ surah.numberOfAyahs }} {{ t('khatmahDetail.ayahs') || 'Ayahs' }}
+                      {{ surah.numberOfAyahs }} {{ surah.numberOfAyahs >= 3 ? t('khatmahDetail.ayahs') : t('khatmahDetail.ayah') }}
                     </span>
                     <span 
                       class="text-xs ml-1 rounded-full px-2 py-0.5 mt-1 inline-block"
                       :class="surah.revelationType === 'Meccan' ? 'bg-amber-50 text-amber-800' : 'bg-emerald-50 text-emerald-800'"
                     >
-                      {{ surah.revelationType }}
+                      {{ t(`quran.revelationType.${surah.revelationType}`) || surah.revelationType }}
                     </span>
                   </div>
                   
@@ -1525,7 +1514,7 @@ function cancelRemoveParticipant() {
                       :title="t('khatmahDetail.removeParticipant')"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0111 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                       </svg>
                     </button>
                   </div>

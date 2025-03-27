@@ -132,6 +132,7 @@
     "surahAlreadyAssigned": "هذه السورة مخصصة بالفعل لشخص آخر",
     "leaveConfirm": "هل أنت متأكد أنك تريد مغادرة هذه الختمة؟ ستبقى تخصيصاتك، لكن ستحتاج إلى إعادة الانضمام لإجراء تغييرات.",
     "noParticipations": "لم تنضم إلى أي ختمات حتى الآن.",
+    "noParticipationsDescription": "لم تنضم إلى أي ختمات اختر ختمة من الختمات العامة",
     "switch": "تبديل",
     "leave": "مغادرة",
     "copyError": "فشل نسخ الرابط إلى الحافظة",
@@ -149,10 +150,12 @@
     "close": "إغلاق",
     "assignedTo": "معين لـ",
     "backToList": "العودة إلى القائمة",
+    "backToDetails": "العودة إلى تفاصيل الختمة",
+    "view": "عرض",
     "manualCopyPrompt": "انسخ هذا الرابط يدويًا:",
     "confirmJuzSelection": "تأكيد اختيار الجزء",
     "confirmJuzSelectionText": "هل أنت متأكد من اختيار الجزء {number}؟",
-    "ayahs": "آيات",
+    "ayahs": "آية",
     "removeParticipant": "إزالة المشارك",
     "confirmSurahSelection": "تأكيد اختيار السورة",
     "confirmSurahSelectionText": "هل أنت متأكد من اختيار السورة {number}؟"
@@ -311,8 +314,8 @@
       "longitude": "خط الطول"
     },
     "date": {
-      "gregorian": "التاريخ الميلادي",
-      "hijri": "التاريخ الهجري"
+      "gregorian": "Today",
+      "hijri": "اليوم"
     },
     "mapSelector": {
       "title": "اختر الموقع من الخريطة",
@@ -412,14 +415,17 @@
     "qiblaDirection": "اتجاه القبلة",
     "enableLocation": "قم بتمكين خدمات الموقع لعرض اتجاه القبلة",
     "unknown": "غير معروف",
-    "qiblaIs": "اتجاه القبلة هو",
+    "qiblaIs": "القبلة",
     "fromYourLocation": "من موقعك",
     "distanceToMecca": "المسافة إلى مكة",
-    "compassStopped": "تم إيقاف البوصلة",
+    "compassStopped": "توقفت البوصلة",
     "grantPermission": "للوصول إلى هذه الميزة، يجب منح الإذن",
     "deviceOrientationNotSupported": "اتجاه الجهاز غير مدعوم على جهازك",
     "permissionDenied": "رفض المستخدم طلب تحديد الموقع الجغرافي.",
-    "positionUnavailable": "معلومات الموقع غير متاحة."
+    "positionUnavailable": "معلومات الموقع غير متوفرة.",
+    "timeout": "انتهت مهلة محاولة الحصول على الموقع.",
+    "locationNote": "يجب تمكين خدمة الموقع لعرض اتجاه القبلة",
+    "qibla": "القبلة"
   },
   "common": {
     "save": "حفظ",
@@ -551,24 +557,24 @@
     "nextPage": "التالي",
     "pageOf": "صفحة {current} من {total}",
     "surahInPage": "السور الموجودة في هذه الصفحة",
-    "playingPageVerseByVerse": "تشغيل آيات الصفحة بالتسلسل",
+    "playingPageVerseByVerse": "جاري تشغيل آيات الصفحة بالتتابع",
     "noAyahsOnPage": "لا توجد آيات متاحة للصوت في هذه الصفحة",
-    "playingAyah": "تشغيل الآية {current} من {total}",
+    "playingAyah": "جاري تشغيل الآية {current} من {total}",
     "verses": "آيات",
-    "loadingMore": "جارٍ تحميل المزيد من الآيات...",
+    "loadingMore": "جاري تحميل المزيد من الآيات...",
     "loadMoreResults": "تحميل المزيد من النتائج",
     "loadMoreVerses": "تحميل المزيد من الآيات",
-    "loadAllVerses": "تحميل جميع الآيات دفعة واحدة",
+    "loadAllVerses": "تحميل جميع الآيات",
     "searchSurahResults": "تم العثور على {count} نتيجة",
     "noSurahResults": "لم يتم العثور على نتائج لبحثك عن السورة",
     "searchSurahError": "خطأ في البحث في السورة",
     "bookViewPage": {
       "page": "صفحة",
       "displayType": "نوع العرض",
-      "quran": "قرآن",
-      "quranSimple": "قرآن (مبسط)",
-      "translation": "ترجمة",
-      "quranAndTranslation": "قرآن وترجمة",
+      "quran": "القرآن",
+      "quranSimple": "القرآن (مبسط)",
+      "translation": "الترجمة",
+      "quranAndTranslation": "القرآن والترجمة",
       "reciter": "القارئ",
       "play": "تشغيل",
       "loading": "جاري تحميل الصفحة {page}...",
@@ -576,8 +582,8 @@
       "noPage": "لا توجد صفحة للعرض. اختر صفحة لعرضها.",
       "previousPage": "الصفحة السابقة",
       "nextPage": "الصفحة التالية",
-      "playingPage": "تشغيل الصفحة {page}",
-      "playingAyah": "تشغيل {surah} {ayah}",
+      "playingPage": "جاري تشغيل الصفحة {page}",
+      "playingAyah": "جاري تشغيل {surah} {ayah}",
       "playButton": "تشغيل"
     },
     "showSurahList": "عرض قائمة السور",
@@ -586,6 +592,10 @@
     "addBookmark": "إضافة علامة مرجعية",
     "removeBookmark": "إزالة علامة مرجعية",
     "bookmarked": "تمت إضافة علامة مرجعية",
-    "bookmarkFailed": "فشل في إضافة علامة مرجعية"
+    "bookmarkFailed": "فشل في إضافة علامة مرجعية",
+    "revelationType": {
+      "Meccan": "مكية",
+      "Medinan": "مدنية"
+    }
   }
 }
