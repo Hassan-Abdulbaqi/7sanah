@@ -3,17 +3,11 @@ import { createI18n } from 'vue-i18n'
 import './style.css'
 import App from './App.vue'
 import router from './router'
-import messages from './locales'
-import { clickOutside } from './directives/clickOutside'
-
-// Get the browser language or use Arabic as fallback
-const getBrowserLanguage = () => {
-  const browserLang = navigator.language.split('-')[0]
-  return ['en', 'ar', 'ku', 'fa'].includes(browserLang) ? browserLang : 'ar'
-}
+import messages from './locales/index.js'
+import { clickOutside } from './directives/clickOutside.js'
 
 // Get the stored language from localStorage or use Arabic
-const getStoredLanguage = () => {
+const getStoredLanguage = (): string => {
   const storedLang = localStorage.getItem('language')
   return storedLang && ['en', 'ar', 'ku', 'fa'].includes(storedLang) 
     ? storedLang 
@@ -32,7 +26,7 @@ const i18n = createI18n({
      * @param choicesLength {number} an overall amount of available choices
      * @returns a final choice index to select plural word by
      */
-    'ar': function(choice, choicesLength) {
+    'ar': function(choice: number, _choicesLength: number): number {
       // Arabic has different plural forms
       if (choice === 0) {
         return 0;
@@ -48,11 +42,11 @@ const i18n = createI18n({
       }
       return 1;
     },
-    'ku': function(choice, choicesLength) {
+    'ku': function(choice: number, _choicesLength: number): number {
       // Kurdish follows similar rules to Arabic
       return choice === 1 ? 0 : 1;
     },
-    'fa': function(choice, choicesLength) {
+    'fa': function(choice: number, _choicesLength: number): number {
       // Persian has simple pluralization
       return choice > 1 ? 1 : 0;
     }
@@ -67,10 +61,10 @@ app.directive('clickOutside', clickOutside)
 
 // Create notification service on the app
 app.config.globalProperties.$notification = {
-  info: (message) => console.info('[Info]', message),
-  success: (message) => console.log('[Success]', message),
-  warning: (message) => console.warn('[Warning]', message),
-  error: (message) => console.error('[Error]', message)
+  info: (message: any) => console.info('[Info]', message),
+  success: (message: any) => console.log('[Success]', message),
+  warning: (message: any) => console.warn('[Warning]', message),
+  error: (message: any) => console.error('[Error]', message)
 }
 
 // Use plugins

@@ -17,7 +17,7 @@ const emit = defineEmits(['select-khatmah']);
 const searchQuery = ref('');
 const searchFocused = ref(false);
 const currentPage = ref(1);
-const pageSize = ref(3);
+const pageSize = ref(12);
 // Add state for local storage participations
 const myParticipations = ref([]);
 

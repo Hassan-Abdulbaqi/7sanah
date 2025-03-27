@@ -4,7 +4,7 @@ import App from './App.vue'
 // Log for debugging
 
 // Helper function for detecting shared URLs
-function isDirectKhatmahAccess(path) {
+function isDirectKhatmahAccess(path: string): boolean {
   return path.startsWith('/khatmah/') && path.length > 9;
 }
 
@@ -35,7 +35,7 @@ const router = createRouter({
       name: 'khatmah-detail',
       component: App,
       meta: { mode: 'khatmah-detail', transitionName: 'fade' },
-      beforeEnter: (to, from, next) => {
+      beforeEnter: (to, _from, next) => {
         console.log('⭐ DIRECT URL: Khatmah detail route activated with ID:', to.params.id)
         // Add metadata to be used by the App component
         to.meta.khatmahId = to.params.id
@@ -104,7 +104,7 @@ const router = createRouter({
     }
   ],
   // Add scroll behavior for better UX during transitions
-  scrollBehavior(to, from, savedPosition) {
+  scrollBehavior(_to, _from, savedPosition) {
     // If the user uses back/forward navigation, restore the position
     if (savedPosition) {
       return new Promise((resolve) => {
@@ -125,7 +125,7 @@ const router = createRouter({
 })
 
 // Log every navigation for debugging
-router.beforeEach((to, from, next) => {
+router.beforeEach((_to, _from, next) => {
   // Allow transitions to play out
   document.body.classList.add('page-transitioning')
   

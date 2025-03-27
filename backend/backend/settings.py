@@ -163,8 +163,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Security settings for production
 if not DEBUG:
-    # Comment out SECURE_SSL_REDIRECT to prevent redirect loops with Cloudflare
-    # SECURE_SSL_REDIRECT = True
+    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000  # 1 year
@@ -192,6 +191,13 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+]
+
+# CSRF Trusted Origins - needed for admin interface
+CSRF_TRUSTED_ORIGINS = [
+    'https://api.7sanah.com',
+    'https://www.7sanah.com',
+    'https://7sanah.com',
 ]
 
 # Make sure corsheaders is in INSTALLED_APPS

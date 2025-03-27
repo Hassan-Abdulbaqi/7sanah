@@ -163,7 +163,7 @@ import { store } from '../store';
 const { t } = useI18n();
 
 // Extract base API URL from store
-const API_BASE_URL = store.API_URL || 'http://192.168.84.194:8000/api';
+const API_BASE_URL = store.API_URL || 'https://api.7sanah.com/api';
 
 // State variables
 const loading = ref(true);

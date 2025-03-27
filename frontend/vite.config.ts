@@ -9,9 +9,9 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to Django backend
       '/api': {
-        target: 'http://192.168.84.194:8000',
+        target: 'https://api.7sanah.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       }
     },
     // Allow all hosts to access the dev server

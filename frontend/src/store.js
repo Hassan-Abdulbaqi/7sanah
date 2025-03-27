@@ -1,7 +1,7 @@
 import { reactive } from 'vue';
 import axios from 'axios';
 
-const API_URL = 'http://192.168.84.194:8000/api';
+const API_URL = 'https://api.7sanah.com/api';
 const STORAGE_KEY = 'quran_khatmah_participants';
 const CREATED_KHATMAHS_KEY = 'quran_khatmah_created';
 const CREATOR_TOKENS_KEY = 'quran_khatmah_creator_tokens';
