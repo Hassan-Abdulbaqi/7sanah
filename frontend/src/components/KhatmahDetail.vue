@@ -51,6 +51,9 @@ const searchQuery = ref('');
 const filteredSurahs = ref([]);
 const normalizedSurahNames = ref([]);
 
+// Add success message variable
+const successMessage = ref('');
+
 // Add missing reactive properties
 const isReadingJuz = ref(false);
 const currentReadingJuz = ref(null);
@@ -139,7 +142,6 @@ const arabicProfanityList = [
   'مصخم', 'م ص خ م', 'مـصـخـم'
 ];
 
-// Common character substitutions
 const charSubstitutions = {
   'a': ['@', '4', 'α', 'а', 'λ', 'Д'],
   'b': ['8', '6', 'ь', 'в'],
@@ -428,10 +430,18 @@ async function confirmJuzAssignment() {
     // Get the assignment after assigning
     const assignment = getJuzAssignment(confirmingJuzNumber.value);
     if (assignment) {
-      // Set the reading state
-      isReadingJuz.value = true;
-      currentReadingJuz.value = confirmingJuzNumber.value;
-      currentAssignmentId.value = assignment.id;
+      // Remove automatic reading state transition
+      // isReadingJuz.value = true;
+      // currentReadingJuz.value = confirmingJuzNumber.value;
+      // currentAssignmentId.value = assignment.id;
+      
+      // Show success message
+      successMessage.value = `Successfully assigned Juz ${confirmingJuzNumber.value}. You can click on it to read or mark as complete.`;
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        successMessage.value = '';
+      }, 5000);
     }
     
     confirmingJuzNumber.value = null;
@@ -705,7 +715,8 @@ async function handleSurahClick(surahNumber) {
 function navigateToSurah(surahNumber) {
   // Emit an event that can be handled by parent component to navigate
   emit('navigate-to-surah', {
-    surah: surahNumber
+    surah: surahNumber,
+    loading: true  // Add loading state to indicate the surah is loading
   });
   
   // The parent component (App.vue) will handle the navigation to the Quran reader
@@ -718,8 +729,16 @@ async function confirmSurahAssignment() {
     // Close the confirmation dialog
     showSurahConfirmation.value = false;
     
-    // Navigate to SurahList view for reading after assignment
-    navigateToSurah(confirmingSurahNumber.value);
+    // Remove automatic navigation - let the user decide when to view
+    // navigateToSurah(confirmingSurahNumber.value);
+    
+    // Show success message
+    successMessage.value = `Successfully assigned Surah ${confirmingSurahNumber.value}. You can click on it to read or mark as complete.`;
+    
+    // Clear success message after 5 seconds
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 5000);
     
     confirmingSurahNumber.value = null;
   }
@@ -1259,6 +1278,16 @@ function cancelRemoveParticipant() {
         
         <!-- Assignment grid for Juz -->
         <template v-if="store.currentKhatmah && store.currentKhatmah.khatmah_type === 'juz'">
+          <!-- Success message display -->
+          <div v-if="successMessage" class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-6 sticky top-4 z-10">
+            <p class="text-sm text-emerald-600 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              {{ successMessage }}
+            </p>
+          </div>
+          
           <h3 class="text-xl font-semibold mb-4 text-gray-800">{{ t('khatmahDetail.juzAssignments') }}</h3>
           <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-3 mb-10">
             <div
@@ -1275,7 +1304,7 @@ function cancelRemoveParticipant() {
                 <template v-if="getJuzAssignment(juz)">
                   <div class="text-xs font-semibold">
                     <span>{{ t('khatmahDetail.assignedTo') || 'Assigned to' }}:</span> {{ getJuzAssignment(juz).participant_name }}
-                    <span v-if="isMyJuz(juz)" class="text-xs text-rose-700 font-bold">({{ t('khatmahDetail.you') }})</span>
+                    <span v-if="isMyJuz(juz)" class="text-xs text-rose-700 font-bold"> ({{ t('khatmahDetail.you') }}) </span>
                   </div>
                   <div v-if="getJuzAssignment(juz).completed" class="text-emerald-700 text-xs mt-1 font-medium">
                     {{ t('khatmahDetail.completed') }}
@@ -1305,6 +1334,16 @@ function cancelRemoveParticipant() {
         
         <!-- Surah Assignments -->
         <template v-else-if="store.currentKhatmah && store.currentKhatmah.khatmah_type === 'surah'">
+          <!-- Success message display -->
+          <div v-if="successMessage" class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mb-6 sticky top-4 z-10">
+            <p class="text-sm text-emerald-600 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+              {{ successMessage }}
+            </p>
+          </div>
+          
           <h3 class="text-xl font-semibold mb-4 text-gray-800">{{ t('khatmahDetail.surahAssignments') }}</h3>
           
           <div class="surah-content-container relative border border-gray-200 rounded-xl overflow-hidden">
@@ -1424,7 +1463,7 @@ function cancelRemoveParticipant() {
                     <template v-if="getSurahAssignment(surah.number)">
                       <div class="text-xs font-semibold">
                         <span>{{ t('khatmahDetail.assignedTo') || 'Assigned to' }}:</span> {{ getSurahAssignment(surah.number).participant_name }}
-                        <span v-if="isMySurahAssignment(surah.number)" class="text-xs text-rose-700 font-bold">({{ t('khatmahDetail.you') }})</span>
+                        <span v-if="isMySurahAssignment(surah.number)" class="text-xs text-rose-700 font-bold"> ({{ t('khatmahDetail.you') }}) </span>
                       </div>
                       <div v-if="getSurahAssignment(surah.number).completed" class="text-emerald-700 text-xs mt-1 font-medium">
                         {{ t('khatmahDetail.completed') }}

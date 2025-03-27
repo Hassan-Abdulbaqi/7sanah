@@ -2,8 +2,14 @@
   <div class="surah-selection">
     <h3 class="font-medium mb-2">{{ $t('quran.selectSurah') }}</h3>
     
+    <!-- Loading indicator -->
+    <div v-if="loading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">{{ $t('quran.loadingSurah') || 'Loading surah...' }}</p>
+    </div>
+    
     <!-- Surah search -->
-    <div class="surah-search-container mb-3">
+    <div v-if="!loading" class="surah-search-container mb-3">
       <input 
         type="text" 
         v-model="searchQuery" 
@@ -24,7 +30,7 @@
     </div>
     
     <!-- Surah buttons grid -->
-    <div class="surah-buttons-grid">
+    <div v-if="!loading" class="surah-buttons-grid">
       <button 
         v-for="surah in filteredSurahs" 
         :key="surah.number" 
@@ -41,7 +47,7 @@
     </div>
     
     <!-- No results message -->
-    <div v-if="filteredSurahs.length === 0 && searchQuery" class="no-results-message">
+    <div v-if="!loading && filteredSurahs.length === 0 && searchQuery" class="no-results-message">
       {{ $t('quran.noSurahResults') || 'No surahs found matching your search.' }}
     </div>
   </div>
@@ -251,5 +257,20 @@ export default {
 
 .no-results-message {
   @apply text-center text-gray-500 mt-4 py-6;
+}
+
+.loading-container {
+  @apply flex flex-col items-center justify-center;
+  padding: 40px 20px;
+  min-height: 250px;
+}
+
+.loading-spinner {
+  @apply animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500;
+  border-radius: 50%;
+}
+
+.loading-text {
+  @apply text-gray-700 mt-4 font-medium;
 }
 </style> 
