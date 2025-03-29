@@ -689,7 +689,7 @@ class HijriMonthPagination(PageNumberPagination):
     max_page_size = 12
 
 
-class HijriMonthViewSet(viewsets.ModelViewSet):
+class HijriMonthViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = HijriMonth.objects.all()
     pagination_class = HijriMonthPagination
     permission_classes = [permissions.AllowAny]
@@ -810,7 +810,7 @@ class HijriMonthViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class HijriEventViewSet(viewsets.ModelViewSet):
+class HijriEventViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = HijriEvent.objects.all()
     serializer_class = HijriEventSerializer
     permission_classes = [permissions.AllowAny]
@@ -839,7 +839,7 @@ class HijriEventViewSet(viewsets.ModelViewSet):
         serializer = HijriEventSerializer(queryset, many=True)
         return Response(serializer.data)
 
-class AstronomicalEventViewSet(viewsets.ModelViewSet):
+class AstronomicalEventViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AstronomicalEvent.objects.all()
     serializer_class = AstronomicalEventSerializer
     permission_classes = [permissions.AllowAny]
