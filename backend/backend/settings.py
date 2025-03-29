@@ -60,7 +60,10 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
     'SWAGGER_UI_SETTINGS': {
         'persistAuthorization': True,
-    }
+    },
+    'EXTENSIONS_ROOT': 'api.schema',
+    # Only include specific patterns in the schema
+    'SCHEMA_PATH_PREFIX': r'/api/(?:v1/)?(?:hijri-calendar|qibla)',
 }
 
 REST_FRAMEWORK = {
