@@ -1,6 +1,5 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework.routers import Route, ReadOnlyRouter
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from .views import (
     home, get_juz_text, get_surah_text, KhatmahViewSet, ParticipantViewSet, JuzAssignmentViewSet,
@@ -8,55 +7,14 @@ from .views import (
     test_api_view, get_hijri_calendar, calendar_dashboard, get_qibla_direction, compass_view
 )
 
-# Regular router for full CRUD operations
 router = DefaultRouter()
 router.register(r'khatmahs', KhatmahViewSet)
 router.register(r'participants', ParticipantViewSet)
 router.register(r'assignments', JuzAssignmentViewSet)
 router.register(r'surah-assignments', SurahAssignmentViewSet)
-
-# Read-only router for Hijri calendar endpoints
-class HijriReadOnlyRouter(ReadOnlyRouter):
-    """
-    A router that only allows GET requests.
-    """
-    routes = [
-        Route(
-            url=r'^{prefix}/$',
-            mapping={'get': 'list'},
-            name='{basename}-list',
-            detail=False,
-            initkwargs={'suffix': 'List'}
-        ),
-        Route(
-            url=r'^{prefix}/{lookup}/$',
-            mapping={'get': 'retrieve'},
-            name='{basename}-detail',
-            detail=True,
-            initkwargs={'suffix': 'Detail'}
-        ),
-        # Custom action routes
-        Route(
-            url=r'^{prefix}/{lookup}/{methodnamehyphen}/$',
-            mapping={'get': 'retrieve'},
-            name='{basename}-{methodnamehyphen}',
-            detail=True,
-            initkwargs={}
-        ),
-        Route(
-            url=r'^{prefix}/{methodnamehyphen}/$',
-            mapping={'get': 'list'},
-            name='{basename}-{methodnamehyphen}',
-            detail=False,
-            initkwargs={}
-        ),
-    ]
-
-# Create a read-only router for Hijri calendar endpoints
-hijri_router = HijriReadOnlyRouter()
-hijri_router.register(r'hijri-months', HijriMonthViewSet)
-hijri_router.register(r'hijri-events', HijriEventViewSet)
-hijri_router.register(r'astronomical-events', AstronomicalEventViewSet)
+router.register(r'hijri-months', HijriMonthViewSet)
+router.register(r'hijri-events', HijriEventViewSet)
+router.register(r'astronomical-events', AstronomicalEventViewSet)
 
 # Common API patterns
 api_patterns = [
@@ -65,7 +23,6 @@ api_patterns = [
     path('surah/<int:surah_number>/text/', get_surah_text, name='surah-text'),
     path('qibla/<str:latitude>/<str:longitude>/', get_qibla_direction, name='qibla-direction'),
     path('', include(router.urls)),
-    path('', include(hijri_router.urls)),
 ]
 
 urlpatterns = [

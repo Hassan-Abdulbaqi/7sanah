@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
@@ -689,17 +689,15 @@ class HijriMonthPagination(PageNumberPagination):
     max_page_size = 12
 
 
-class HijriMonthViewSet(viewsets.ReadOnlyModelViewSet):
+class HijriMonthViewSet(viewsets.ModelViewSet):
     queryset = HijriMonth.objects.all()
     pagination_class = HijriMonthPagination
-    permission_classes = [permissions.AllowAny]
-    http_method_names = ['get']  # Only allow GET requests
-
+    
     def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return HijriMonthDetailSerializer
-        return HijriMonthListSerializer
-
+        if self.action == 'list':
+            return HijriMonthListSerializer
+        return HijriMonthDetailSerializer
+    
     @action(detail=False, methods=['get'])
     def by_number(self, request):
         """Get a Hijri month by its number and year"""
@@ -810,12 +808,10 @@ class HijriMonthViewSet(viewsets.ReadOnlyModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class HijriEventViewSet(viewsets.ReadOnlyModelViewSet):
+class HijriEventViewSet(viewsets.ModelViewSet):
     queryset = HijriEvent.objects.all()
     serializer_class = HijriEventSerializer
-    permission_classes = [permissions.AllowAny]
-    http_method_names = ['get']  # Only allow GET requests
-
+    
     @action(detail=False, methods=['get'])
     def by_month(self, request):
         """Get events for a specific Hijri month"""
@@ -839,12 +835,10 @@ class HijriEventViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = HijriEventSerializer(queryset, many=True)
         return Response(serializer.data)
 
-class AstronomicalEventViewSet(viewsets.ReadOnlyModelViewSet):
+class AstronomicalEventViewSet(viewsets.ModelViewSet):
     queryset = AstronomicalEvent.objects.all()
     serializer_class = AstronomicalEventSerializer
-    permission_classes = [permissions.AllowAny]
-    http_method_names = ['get']  # Only allow GET requests
-
+    
     @action(detail=False, methods=['get'])
     def by_month(self, request):
         """Get astronomical events for a specific Hijri month"""
