@@ -7,7 +7,6 @@ from .views import (
     test_api_view, get_hijri_calendar, calendar_dashboard, get_qibla_direction, compass_view
 )
 
-# Create a router and register all viewsets
 router = DefaultRouter()
 router.register(r'khatmahs', KhatmahViewSet)
 router.register(r'participants', ParticipantViewSet)
@@ -27,7 +26,7 @@ api_patterns = [
 ]
 
 urlpatterns = [
-    # API documentation - only include schema endpoints for documentation
+    # API documentation
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path('schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     
