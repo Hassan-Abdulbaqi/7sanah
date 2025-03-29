@@ -14,6 +14,9 @@ from django.shortcuts import render
 import math
 import uuid
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.conf import settings
+from django.core.cache import cache
+
 
 def home(request):
     return JsonResponse({"message": "Welcome to Quran Khatmah API!"})
@@ -684,6 +687,7 @@ class HijriMonthPagination(PageNumberPagination):
     page_size = 12
     page_size_query_param = 'page_size'
     max_page_size = 12
+
 
 class HijriMonthViewSet(viewsets.ModelViewSet):
     queryset = HijriMonth.objects.all()

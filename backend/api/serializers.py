@@ -53,8 +53,15 @@ class KhatmahSerializer(serializers.ModelSerializer):
         if obj.image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.image.url)
+                url = request.build_absolute_uri(obj.image.url)
+                # Ensure HTTPS
+                if url.startswith('http://'):
+                    url = 'https://' + url[7:]
+                return url
             return obj.image.url
+        # Ensure HTTPS for legacy image_url
+        if obj.image_url and obj.image_url.startswith('http://'):
+            return 'https://' + obj.image_url[7:]
         return obj.image_url
     
     def get_creator_token(self, obj):
@@ -104,8 +111,15 @@ class KhatmahListSerializer(serializers.ModelSerializer):
         if obj.image:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.image.url)
+                url = request.build_absolute_uri(obj.image.url)
+                # Ensure HTTPS
+                if url.startswith('http://'):
+                    url = 'https://' + url[7:]
+                return url
             return obj.image.url
+        # Ensure HTTPS for legacy image_url
+        if obj.image_url and obj.image_url.startswith('http://'):
+            return 'https://' + obj.image_url[7:]
         return obj.image_url  # Return the legacy image_url if no uploaded image
         
     def get_participants(self, obj):

@@ -82,6 +82,13 @@
         </div>
         <div class="next-prayer-name">
           <span class="arabic-prayer-name">{{ $t(`prayerTimes.prayers.${nextPrayer.name}`) }}</span>
+          <span class="next-prayer-time" v-if="prayerTimes && nextPrayer.name">
+            ({{ formatPrayerTime(
+              nextPrayer.name === 'fajr' ? prayerTimes.fajir :
+              nextPrayer.name === 'dhuhr' ? prayerTimes.doher :
+              prayerTimes.maghrib, 
+              nextPrayer.name) }})
+          </span>
         </div>
         <div class="countdown-timer">{{ nextPrayer.countdown }}</div>
       </div>
@@ -92,13 +99,13 @@
           <div class="prayer-name">
             <span class="arabic-name">{{ $t('prayerTimes.prayers.fajr') }}</span>
           </div>
-          <div class="prayer-time">{{ prayerTimes?.fajir || '--:--' }}</div>
+          <div class="prayer-time">{{ formatPrayerTime(prayerTimes?.fajir, 'fajr') }}</div>
         </div>
 
         <div class="sun-card sunrise">
           <div class="sun-info">
             <span class="sun-label">{{ $t('prayerTimes.prayers.sunrise') }}</span>
-            <span class="sun-time">{{ prayerTimes?.sunrise || '--:--' }}</span>
+            <span class="sun-time">{{ formatPrayerTime(prayerTimes?.sunrise, 'sunrise') }}</span>
           </div>
         </div>
 
@@ -106,13 +113,13 @@
           <div class="prayer-name">
             <span class="arabic-name">{{ $t('prayerTimes.prayers.dhuhr') }}</span>
           </div>
-          <div class="prayer-time">{{ prayerTimes?.doher || '--:--' }}</div>
+          <div class="prayer-time">{{ formatPrayerTime(prayerTimes?.doher, 'dhuhr') }}</div>
         </div>
 
         <div class="sun-card sunset">
           <div class="sun-info">
             <span class="sun-label">{{ $t('prayerTimes.prayers.sunset') }}</span>
-            <span class="sun-time">{{ prayerTimes?.sunset || '--:--' }}</span>
+            <span class="sun-time">{{ formatPrayerTime(prayerTimes?.sunset, 'sunset') }}</span>
           </div>
         </div>
 
@@ -120,7 +127,7 @@
           <div class="prayer-name">
             <span class="arabic-name">{{ $t('prayerTimes.prayers.maghrib') }}</span>
           </div>
-          <div class="prayer-time">{{ prayerTimes?.maghrib || '--:--' }}</div>
+          <div class="prayer-time">{{ formatPrayerTime(prayerTimes?.maghrib, 'maghrib') }}</div>
         </div>
       </div>
     </div>
@@ -141,7 +148,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { ref, onMounted, computed, onUnmounted, nextTick, watch } from 'vue'
 import MapSelector from './MapSelector.vue'
 
 // Iraqi governorates with their coordinates
@@ -222,6 +229,8 @@ export default {
         const data = await response.json()
         prayerTimes.value = data
         calculateNextPrayer()
+        // Add a delay to ensure the DOM has updated with new values
+        setTimeout(adjustTextSizes, 100);
       } catch (error) {
         console.error('Error fetching prayer times:', error)
         prayerTimes.value = null
@@ -340,21 +349,52 @@ export default {
 
       const now = new Date()
       
-      // Define prayer times with their AM/PM rules
+      // Define prayer times with their expected time ranges
       const prayers = [
-        { name: 'fajr', time: prayerTimes.value.fajir, isAM: true }, // Fajr is always AM
-        { name: 'dhuhr', time: prayerTimes.value.doher, isAM: false }, // Dhuhr is always PM
-        { name: 'maghrib', time: prayerTimes.value.maghrib, isAM: false } // Maghrib is always PM
+        { name: 'fajr', time: prayerTimes.value.fajir }, // Fajr is early morning (AM)
+        { name: 'dhuhr', time: prayerTimes.value.doher }, // Dhuhr is around noon
+        { name: 'maghrib', time: prayerTimes.value.maghrib } // Maghrib is evening (PM)
       ]
 
-      // Convert prayer times to Date objects with proper AM/PM handling
+      // Convert prayer times to Date objects with correct 24-hour format
       const prayerDates = prayers.map(prayer => {
-        const [hours, minutes] = prayer.time.trim().split(':').map(Number)
+        const [hoursStr, minutesStr] = prayer.time.trim().split(':')
+        let hours = parseInt(hoursStr, 10)
+        const minutes = parseInt(minutesStr, 10)
         const date = new Date()
         
-        // Convert to 24-hour format if PM
-        const adjustedHours = prayer.isAM ? hours : (hours === 12 ? 12 : hours + 12)
-        date.setHours(adjustedHours, minutes, 0)
+        // Apply time conversion rules based on prayer name and time patterns
+        // Note: API returns times in 12-hour format without AM/PM indicators
+        switch (prayer.name) {
+          case 'fajr':
+            // Fajr is before sunrise (AM)
+            // 12 should be treated as 12 AM (0 in 24-hour)
+            if (hours === 12) hours = 0
+            break;
+            
+          case 'dhuhr':
+            // Dhuhr is midday
+            // If hours is 12, keep as 12 PM (noon)
+            // If hours < 12, it's AM before noon (common in many regions)
+            // Only convert to PM if specifically needed
+            if (hours === 12) {
+              // 12 PM (noon), no change needed
+            } 
+            // No else condition here as we keep hours < 12 in AM format
+            break;
+            
+          case 'maghrib':
+            // Maghrib is after sunset (PM)
+            // If it's 12, keep it as 12 PM
+            // Otherwise convert to PM unless already in 24-hour format
+            if (hours !== 12 && hours < 12) {
+              hours += 12
+            }
+            break;
+        }
+        
+        // Set the time components on our date object
+        date.setHours(hours, minutes, 0, 0)
         
         // If prayer time has passed for today, set it for tomorrow
         if (date < now) {
@@ -364,13 +404,11 @@ export default {
         return { ...prayer, date }
       })
 
-      // Find next prayer (closest future prayer time)
-      const next = prayerDates.reduce((closest, prayer) => {
-        if (!closest || prayer.date < closest.date) {
-          return prayer
-        }
-        return closest
-      }, null)
+      // Sort by closest future time
+      prayerDates.sort((a, b) => a.date - b.date)
+      
+      // The first prayer in the sorted array is the next one
+      const next = prayerDates[0]
       
       if (next) {
         const timeDiff = next.date - now
@@ -400,15 +438,24 @@ export default {
           const timeDiff = nextPrayer.value.date - now
           
           if (timeDiff <= 0) {
-            // Time for prayer has come, recalculate next prayer
+            // Prayer time has arrived - recalculate next prayer
             calculateNextPrayer()
+            
+            // If we have prayer times but failed to calculate next prayer,
+            // try again in case there was a timing issue
+            if (!nextPrayer.value && prayerTimes.value) {
+              setTimeout(calculateNextPrayer, 1000)
+            }
           } else {
-            // Update the countdown
+            // Just update the countdown display
             nextPrayer.value = {
               ...nextPrayer.value,
               countdown: formatCountdown(timeDiff)
             }
           }
+        } else if (prayerTimes.value) {
+          // If we have prayer times but no next prayer, try to calculate it
+          calculateNextPrayer()
         }
       }, 1000)
     })
@@ -432,18 +479,82 @@ export default {
       }
     }
 
+    // Add a function to automatically adjust text size based on container width
+    const adjustTextSizes = async () => {
+      // Wait for DOM to update
+      await nextTick();
+      
+      // Set standard font sizes
+      const standardFontSize = {
+        '.prayer-name .arabic-name': '1.5rem',
+        '.sun-label': '1.5rem',
+        '.prayer-time': '1.5rem', 
+        '.sun-time': '1.5rem',
+        '.next-prayer-name .arabic-prayer-name': '1.5rem',
+        '.countdown-timer': '2.5rem'
+      };
+      
+      // Reset all elements to standard sizes
+      Object.entries(standardFontSize).forEach(([selector, size]) => {
+        document.querySelectorAll(selector).forEach(el => {
+          el.style.fontSize = size;
+        });
+      });
+      
+      // Wait for sizes to apply
+      await nextTick();
+    };
+
+    // Multiple lifecycle hooks where we need to check/adjust text sizes
     onMounted(() => {
-      // Try to get current location on initial load
-      getCurrentLocation()
+      // Existing mounted code
+      getCurrentLocation();
       
       // Add event listener for clicking outside dropdown
-      document.addEventListener('click', handleClickOutside)
-    })
-
-    onUnmounted(() => {
-      // Remove event listener
-      document.removeEventListener('click', handleClickOutside)
-    })
+      document.addEventListener('click', handleClickOutside);
+      
+      // Set up resize observer to adjust text on container resize
+      const resizeObserver = new ResizeObserver(() => {
+        setTimeout(adjustTextSizes, 100); // Small delay to let DOM update
+      });
+      
+      // Adjust text size after component has fully rendered
+      setTimeout(adjustTextSizes, 500); // Longer delay for initial render
+      
+      // Observe both card containers for size changes
+      const containers = document.querySelectorAll('.prayer-card, .main-prayers, .prayer-item, .sun-card');
+      containers.forEach(container => {
+        if (container) {
+          resizeObserver.observe(container);
+        }
+      });
+      
+      // Handle window resize
+      const handleResize = () => {
+        setTimeout(adjustTextSizes, 100);
+      };
+      
+      // Also observe window resize
+      window.addEventListener('resize', handleResize);
+      
+      // Clean up
+      onUnmounted(() => {
+        document.removeEventListener('click', handleClickOutside);
+        window.removeEventListener('resize', handleResize);
+        resizeObserver.disconnect();
+      });
+    });
+    
+    // Adjust text sizes whenever prayer times change
+    const watchPrayerTimes = (val) => {
+      if (val) {
+        // Slight delay to let the DOM update
+        setTimeout(adjustTextSizes, 100);
+      }
+    };
+    
+    // Add watcher for prayer times data
+    watch(() => prayerTimes.value, watchPrayerTimes);
 
     const handleLocationSelected = (location) => {
       // Reset error and loading states
@@ -463,6 +574,56 @@ export default {
       fetchPrayerTimes()
     }
 
+    const formatPrayerTime = (timeString, prayerName) => {
+      if (!timeString) return '--:--'
+      
+      const [hoursStr, minutesStr] = timeString.trim().split(':')
+      let hours = parseInt(hoursStr, 10)
+      const minutes = parseInt(minutesStr, 10)
+      let period = ''
+      
+      // Determine the correct period based on prayer name
+      switch (prayerName) {
+        case 'fajr':
+        case 'sunrise':
+          // Morning prayers are always AM
+          period = ' AM'
+          // If 12 AM is shown as 12, display as 12 AM
+          // Otherwise convert 24-hour format to 12-hour if needed
+          if (hours > 12) hours = hours % 12
+          break
+          
+        case 'dhuhr':
+          // Dhuhr (noon prayer) depends on time:
+          // If it's exactly 12, it's PM (noon)
+          // If it's before 12, it's AM (common in many regions)
+          if (hours === 12) {
+            period = ' PM'
+          } else {
+            period = ' AM'
+            // Convert from 24-hour format if needed
+            if (hours > 12) {
+              hours = hours % 12
+              period = ' PM'  // After noon is PM
+            }
+          }
+          break
+          
+        case 'sunset':
+        case 'maghrib':
+          // Evening prayers are always PM
+          period = ' PM'
+          // Convert to 12-hour format if in 24-hour
+          if (hours > 12) hours = hours % 12
+          // If it's shown as 0, display as 12 PM
+          if (hours === 0) hours = 12
+          break
+      }
+      
+      // Format with leading zeros for minutes
+      return `${hours}:${minutes.toString().padStart(2, '0')}${period}`
+    }
+
     return {
       prayerTimes,
       currentDate,
@@ -480,7 +641,9 @@ export default {
       isNextPrayer,
       showMapSelector,
       handleLocationSelected,
-      isLoadingPrayerTimes
+      isLoadingPrayerTimes,
+      formatPrayerTime,
+      adjustTextSizes
     }
   }
 }
@@ -664,7 +827,7 @@ export default {
   text-align: center;
   box-shadow: 0 4px 15px rgba(var(--primary-color-rgb), 0.3);
   position: relative;
-  animation: breathing 4s infinite ease-in-out;
+  width: 100%;
   overflow: visible;
 }
 
@@ -678,7 +841,6 @@ export default {
   border-radius: 12px;
   background: inherit;
   z-index: -1;
-  animation: pulse-shadow 4s infinite ease-in-out;
   filter: blur(10px);
   opacity: 0.7;
   transform-origin: center;
@@ -694,7 +856,6 @@ export default {
   border-radius: 15px;
   border: 2px solid rgba(255, 255, 255, 0.7);
   opacity: 0.8;
-  animation: pulse-border 4s infinite ease-in-out;
   z-index: 1;
   pointer-events: none;
 }
@@ -713,24 +874,42 @@ export default {
   justify-content: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .next-prayer-name .arabic-prayer-name {
   font-family: var(--arabic-font);
-  font-size: 2rem;
+  font-size: 1.5rem;
   color: white;
+  max-width: 100%;
+  overflow: visible;
+  white-space: normal;
+  transition: font-size 0.2s ease;
+  line-height: 1.2;
+}
+
+.next-prayer-time {
+  font-size: 1rem;
+  opacity: 0.8;
+  margin-left: 0.5rem;
+  max-width: 100%;
+  overflow: visible;
+  white-space: normal;
+  transition: font-size 0.2s ease;
 }
 
 .countdown-timer {
   font-family: monospace;
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: bold;
   color: white;
   letter-spacing: 2px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  white-space: normal;
+  transition: font-size 0.2s ease;
+  line-height: 1.1;
 }
 
 /* Main Prayer Times Grid */
@@ -738,26 +917,38 @@ export default {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .prayer-item {
   background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.5rem 0.75rem;
   text-align: center;
   transition: all 0.3s ease;
   color: white;
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  word-break: break-word;
+  overflow: hidden;
+  height: 100%; /* Ensure consistent height */
+  min-height: 120px; /* Minimum height to ensure content fits */
 }
 
 .prayer-item.next-prayer {
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-  transform: translateY(-4px);
-  box-shadow: 0 4px 15px rgba(var(--primary-color-rgb), 0.2);
-  animation: breathing 4s infinite ease-in-out;
+  box-shadow: 0 4px 15px rgba(var(--primary-color-rgb), 0.4);
   position: relative;
   overflow: visible;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  transform: translateY(-2px);
 }
 
 .prayer-item.next-prayer::before {
@@ -770,7 +961,6 @@ export default {
   border-radius: 12px;
   background: inherit;
   z-index: -1;
-  animation: pulse-shadow 4s infinite ease-in-out;
   filter: blur(10px);
   opacity: 0.7;
   transform-origin: center;
@@ -786,7 +976,6 @@ export default {
   border-radius: 15px;
   border: 2px solid rgba(255, 255, 255, 0.7);
   opacity: 0.8;
-  animation: pulse-border 4s infinite ease-in-out;
   z-index: 1;
   pointer-events: none;
 }
@@ -809,21 +998,32 @@ export default {
   flex-direction: column;
   gap: 0.25rem;
   margin-bottom: 1rem;
+  width: 100%;
+  overflow: visible;
 }
 
 .prayer-name .arabic-name {
   font-family: var(--arabic-font);
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   color: white;
+  width: 100%;
+  overflow: visible;
+  white-space: normal;
+  transition: font-size 0.2s ease;
+  line-height: 1.2;
 }
 
 .prayer-time {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: bold;
   color: white;
   font-family: monospace;
   margin-top: 0.5rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  overflow: visible;
+  white-space: normal;
+  transition: font-size 0.2s ease;
 }
 
 .prayer-item.next-prayer .prayer-time {
@@ -832,7 +1032,7 @@ export default {
 
 /* Sun Cards Styles */
 .sun-card {
-  padding: 1.5rem;
+  padding: 1.5rem 0.75rem;
   text-align: center;
   color: white;
   display: flex;
@@ -842,6 +1042,10 @@ export default {
   border-radius: 12px;
   transition: all 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  min-width: 0;
+  word-break: break-word;
+  overflow: hidden;
+  min-height: 120px; /* Minimum height to ensure content fits */
 }
 
 .sun-card.sunrise {
@@ -856,74 +1060,98 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  width: 100%;
+  overflow: hidden;
 }
 
 .sun-label {
   font-family: var(--arabic-font);
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   color: white;
   font-weight: 500;
+  width: 100%;
+  overflow: visible;
+  white-space: normal;
+  transition: font-size 0.2s ease;
+  line-height: 1.2;
 }
 
 .sun-time {
   font-family: monospace;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: bold;
   letter-spacing: 1px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  overflow: visible;
+  white-space: normal;
+  transition: font-size 0.2s ease;
+}
+
+@media (max-width: 1200px) {
+  .main-prayers {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .prayer-item, .sun-card {
+    min-height: 110px;
+  }
 }
 
 @media (max-width: 1024px) {
-  .main-prayers {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .prayer-time, .sun-time {
-    font-size: 1.5rem;
-  }
-
-  .prayer-name .arabic-name {
-    font-size: 1.5rem;
+  .prayer-item, .sun-card {
+    padding: 1.25rem 0.75rem;
+    min-height: 110px;
   }
   
   .countdown-timer {
-    font-size: 2.5rem;
-    letter-spacing: 1px;
+    font-size: 2.25rem;
   }
 }
 
 @media (max-width: 768px) {
   .main-prayers {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
 
-  .prayer-time, .sun-time {
-    font-size: 1.25rem;
-  }
-
-  .prayer-name .arabic-name {
-    font-size: 1.25rem;
+  .prayer-item, .sun-card {
+    padding: 1.25rem 0.75rem;
+    min-height: 100px;
   }
   
   .countdown-timer {
     font-size: 2rem;
-    letter-spacing: 0;
   }
 }
 
 @media (max-width: 480px) {
+  .main-prayers {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .prayer-item, .sun-card {
+    padding: 1.25rem 1rem;
+    min-height: 90px;
+  }
+  
   .countdown-timer {
-    font-size: 1.5rem;
-    word-break: break-word;
+    font-size: 1.75rem;
   }
   
   .next-prayer-section {
     padding: 1.25rem 1rem;
   }
   
-  .next-prayer-name .arabic-prayer-name {
-    font-size: 1.75rem;
+  .next-prayer-name {
+    flex-direction: column;
+  }
+  
+  .next-prayer-time {
+    margin-left: 0;
+    margin-top: 0.25rem;
   }
 }
 
@@ -960,35 +1188,6 @@ export default {
 @keyframes spin {
   to {
     transform: rotate(360deg);
-  }
-}
-
-@keyframes breathing {
-  0%, 100% {
-    transform: translateY(-4px) scale(1);
-  }
-  50% {
-    transform: translateY(-4px) scale(1.03);
-  }
-}
-
-@keyframes pulse-shadow {
-  0%, 100% {
-    transform: scale(0.95);
-    opacity: 0.4;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.7;
-  }
-}
-
-@keyframes pulse-border {
-  0%, 100% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
   }
 }
 

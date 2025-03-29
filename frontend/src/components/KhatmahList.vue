@@ -20,6 +20,8 @@ const currentPage = ref(1);
 const pageSize = ref(12);
 // Add state for local storage participations
 const myParticipations = ref([]);
+// Add loading state
+const isLoading = ref(true);
 
 // Computed property for filtered khatmahs
 const filteredKhatmahs = computed(() => {
@@ -149,7 +151,12 @@ async function changePage(page) {
   }
   
   currentPage.value = page;
-  await store.fetchKhatmahs(page, pageSize.value);
+  isLoading.value = true;
+  try {
+    await store.fetchKhatmahs(page, pageSize.value);
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 async function goToNextPage() {
@@ -193,13 +200,23 @@ onUnmounted(() => {
 watch(searchQuery, async () => {
   if (currentPage.value !== 1) {
     currentPage.value = 1;
-    await store.fetchKhatmahs(1, pageSize.value);
+    isLoading.value = true;
+    try {
+      await store.fetchKhatmahs(1, pageSize.value);
+    } finally {
+      isLoading.value = false;
+    }
   }
 });
 
 // Initial fetch with pagination
 onMounted(async () => {
-  await store.fetchKhatmahs(currentPage.value, pageSize.value);
+  isLoading.value = true;
+  try {
+    await store.fetchKhatmahs(currentPage.value, pageSize.value);
+  } finally {
+    isLoading.value = false;
+  }
 });
 </script>
 
@@ -366,8 +383,17 @@ onMounted(async () => {
       </div>
     </div>
     
-    <!-- No Results Message -->
-    <div v-if="filteredKhatmahs.length === 0" class="bg-gray-50 rounded-lg p-8 text-center">
+    <!-- Loading indicator (instead of No Results Message) -->
+    <div v-if="isLoading" class="bg-gray-50 rounded-lg p-8 text-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">{{ t('khatmahList.loading') || 'Loading Khatmahs' }}</h3>
+      <p class="text-gray-500 mb-4">
+        {{ t('khatmahList.pleaseWait') || 'Please wait while we load the khatmahs...' }}
+      </p>
+    </div>
+    
+    <!-- No Results Message (Only show when not loading) -->
+    <div v-else-if="filteredKhatmahs.length === 0" class="bg-gray-50 rounded-lg p-8 text-center">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>

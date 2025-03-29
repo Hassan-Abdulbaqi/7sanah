@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'drf_spectacular',
     'api',
 ]
 
@@ -50,10 +51,31 @@ INSTALLED_APPS = [
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow all origins in DEBUG mode
 CORS_ALLOWED_ORIGINS = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
 
+# API Documentation settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': '7sanah API',
+    'DESCRIPTION': 'API for Hijri Calendar and Qibla Direction',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    }
+}
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',  # 100 requests per day for anonymous users
+        'user': '1000/day'  # 1000 requests per day for authenticated users
+    },
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 9,
 }
@@ -145,7 +167,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Media files (Uploaded files)
-MEDIA_URL = '/media/'
+MEDIA_URL = 'https://api.7sanah.com/media/'  # Update this to use HTTPS
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
@@ -155,7 +177,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Security settings for production
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000  # 1 year
@@ -198,3 +219,12 @@ if 'corsheaders' not in INSTALLED_APPS:
 
 # The CorsMiddleware is already placed at the beginning of MIDDLEWARE
 # No need to check or modify it here
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
+
+# Cache timeout in seconds (24 hours)
+CACHE_TTL = 60 * 60 * 24

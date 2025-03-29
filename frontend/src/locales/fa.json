@@ -139,7 +139,9 @@
     "completed": "تکمیل شده",
     "noKhatmahs": "هیچ ختمی یافت نشد",
     "noKhatmahsMatch": "هیچ ختمی با جستجوی شما مطابقت ندارد برای",
-    "noKhatmahsAvailable": "هنوز هیچ ختمی در دسترس نیست"
+    "noKhatmahsAvailable": "هنوز هیچ ختمی در دسترس نیست",
+    "loading": "در حال بارگذاری ختم‌ها...",
+    "pleaseWait": "لطفاً صبر کنید در حالی که ختم‌ها بارگذاری می‌شوند..."
   },
   "khatmahDetail": {
     "title": "جزئیات ختم",
