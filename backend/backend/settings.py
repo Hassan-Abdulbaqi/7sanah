@@ -60,7 +60,10 @@ SPECTACULAR_SETTINGS = {
     'COMPONENT_SPLIT_REQUEST': True,
     'SWAGGER_UI_SETTINGS': {
         'persistAuthorization': True,
-    }
+    },
+    # Filter endpoints to only show Hijri calendar and Qibla direction public APIs
+    'PREPROCESSING_HOOKS': ['api.schema.spectacular_preprocessing_hook'],
+    'POSTPROCESSING_HOOKS': ['api.schema.spectacular_postprocessing_hook'],
 }
 
 REST_FRAMEWORK = {

@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
@@ -690,14 +690,22 @@ class HijriMonthPagination(PageNumberPagination):
 
 
 class HijriMonthViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for Hijri months.
+    
+    Provides read-only access to Hijri month data.
+    """
     queryset = HijriMonth.objects.all()
     pagination_class = HijriMonthPagination
-    
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ['get']  # Only allow GET requests
+    tags = ['Hijri Calendar']
+
     def get_serializer_class(self):
-        if self.action == 'list':
-            return HijriMonthListSerializer
-        return HijriMonthDetailSerializer
-    
+        if self.action == 'retrieve':
+            return HijriMonthDetailSerializer
+        return HijriMonthListSerializer
+
     @action(detail=False, methods=['get'])
     def by_number(self, request):
         """Get a Hijri month by its number and year"""
@@ -809,9 +817,17 @@ class HijriMonthViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class HijriEventViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for Hijri events.
+    
+    Provides read-only access to Hijri events data.
+    """
     queryset = HijriEvent.objects.all()
     serializer_class = HijriEventSerializer
-    
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ['get']  # Only allow GET requests
+    tags = ['Hijri Calendar']
+
     @action(detail=False, methods=['get'])
     def by_month(self, request):
         """Get events for a specific Hijri month"""
@@ -836,9 +852,17 @@ class HijriEventViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 class AstronomicalEventViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for astronomical events.
+    
+    Provides read-only access to astronomical events data.
+    """
     queryset = AstronomicalEvent.objects.all()
     serializer_class = AstronomicalEventSerializer
-    
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ['get']  # Only allow GET requests
+    tags = ['Hijri Calendar']
+
     @action(detail=False, methods=['get'])
     def by_month(self, request):
         """Get astronomical events for a specific Hijri month"""
@@ -854,7 +878,20 @@ class AstronomicalEventViewSet(viewsets.ModelViewSet):
 @api_view(['GET'])
 def get_hijri_calendar(request):
     """
-    Get Hijri calendar data for a specific month or the current month
+    Get Hijri calendar data for a specific month or the current month.
+    
+    This endpoint provides comprehensive Hijri calendar data including:
+    - Month details (name, number, year)
+    - Gregorian date range
+    - Hijri events for the month
+    - Astronomical events for the month
+    
+    Query Parameters:
+    - month_number: Optional. The Hijri month number (1-12)
+    - year: Optional. The Hijri year
+    - month_name: Optional. The name of the Hijri month in English or Arabic
+    
+    If no parameters are provided, returns data for the current Hijri month.
     """
     month_name = request.query_params.get('month')
     month_number = request.query_params.get('month_number')
@@ -1026,7 +1063,19 @@ def get_hijri_calendar(request):
 @api_view(['GET'])
 def get_qibla_direction(request, latitude, longitude):
     """
-    Calculate Qibla direction (angle from North) for a given location
+    Calculate Qibla direction (angle from North) for a given location.
+    
+    This endpoint calculates the direction to the Kaaba (Qibla) from any location
+    on Earth using the great circle method.
+    
+    Path Parameters:
+    - latitude: The latitude of the location in decimal degrees
+    - longitude: The longitude of the location in decimal degrees
+    
+    Returns:
+    - qibla_angle: The angle in degrees from North to the Qibla direction
+    - kaaba_distance: The distance to the Kaaba in kilometers
+    
     Kaaba coordinates: 21.422487, 39.826206
     """
     try:

@@ -8,13 +8,13 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'khatmahs', KhatmahViewSet)
-router.register(r'participants', ParticipantViewSet)
-router.register(r'assignments', JuzAssignmentViewSet)
-router.register(r'surah-assignments', SurahAssignmentViewSet)
-router.register(r'hijri-months', HijriMonthViewSet)
-router.register(r'hijri-events', HijriEventViewSet)
-router.register(r'astronomical-events', AstronomicalEventViewSet)
+router.register(r'khatmahs', KhatmahViewSet, basename='khatmahs')
+router.register(r'participants', ParticipantViewSet, basename='participants')
+router.register(r'assignments', JuzAssignmentViewSet, basename='assignments')
+router.register(r'surah-assignments', SurahAssignmentViewSet, basename='surah-assignments')
+router.register(r'hijri-months', HijriMonthViewSet, basename='hijri-months')
+router.register(r'hijri-events', HijriEventViewSet, basename='hijri-events')
+router.register(r'astronomical-events', AstronomicalEventViewSet, basename='astronomical-events')
 
 # Common API patterns
 api_patterns = [
